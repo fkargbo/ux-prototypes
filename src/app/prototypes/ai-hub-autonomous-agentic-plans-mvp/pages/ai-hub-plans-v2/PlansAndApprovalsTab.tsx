@@ -4543,7 +4543,25 @@ const RemediationOptionCard: React.FC<{
             />
           )}
 
-          {/* ── C. Proposed / executed commands ── */}
+          {/* ── C. Required permissions (RBAC) ── */}
+          {option.rbac ? (
+            <RbacPermissionsSection rbac={option.rbac} optionId={option.id} />
+          ) : (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>Required permissions</Content>
+              <Alert
+                variant="info"
+                isInline
+                isPlain
+                title="Standard Agent Permissions"
+              >
+                Uses the default cluster Agent Service Account rules. No additional privileges are declared for this option.
+              </Alert>
+            </div>
+          )}
+
+          {/* ── D. Proposed / executed commands ── */}
           <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
             <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
             <Content
@@ -4626,25 +4644,7 @@ const RemediationOptionCard: React.FC<{
             )}
           </div>
 
-          {/* ── C.5 Required permissions (RBAC) ── */}
-          {option.rbac ? (
-            <RbacPermissionsSection rbac={option.rbac} optionId={option.id} />
-          ) : (
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
-              <Content component="small" style={SECTION_OVERLINE_STYLE}>Required permissions</Content>
-              <Alert
-                variant="info"
-                isInline
-                isPlain
-                title="Standard Agent Permissions"
-              >
-                Uses the default cluster Agent Service Account rules. No additional privileges are declared for this option.
-              </Alert>
-            </div>
-          )}
-
-          {/* ── D. Rollback plan — shown after execution ── */}
+          {/* ── E. Rollback plan — shown after execution ── */}
           {showEvidenceTrail && (() => {
             const rollback = resolveOptionRollbackPlan(plan.id, option);
             if (!rollback) return null;
@@ -4684,7 +4684,7 @@ const RemediationOptionCard: React.FC<{
             );
           })()}
 
-          {/* ── E. Verification steps — shown after execution ── */}
+          {/* ── F. Verification steps — shown after execution ── */}
           {showEvidenceTrail && option.verificationSteps && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
               <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
