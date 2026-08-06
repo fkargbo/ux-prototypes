@@ -3312,10 +3312,15 @@ const ExecutionSummaryCard: React.FC<{
   const summary = PLAN_EXECUTION_SUMMARY[plan.id];
 
   return (
-    <Card style={{ borderRadius: '16px' }}>
-      <CardHeader>
-        <Title headingLevel="h4" size="md">Execution</Title>
-      </CardHeader>
+    <>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+      >
+        <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>Execution</Title>
+      </Flex>
+      <Card style={{ borderRadius: '16px' }}>
       <CardBody>
         {/* ── Contextual evidence ── */}
         <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
@@ -3413,6 +3418,7 @@ const ExecutionSummaryCard: React.FC<{
         )}
       </CardBody>
     </Card>
+    </>
   );
 };
 
@@ -3430,13 +3436,16 @@ const VerificationSummaryCard: React.FC<{
   const summary = PLAN_VERIFICATION_SUMMARY[plan.id];
 
   return (
-    <Card style={{ borderRadius: '16px' }}>
-      <CardHeader>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <FlexItem><Title headingLevel="h4" size="md">Verification summary</Title></FlexItem>
-          <FlexItem><Label color="purple" isCompact>AI-generated</Label></FlexItem>
-        </Flex>
-      </CardHeader>
+    <>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+      >
+        <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>Verification summary</Title>
+        <Label color="grey" isCompact>AI-generated</Label>
+      </Flex>
+      <Card style={{ borderRadius: '16px' }}>
       <CardBody>
         {/* ── Outcome assessment ── */}
         <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
@@ -3529,6 +3538,7 @@ const VerificationSummaryCard: React.FC<{
         )}
       </CardBody>
     </Card>
+    </>
   );
 };
 
