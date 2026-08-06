@@ -874,7 +874,7 @@ const ALL_PLANS: RawPlanRow[] = [
     synopsis: 'Grafana Database WAL Lock Recovery Escalated',
     consolidationScope: '3 Failed Execution Attempts',
     triggerDomain: 'Observability',
-    drawerTargets: ['openshift-monitoring'],
+    drawerTargets: ['prod-east-1'],
     expandedReasons: [
       { icon: 'alert', text: 'GrafanaDown: Grafana startup blocked by stale SQLite WAL lock on PVC.' },
       { icon: 'ban', text: 'MaxRetriesExhausted: escalation_request.tmpl type mismatch on StepResultRef — manual policy paused handoff.' },
