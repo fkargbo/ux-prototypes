@@ -5200,76 +5200,58 @@ export const RemediationBlueprintPanel: React.FC<{
               })}
             </Stack>
           ) : isTerminal ? (
-            <Stack hasGutter>
+            <>
               {terminalVisibleOptions.length > 0 && (
-                <StackItem>
-                  <Stack hasGutter>
-                    {terminalVisibleOptions.map((opt) => {
-                      const optionIndex = options.findIndex((o) => o.id === opt.id);
-                      return (
-                        <StackItem key={opt.id}>
-                          <RemediationOptionCard
-                            option={opt}
-                            index={optionIndex}
-                            plan={plan}
-                            isSelected
-                            isAgenticAutomationEnabled={isAgenticAutomationEnabled}
-                            onSelect={setSelectedOptionId}
-                            isExecutionPhase={false}
-                            isOptionLocked={false}
-                            showExecutionLog={false}
-                            rootCause={opt.diagnosis}
-                            approval={workflow.executionApproval}
-                            verification={workflow.verification}
-                          />
-                        </StackItem>
-                      );
-                    })}
-                  </Stack>
-                </StackItem>
+                <Stack hasGutter>
+                  {terminalVisibleOptions.map((opt) => {
+                    const optionIndex = options.findIndex((o) => o.id === opt.id);
+                    return (
+                      <StackItem key={opt.id}>
+                        <RemediationOptionCard
+                          option={opt}
+                          index={optionIndex}
+                          plan={plan}
+                          isSelected
+                          isAgenticAutomationEnabled={isAgenticAutomationEnabled}
+                          onSelect={setSelectedOptionId}
+                          isExecutionPhase={false}
+                          isOptionLocked={false}
+                          showExecutionLog={false}
+                          rootCause={opt.diagnosis}
+                          approval={workflow.executionApproval}
+                          verification={workflow.verification}
+                        />
+                      </StackItem>
+                    );
+                  })}
+                </Stack>
               )}
               {terminalVisibleOptions.length === 0 && (
-                <StackItem>
-                  <TerminalEvidenceCard plan={plan} />
-                </StackItem>
+                <TerminalEvidenceCard plan={plan} />
               )}
-              <StackItem>
-                <ExecutionSummaryCard plan={plan} executionLog={summaryExecutionLog} />
-              </StackItem>
-              <StackItem>
-                <VerificationSummaryCard plan={plan} verificationLog={summaryVerificationLog} />
-              </StackItem>
-            </Stack>
+            </>
           ) : isVerifying && verificationState ? (
-            <Stack hasGutter>
-              <StackItem>
-                <VerificationPanel
-                  verification={verificationState}
-                  isLive={Boolean(workflow.verification) && !showStaticVerification && isAgenticAutomationEnabled}
-                  onComplete={verificationPolicy === 'auto' ? handleVerificationComplete : undefined}
-                />
-                {/* Manual verification gate: SRE triggers health check and marks resolved */}
-                {verificationPolicy === 'manual' && !workflow.verification?.outcome && (
-                  <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                    <FlexItem>
-                      <Button
-                        variant="primary"
-                        isDisabled={!isAgenticAutomationEnabled}
-                        onClick={handleVerificationComplete}
-                      >
-                        Approve verification
-                      </Button>
-                    </FlexItem>
-                  </Flex>
-                )}
-              </StackItem>
-              <StackItem>
-                <ExecutionSummaryCard plan={plan} executionLog={summaryExecutionLog} />
-              </StackItem>
-              <StackItem>
-                <VerificationSummaryCard plan={plan} verificationLog={summaryVerificationLog} />
-              </StackItem>
-            </Stack>
+            <>
+              <VerificationPanel
+                verification={verificationState}
+                isLive={Boolean(workflow.verification) && !showStaticVerification && isAgenticAutomationEnabled}
+                onComplete={verificationPolicy === 'auto' ? handleVerificationComplete : undefined}
+              />
+              {/* Manual verification gate: SRE triggers health check and marks resolved */}
+              {verificationPolicy === 'manual' && !workflow.verification?.outcome && (
+                <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                  <FlexItem>
+                    <Button
+                      variant="primary"
+                      isDisabled={!isAgenticAutomationEnabled}
+                      onClick={handleVerificationComplete}
+                    >
+                      Approve verification
+                    </Button>
+                  </FlexItem>
+                </Flex>
+              )}
+            </>
           ) : (
             <>
               {retryBanner && (
@@ -5308,11 +5290,6 @@ export const RemediationBlueprintPanel: React.FC<{
                   })}
                 </Stack>
               </div>
-
-              {/* ── Execution Summary Card (live during Executing phase) ─────── */}
-              {isExecuting && (
-                <ExecutionSummaryCard plan={plan} executionLog={summaryExecutionLog} />
-              )}
 
               {/* ── Execution policy: auto-queued status ─────────────────────── */}
               {isProposed && isAutoExecuteQueued && (
@@ -5571,6 +5548,20 @@ export const RemediationBlueprintPanel: React.FC<{
           </ModalFooter>
         </Modal>
       </StackItem>
+
+      {/* ── Execution Summary Card ─────────────────────────────────────── */}
+      {(isExecuting || isVerifying || isTerminal) && (
+        <StackItem>
+          <ExecutionSummaryCard plan={plan} executionLog={summaryExecutionLog} />
+        </StackItem>
+      )}
+
+      {/* ── Verification Summary Card ───────────────────────────────────── */}
+      {(isVerifying || isTerminal) && (
+        <StackItem>
+          <VerificationSummaryCard plan={plan} verificationLog={summaryVerificationLog} />
+        </StackItem>
+      )}
 
       {/* ── Escalate to human action (Failed state only) ──────────────── */}
       {status === 'Failed' && (
