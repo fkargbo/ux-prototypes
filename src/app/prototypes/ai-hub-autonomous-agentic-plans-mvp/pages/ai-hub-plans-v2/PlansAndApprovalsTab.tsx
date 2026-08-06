@@ -4179,103 +4179,97 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
         {rbac.summary}
       </Content>
 
-      {/* Expandable permission table */}
+      {/* Expandable permission table — one independent table per scope group */}
       <ExpandableSection
         toggleText={isExpanded ? 'Hide permission details' : 'View permission details'}
         isExpanded={isExpanded}
         onToggle={(_e, expanded) => setIsExpanded(expanded)}
       >
-        <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-          <Table variant="compact" aria-label={`RBAC permissions for option ${optionId}`}>
-            <Thead>
-              <Tr>
-                <Th>Resource</Th>
-                <Th>Verbs</Th>
-                <Th>Purpose</Th>
-              </Tr>
-            </Thead>
-            {rbac.namespaceScope && nsRules.length > 0 && (
-              <Tbody>
-                <Tr>
-                  <Td
-                    colSpan={3}
-                    style={{
-                      background: 'var(--pf-t--global--background--color--secondary--default)',
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      color: 'var(--pf-t--global--text--color--subtle)',
-                      padding: '4px 12px',
-                    }}
-                  >
-                    Namespace: {rbac.namespaceScope.namespace}
-                  </Td>
-                </Tr>
-                {nsRules.map((rule, i) => (
-                  <Tr key={`ns-${i}`}>
-                    <Td>
-                      <code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code>
-                    </Td>
-                    <Td>
-                      <code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code>
-                    </Td>
-                    <Td>
-                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                        <FlexItem>{rule.purpose}</FlexItem>
-                        {rule.isWrite && (
-                          <FlexItem>
-                            <Label color="orange" isCompact>write</Label>
-                          </FlexItem>
-                        )}
-                      </Flex>
-                    </Td>
+        <Stack style={{ marginTop: 'var(--pf-t--global--spacer--sm)', gap: 'var(--pf-t--global--spacer--md)' }}>
+          {rbac.namespaceScope && nsRules.length > 0 && (
+            <StackItem>
+              {/* Group label sits above the table so Thead appears directly below it */}
+              <div
+                style={{
+                  background: 'var(--pf-t--global--background--color--secondary--default)',
+                  borderRadius: '4px 4px 0 0',
+                  padding: '4px 12px',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                }}
+              >
+                Namespace: {rbac.namespaceScope.namespace}
+              </div>
+              <Table variant="compact" aria-label={`Namespace-scoped RBAC for ${optionId}`} borders>
+                <Thead>
+                  <Tr>
+                    <Th>Resource</Th>
+                    <Th>Verbs</Th>
+                    <Th>Purpose</Th>
                   </Tr>
-                ))}
-              </Tbody>
-            )}
-            {rbac.clusterScope && clusterRules.length > 0 && (
-              <Tbody>
-                <Tr>
-                  <Td
-                    colSpan={3}
-                    style={{
-                      background: 'var(--pf-t--global--background--color--secondary--default)',
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      color: 'var(--pf-t--global--text--color--subtle)',
-                      padding: '4px 12px',
-                    }}
-                  >
-                    Cluster-wide
-                  </Td>
-                </Tr>
-                {clusterRules.map((rule, i) => (
-                  <Tr key={`cluster-${i}`}>
-                    <Td>
-                      <code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code>
-                    </Td>
-                    <Td>
-                      <code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code>
-                    </Td>
-                    <Td>
-                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                        <FlexItem>{rule.purpose}</FlexItem>
-                        {rule.isWrite && (
-                          <FlexItem>
-                            <Label color="orange" isCompact>write</Label>
-                          </FlexItem>
-                        )}
-                      </Flex>
-                    </Td>
+                </Thead>
+                <Tbody>
+                  {nsRules.map((rule, i) => (
+                    <Tr key={`ns-${i}`}>
+                      <Td><code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code></Td>
+                      <Td><code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code></Td>
+                      <Td>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                          <FlexItem>{rule.purpose}</FlexItem>
+                          {rule.isWrite && <FlexItem><Label color="orange" isCompact>write</Label></FlexItem>}
+                        </Flex>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </StackItem>
+          )}
+          {rbac.clusterScope && clusterRules.length > 0 && (
+            <StackItem>
+              <div
+                style={{
+                  background: 'var(--pf-t--global--background--color--secondary--default)',
+                  borderRadius: '4px 4px 0 0',
+                  padding: '4px 12px',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                }}
+              >
+                Cluster-wide
+              </div>
+              <Table variant="compact" aria-label={`Cluster-scoped RBAC for ${optionId}`} borders>
+                <Thead>
+                  <Tr>
+                    <Th>Resource</Th>
+                    <Th>Verbs</Th>
+                    <Th>Purpose</Th>
                   </Tr>
-                ))}
-              </Tbody>
-            )}
-          </Table>
-        </div>
+                </Thead>
+                <Tbody>
+                  {clusterRules.map((rule, i) => (
+                    <Tr key={`cluster-${i}`}>
+                      <Td><code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code></Td>
+                      <Td><code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code></Td>
+                      <Td>
+                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                          <FlexItem>{rule.purpose}</FlexItem>
+                          {rule.isWrite && <FlexItem><Label color="orange" isCompact>write</Label></FlexItem>}
+                        </Flex>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </StackItem>
+          )}
+        </Stack>
       </ExpandableSection>
     </div>
   );
