@@ -867,20 +867,6 @@ const ALL_PLANS: RawPlanRow[] = [
     ],
   },
   {
-    id: 'op5-manual-escalation',
-    severity: 'critical',
-    status: 'Escalated',
-    score: 79,
-    synopsis: 'Grafana Database WAL Lock Recovery Escalated',
-    consolidationScope: '3 Failed Execution Attempts',
-    triggerDomain: 'Observability',
-    drawerTargets: ['prod-east-1'],
-    expandedReasons: [
-      { icon: 'alert', text: 'GrafanaDown: Grafana startup blocked by stale SQLite WAL lock on PVC.' },
-      { icon: 'ban', text: 'MaxRetriesExhausted: escalation_request.tmpl type mismatch on StepResultRef — manual policy paused handoff.' },
-    ],
-  },
-  {
     id: 'prometheus-wal-emergency-stopped',
     severity: 'critical',
     status: 'EmergencyStopped',
@@ -906,6 +892,20 @@ const ALL_PLANS: RawPlanRow[] = [
     expandedReasons: [
       { icon: 'alert', text: 'EtcdDatabaseHighFragmentationRatio: fragmentation ratio 0.67 exceeded 0.5 threshold across 3 control plane nodes.' },
       { icon: 'ban', text: 'Verification failure: fragmentation metric unchanged after defrag execution.' },
+    ],
+  },
+  {
+    id: 'op5-manual-escalation',
+    severity: 'critical',
+    status: 'Escalated',
+    score: 79,
+    synopsis: 'Grafana Database WAL Lock Recovery Escalated',
+    consolidationScope: '3 Failed Execution Attempts',
+    triggerDomain: 'Observability',
+    drawerTargets: ['prod-east-1'],
+    expandedReasons: [
+      { icon: 'alert', text: 'GrafanaDown: Grafana startup blocked by stale SQLite WAL lock on PVC.' },
+      { icon: 'ban', text: 'MaxRetriesExhausted: escalation_request.tmpl type mismatch on StepResultRef — manual policy paused handoff.' },
     ],
   },
   ...NEW_ALERT_INVESTIGATION_PLANS.map((plan) => ({
