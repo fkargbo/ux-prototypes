@@ -1937,6 +1937,36 @@ export interface AgentCommand {
   command: string;
 }
 
+/** A single Kubernetes RBAC rule required by the agent Service Account for this option. */
+export interface RbacRule {
+  /** Kubernetes resource kind (e.g. 'secrets', 'deployments (apps)'). */
+  resource: string;
+  /** Comma-separated verb list (e.g. 'get, list, patch'). */
+  verbs: string;
+  /** Short human-readable explanation of why this permission is needed. */
+  purpose: string;
+  /** True if any listed verb is a mutating operation (create, update, patch, delete, exec). */
+  isWrite: boolean;
+}
+
+/**
+ * Namespace-scoped or cluster-wide RBAC requirements for a remediation option.
+ * Backend field: options[].proposal.rbac.
+ */
+export interface RbacSpec {
+  /** One-line callout summarising the write operations (shown above the expandable table). */
+  summary: string;
+  /** Rules that apply within a specific namespace. */
+  namespaceScope?: {
+    namespace: string;
+    rules: RbacRule[];
+  };
+  /** Rules that apply cluster-wide (no namespace constraint). */
+  clusterScope?: {
+    rules: RbacRule[];
+  };
+}
+
 export interface RemediationOption {
   id: string;
   title: string;
@@ -1966,6 +1996,12 @@ export interface RemediationOption {
    * Shown during the pre-execution review phase so operators know how success will be confirmed.
    */
   verificationSteps?: OptionVerificationSteps;
+  /**
+   * RBAC permissions required by the agent Service Account to execute this option.
+   * Backend field: options[].proposal.rbac.
+   * When absent, falls back to a "Standard Agent Permissions" notice in the UI.
+   */
+  rbac?: RbacSpec;
 }
 
 /**
@@ -2106,6 +2142,22 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
           { id: 'no-active-violations', command: "oc get pods --all-namespaces -o json | jq '[.items[] | select(.spec.hostNetwork==true)] | length'", expected: "Expected: '0' — no running pods are using host networking outside of system-privileged namespaces." },
         ],
       },
+      rbac: {
+        summary: 'Includes write: patch securitycontextconstraints · create mutatingwebhookconfigurations',
+        namespaceScope: {
+          namespace: 'production',
+          rules: [
+            { resource: 'pods', verbs: 'get, list', purpose: 'Pre-check running pods with hostNetwork before mutation', isWrite: false },
+            { resource: 'deployments (apps)', verbs: 'get, list', purpose: 'Identify non-compliant deployment specs', isWrite: false },
+          ],
+        },
+        clusterScope: {
+          rules: [
+            { resource: 'securitycontextconstraints (security.openshift.io)', verbs: 'get, list, patch, update', purpose: 'Modify SCC to deny cluster-wide host network access', isWrite: true },
+            { resource: 'mutatingwebhookconfigurations (admissionregistration.k8s.io)', verbs: 'get, create, patch', purpose: 'Install admission webhook to block future hostNetwork violations', isWrite: true },
+          ],
+        },
+      },
     },
     {
       id: 'ap8-o2', title: 'Force-delete non-compliant deployment', description: 'Immediately delete the offending deployment to eliminate the compliance violation — requires manual redeployment with a compliant spec.', risk: 'high', reversible: 'Irreversible', model: 'fast',
@@ -2120,6 +2172,16 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
           { id: 'deployments-removed', command: "oc get deployment -n production -l 'security.redhat.com/non-compliant=true' --no-headers | wc -l", expected: "Expected: '0' — no non-compliant deployments remain in the production namespace." },
           { id: 'pods-terminated', command: "oc get pods -n production -l 'security.redhat.com/non-compliant=true' --no-headers | wc -l", expected: "Expected: '0' — all pods belonging to the deleted deployments have terminated." },
         ],
+      },
+      rbac: {
+        summary: 'Includes write: delete deployments',
+        namespaceScope: {
+          namespace: 'production',
+          rules: [
+            { resource: 'deployments (apps)', verbs: 'get, list, delete', purpose: 'List and delete deployments tagged as non-compliant', isWrite: true },
+            { resource: 'pods', verbs: 'get, list', purpose: 'Confirm pod shutdown after deployment deletion', isWrite: false },
+          ],
+        },
       },
     },
   ],
@@ -2162,6 +2224,16 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
           { id: 'nodes-ready', command: "oc get nodes --no-headers | awk '{print $2}' | sort | uniq -c", expected: "Expected: All nodes report 'Ready'. No nodes should remain in 'NotReady' or 'SchedulingDisabled' state after upgrade completion." },
         ],
       },
+      rbac: {
+        summary: 'Includes write: update clusterversions',
+        clusterScope: {
+          rules: [
+            { resource: 'clusterversions (config.openshift.io)', verbs: 'get, update, patch', purpose: 'Initiate and track rolling upgrade to 4.15.8 via upgrade graph', isWrite: true },
+            { resource: 'clusteroperators (config.openshift.io)', verbs: 'get, list, watch', purpose: 'Gate upgrade on all ClusterOperators being healthy before and after', isWrite: false },
+            { resource: 'nodes', verbs: 'get, list', purpose: 'Verify all nodes are Ready after upgrade completion', isWrite: false },
+          ],
+        },
+      },
     },
     {
       id: 'cp1-o2', title: 'Preflight validation only (defer execution)', description: 'Run upgrade preflight checks and ClusterOperator health gates without mutating the control plane — defers execution until a maintenance window is approved.', risk: 'low', reversible: 'Reversible', model: 'fast',
@@ -2174,6 +2246,15 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         steps: [
           { id: 'preflight-exit-code', command: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client; echo "Preflight exit: $?"', expected: "Expected: Exit code 0 with no ClusterOperator degradation warnings — the upgrade path is validated and clear for a production run." },
         ],
+      },
+      rbac: {
+        summary: 'Read-only · no write operations required',
+        clusterScope: {
+          rules: [
+            { resource: 'clusterversions (config.openshift.io)', verbs: 'get, watch', purpose: 'Read upgrade graph and validate target version availability', isWrite: false },
+            { resource: 'clusteroperators (config.openshift.io)', verbs: 'get, list', purpose: 'Gate preflight on all ClusterOperators being healthy', isWrite: false },
+          ],
+        },
       },
     },
   ],
@@ -2193,6 +2274,17 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
           { id: 'no-delivery-errors', command: "oc logs -n openshift-monitoring alertmanager-main-0 --since=2m | grep -i 'pagerduty.*error\\|failed.*pagerduty' || echo 'none'", expected: "Expected: 'none' — no PagerDuty delivery error lines in the 2-minute window following the rolling restart." },
         ],
       },
+      rbac: {
+        summary: 'Includes write: patch secrets · patch statefulsets',
+        namespaceScope: {
+          namespace: 'openshift-monitoring',
+          rules: [
+            { resource: 'secrets', verbs: 'get, create, patch', purpose: 'Rotate PagerDuty integration key in alertmanager-pagerduty secret', isWrite: true },
+            { resource: 'statefulsets (apps)', verbs: 'get, patch', purpose: 'Trigger rolling restart of alertmanager-main to pick up the new secret', isWrite: true },
+            { resource: 'pods', verbs: 'get, list', purpose: 'Monitor pod restart progress during rolling reload', isWrite: false },
+          ],
+        },
+      },
     },
     {
       id: 'op2-o2', title: 'Temporarily disable PagerDuty receiver route', description: 'Silence the PagerDuty receiver in Alertmanager configuration to stop delivery failures while the integration token is rotated manually.', risk: 'medium', reversible: 'Partial', model: 'fast',
@@ -2207,6 +2299,16 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
           { id: 'pagerduty-route-silenced', command: "oc get secret alertmanager-main -n openshift-monitoring -o jsonpath='{.data.alertmanager\\.yaml}' | base64 -d | grep -i pagerduty", expected: "Expected: The PagerDuty receiver is absent or routes to a null receiver — no delivery attempts in the next alert evaluation cycle." },
           { id: 'alertmanager-error-rate', command: "oc logs -n openshift-monitoring alertmanager-main-0 --since=3m | grep -i 'pagerduty\\|error\\|failed' || echo 'none'", expected: "Expected: 'none' — no new PagerDuty delivery error lines in the 3-minute window after the pod restart." },
         ],
+      },
+      rbac: {
+        summary: 'Includes write: patch secrets · delete pods',
+        namespaceScope: {
+          namespace: 'openshift-monitoring',
+          rules: [
+            { resource: 'secrets', verbs: 'get, patch', purpose: 'Silence PagerDuty route in Alertmanager configuration secret', isWrite: true },
+            { resource: 'pods', verbs: 'get, list, delete', purpose: 'Force-restart alertmanager-main-0 to apply the silenced config', isWrite: true },
+          ],
+        },
       },
     },
   ],
@@ -2227,6 +2329,16 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
           { id: 'compaction-healthy', command: "oc logs -n openshift-monitoring thanos-compactor-0 --since=5m | grep -iE 'error|corrupted|failed' || echo 'no errors'", expected: "Expected: 'no errors' — no corruption or compaction failure entries in the first 5 minutes after restart." },
         ],
       },
+      rbac: {
+        summary: 'Includes write: patch statefulsets · exec pods',
+        namespaceScope: {
+          namespace: 'openshift-monitoring',
+          rules: [
+            { resource: 'statefulsets (apps)', verbs: 'get, list, patch', purpose: 'Scale thanos-compactor to zero then back to one for safe PVC access', isWrite: true },
+            { resource: 'pods', verbs: 'get, list, exec', purpose: 'Exec into compactor pod to remove the corrupted TSDB block', isWrite: true },
+          ],
+        },
+      },
     },
     {
       id: 'op3-o2', title: 'Expand compactor PVC and force compaction', description: 'Resize the compactor persistent volume and run a forced compaction cycle — higher blast radius during PVC resize.', risk: 'high', reversible: 'Irreversible', model: 'fast',
@@ -2241,6 +2353,16 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
           { id: 'pvc-resized', command: "oc get pvc thanos-compactor-data -n openshift-monitoring -o jsonpath='{.status.capacity.storage}'", expected: "Expected: '200Gi' — confirming the PVC has been resized to the target capacity." },
           { id: 'compactor-running', command: 'oc rollout status statefulset/thanos-compactor -n openshift-monitoring --timeout=2m', expected: "Expected: 'statefulset rolling update complete' — the compactor pod has restarted and is attached to the resized volume." },
         ],
+      },
+      rbac: {
+        summary: 'Includes write: patch persistentvolumeclaims · delete pods',
+        namespaceScope: {
+          namespace: 'openshift-monitoring',
+          rules: [
+            { resource: 'persistentvolumeclaims', verbs: 'get, patch', purpose: 'Resize thanos-compactor-data PVC to 200 GiB storage', isWrite: true },
+            { resource: 'pods', verbs: 'get, list, delete', purpose: 'Delete compactor pod to force re-attachment on the resized PVC', isWrite: true },
+          ],
+        },
       },
     },
   ],
@@ -2261,6 +2383,16 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
           { id: 'grafana-health', command: "oc exec -n openshift-monitoring deploy/grafana -- curl -sf http://localhost:3000/api/health", expected: "Expected: '{\"database\": \"ok\", \"health\": \"ok\"}' — Grafana health endpoint confirms the database layer is healthy." },
         ],
       },
+      rbac: {
+        summary: 'Includes write: patch deployments · exec pods',
+        namespaceScope: {
+          namespace: 'openshift-monitoring',
+          rules: [
+            { resource: 'deployments (apps)', verbs: 'get, patch', purpose: 'Scale grafana to zero and back to one for safe PVC access', isWrite: true },
+            { resource: 'pods', verbs: 'get, list, exec', purpose: 'Exec into grafana-debug pod to remove the stale WAL lock file', isWrite: true },
+          ],
+        },
+      },
     },
     {
       id: 'op5-o2', title: 'Snapshot PVC then force WAL checkpoint', description: 'Take a volume snapshot of the Grafana PVC and run a forced SQLite checkpoint before clearing the lock — slower but preserves rollback capability.', risk: 'low', reversible: 'Reversible', model: 'fast',
@@ -2276,6 +2408,16 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
           { id: 'wal-checkpoint-done', command: 'oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);" 2>&1', expected: "Expected: '0 N 0' — blocked_count=0 confirms no writers are blocked; all WAL frames have been checkpointed to the main database file." },
           { id: 'grafana-ready', command: 'oc rollout status deployment/grafana -n openshift-monitoring --timeout=3m', expected: "Expected: 'deployment grafana successfully rolled out' — Grafana is running without SQLite lock contention." },
         ],
+      },
+      rbac: {
+        summary: 'Includes write: create volumesnapshots · exec pods',
+        namespaceScope: {
+          namespace: 'openshift-monitoring',
+          rules: [
+            { resource: 'volumesnapshots (snapshot.storage.k8s.io)', verbs: 'get, create', purpose: 'Take PVC snapshot before WAL checkpoint as a rollback point', isWrite: true },
+            { resource: 'pods', verbs: 'get, exec', purpose: 'Exec into Grafana container to run SQLite WAL checkpoint', isWrite: true },
+          ],
+        },
       },
     },
   ],
@@ -3983,6 +4125,162 @@ const TerminalEvidenceCard: React.FC<{
   );
 };
 
+// ─── RBAC Permissions Section ────────────────────────────────────────────────
+
+const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = ({ rbac, optionId }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const nsRules = rbac.namespaceScope?.rules ?? [];
+  const clusterRules = rbac.clusterScope?.rules ?? [];
+  const totalNs = nsRules.length;
+  const totalCluster = clusterRules.length;
+
+  return (
+    <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+      <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+      <Content component="small" style={SECTION_OVERLINE_STYLE}>Required permissions</Content>
+
+      {/* Security guardrail alert */}
+      <Alert
+        variant="warning"
+        isInline
+        isPlain
+        title="Permissions are locked at approval. The agent cannot escalate its privileges beyond these rules."
+        style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+      />
+
+      {/* Scope count badges */}
+      <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+        {totalNs > 0 && (
+          <FlexItem>
+            <Label color="blue" isCompact>
+              {totalNs} namespace permission{totalNs !== 1 ? 's' : ''}
+            </Label>
+          </FlexItem>
+        )}
+        {totalCluster > 0 && (
+          <FlexItem>
+            <Label color="purple" isCompact>
+              {totalCluster} cluster-wide
+            </Label>
+          </FlexItem>
+        )}
+      </Flex>
+
+      {/* Write operations summary */}
+      <Content
+        component="small"
+        style={{
+          display: 'block',
+          color: 'var(--pf-t--global--text--color--subtle)',
+          fontStyle: 'italic',
+          marginBottom: 'var(--pf-t--global--spacer--sm)',
+        }}
+      >
+        {rbac.summary}
+      </Content>
+
+      {/* Expandable permission table */}
+      <ExpandableSection
+        toggleText={isExpanded ? 'Hide permission details' : 'View permission details'}
+        isExpanded={isExpanded}
+        onToggle={(_e, expanded) => setIsExpanded(expanded)}
+      >
+        <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+          <Table variant="compact" aria-label={`RBAC permissions for option ${optionId}`}>
+            <Thead>
+              <Tr>
+                <Th>Resource</Th>
+                <Th>Verbs</Th>
+                <Th>Purpose</Th>
+              </Tr>
+            </Thead>
+            {rbac.namespaceScope && nsRules.length > 0 && (
+              <Tbody>
+                <Tr>
+                  <Td
+                    colSpan={3}
+                    style={{
+                      background: 'var(--pf-t--global--background--color--secondary--default)',
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      color: 'var(--pf-t--global--text--color--subtle)',
+                      padding: '4px 12px',
+                    }}
+                  >
+                    Namespace: {rbac.namespaceScope.namespace}
+                  </Td>
+                </Tr>
+                {nsRules.map((rule, i) => (
+                  <Tr key={`ns-${i}`}>
+                    <Td>
+                      <code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code>
+                    </Td>
+                    <Td>
+                      <code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code>
+                    </Td>
+                    <Td>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <FlexItem>{rule.purpose}</FlexItem>
+                        {rule.isWrite && (
+                          <FlexItem>
+                            <Label color="orange" isCompact>write</Label>
+                          </FlexItem>
+                        )}
+                      </Flex>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            )}
+            {rbac.clusterScope && clusterRules.length > 0 && (
+              <Tbody>
+                <Tr>
+                  <Td
+                    colSpan={3}
+                    style={{
+                      background: 'var(--pf-t--global--background--color--secondary--default)',
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      color: 'var(--pf-t--global--text--color--subtle)',
+                      padding: '4px 12px',
+                    }}
+                  >
+                    Cluster-wide
+                  </Td>
+                </Tr>
+                {clusterRules.map((rule, i) => (
+                  <Tr key={`cluster-${i}`}>
+                    <Td>
+                      <code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code>
+                    </Td>
+                    <Td>
+                      <code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code>
+                    </Td>
+                    <Td>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                        <FlexItem>{rule.purpose}</FlexItem>
+                        {rule.isWrite && (
+                          <FlexItem>
+                            <Label color="orange" isCompact>write</Label>
+                          </FlexItem>
+                        )}
+                      </Flex>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            )}
+          </Table>
+        </div>
+      </ExpandableSection>
+    </div>
+  );
+};
+
 const RemediationOptionCard: React.FC<{
   option: RemediationOption;
   index: number;
@@ -4327,6 +4625,24 @@ const RemediationOptionCard: React.FC<{
               </Flex>
             )}
           </div>
+
+          {/* ── C.5 Required permissions (RBAC) ── */}
+          {option.rbac ? (
+            <RbacPermissionsSection rbac={option.rbac} optionId={option.id} />
+          ) : (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>Required permissions</Content>
+              <Alert
+                variant="info"
+                isInline
+                isPlain
+                title="Standard Agent Permissions"
+              >
+                Uses the default cluster Agent Service Account rules. No additional privileges are declared for this option.
+              </Alert>
+            </div>
+          )}
 
           {/* ── D. Rollback plan — shown after execution ── */}
           {showEvidenceTrail && (() => {
