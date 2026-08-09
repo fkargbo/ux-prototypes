@@ -5252,6 +5252,20 @@ export const RemediationBlueprintPanel: React.FC<{
     }
   }, [completeVerification, isAgenticAutomationEnabled, plan.id, workflow.verification]);
 
+  // Log text used by the standalone Execution / Verification Summary cards.
+  // Must be declared before any early returns to satisfy the Rules of Hooks.
+  const summaryPostMortem = useMemo(
+    () => (isTerminal || isExecuting || isVerifying)
+      ? (PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan))
+      : null,
+    [isTerminal, isExecuting, isVerifying, plan],
+  );
+  const summaryExecutionLog = summaryPostMortem?.rawLog ?? summaryPostMortem?.failureTrace ?? '';
+  const summaryVerificationLog = workflow.verification?.checks.join('\n') ?? (
+    isTerminal || isVerifying ? generateVerificationLogs(plan.id) : ''
+  );
+  const summaryEscalationLog = (isEscalated || isEscalating) ? generateEscalationLogs(plan.id) : '';
+
   if (!drawer && !isEscalating && !isPending && !isAnalyzing) return null;
 
   // Cluster-update domain: RCA + handoff to Administration → Cluster Update (shared for all these runs).
@@ -5433,19 +5447,6 @@ export const RemediationBlueprintPanel: React.FC<{
   const showExecutionLog = isExecutionPhase && (
     approvedOptionId ? selectedOptionId === approvedOptionId : selectedOptionIndex === 0
   );
-
-  // Log text used by the standalone Execution / Verification Summary cards.
-  const summaryPostMortem = useMemo(
-    () => (isTerminal || isExecuting || isVerifying)
-      ? (PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan))
-      : null,
-    [isTerminal, isExecuting, isVerifying, plan],
-  );
-  const summaryExecutionLog = summaryPostMortem?.rawLog ?? summaryPostMortem?.failureTrace ?? '';
-  const summaryVerificationLog = workflow.verification?.checks.join('\n') ?? (
-    isTerminal || isVerifying ? generateVerificationLogs(plan.id) : ''
-  );
-  const summaryEscalationLog = (isEscalated || isEscalating) ? generateEscalationLogs(plan.id) : '';
 
   return (
     <>
