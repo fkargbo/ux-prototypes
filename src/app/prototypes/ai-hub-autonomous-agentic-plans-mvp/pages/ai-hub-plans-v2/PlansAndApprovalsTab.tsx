@@ -8,6 +8,10 @@ import {
   CardHeader,
   Checkbox,
   Content,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
   Divider,
   Dropdown,
   DropdownItem,
@@ -3565,7 +3569,10 @@ const SECTION_OVERLINE_STYLE: React.CSSProperties = {
 const ExecutionSummaryCard: React.FC<{
   plan: PlanRow;
   executionLog: string;
-}> = ({ plan, executionLog }) => {
+  selectedOptionTitle?: string;
+  maxAttempts?: number;
+  approval?: import('../../context/PlanWorkflowContext').ExecutionApproval | null;
+}> = ({ plan, executionLog, selectedOptionTitle, maxAttempts, approval }) => {
   const summary = PLAN_EXECUTION_SUMMARY[plan.id];
 
   return (
@@ -3579,6 +3586,35 @@ const ExecutionSummaryCard: React.FC<{
       </Flex>
       <Card style={{ borderRadius: '16px' }}>
       <CardBody>
+        {/* ── Audit record (OLS-3694) ── */}
+        {(selectedOptionTitle || maxAttempts !== undefined || approval) && (
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+            <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '15ch' }}>
+              {selectedOptionTitle && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Selected option</DescriptionListTerm>
+                  <DescriptionListDescription>{selectedOptionTitle}</DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+              {maxAttempts !== undefined && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Max attempts</DescriptionListTerm>
+                  <DescriptionListDescription>{maxAttempts}</DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+              {approval && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Executed by</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    {approval.approvedBy}{approval.approvedAt ? `, ${approval.approvedAt}` : ''}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+            </DescriptionList>
+            <Divider style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }} />
+          </div>
+        )}
+
         {/* ── Contextual evidence ── */}
         <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
           <Content component="small" style={SECTION_OVERLINE_STYLE}>Contextual evidence</Content>
@@ -6056,7 +6092,13 @@ export const RemediationBlueprintPanel: React.FC<{
       {/* ── Execution Summary Card ─────────────────────────────────────── */}
       {(isExecuting || isVerifying || isTerminal) && (
         <StackItem>
-          <ExecutionSummaryCard plan={plan} executionLog={summaryExecutionLog} />
+          <ExecutionSummaryCard
+            plan={plan}
+            executionLog={summaryExecutionLog}
+            selectedOptionTitle={selectedOption?.title}
+            maxAttempts={configMaxRetryAttempts}
+            approval={workflow.executionApproval}
+          />
         </StackItem>
       )}
 
