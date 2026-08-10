@@ -1913,10 +1913,10 @@ export interface VerificationSummaryData {
 
 /** AI-generated analysis explaining why automated execution halted and what to do next. */
 export interface EscalationSummaryData {
-  /** Bulleted list explaining the root cause of the escalation failure path. */
-  analysis: string[];
-  /** Bulleted list of recommended manual steps to resolve the escalation. */
-  recommendedNextSteps: string[];
+  /** Freeform AI-generated narrative summarising why the escalation was triggered. */
+  details: string;
+  /** Single failure reason string surfaced from the escalation agent output. */
+  failureReason: string;
   /** External channels the agent automatically dispatched to (auto policy only). */
   dispatchedTargets?: string[];
 }
@@ -2817,46 +2817,24 @@ const PLAN_VERIFICATION_SUMMARY: Record<string, VerificationSummaryData> = {
 
 const PLAN_ESCALATION_SUMMARY: Record<string, EscalationSummaryData> = {
   'ingress-controller-escalated': {
-    analysis: [
-      'Ingress controller replica count dropped to 1 after a node eviction on worker-bm-03.',
-      'Two consecutive automated scale-out executions failed: openshift-ingress namespace quota hard ceiling reached (pods=10/10).',
-      'MaxRetriesExhausted threshold reached after 2 failed attempts — escalation automatically dispatched under automatic policy.',
-      'Escalation payload routed to PagerDuty (P2) and ServiceNow (INC-0087342).',
-    ],
-    recommendedNextSteps: [
-      'Increase the openshift-ingress ResourceQuota pod limit from 10 to at least 14.',
-      'Re-trigger the ingress controller scale-out remediation after quota adjustment.',
-      'Review PagerDuty incident and ServiceNow ticket for on-call acknowledgement.',
-      'Update quota governance policy to prevent quota ceiling from blocking ingress-class scale events.',
-    ],
+    details:
+      'The ingress controller replica count dropped to 1 after a node eviction on worker-bm-03. Two consecutive automated scale-out executions failed because the openshift-ingress namespace quota hard ceiling was reached (pods=10/10). MaxRetriesExhausted was triggered after 2 failed attempts and the escalation payload was automatically routed to PagerDuty (P2) and ServiceNow (INC-0087342).',
+    failureReason:
+      'Automated scale-out blocked by ResourceQuota ceiling in openshift-ingress (pods=10/10). Manual quota increase required before remediation can proceed.',
     dispatchedTargets: ['PagerDuty — P2 incident created', 'ServiceNow — INC-0087342 opened'],
   },
   'quota-exhaustion-escalating': {
-    analysis: [
-      'Namespace quota exhaustion detected across 3 namespaces: production, staging, and shared-services.',
-      'Automated quota expansion retries failed — cluster-level resource ceiling prevents in-place quota increases.',
-      'Escalating to human operator for manual cluster resource governance review.',
-    ],
-    recommendedNextSteps: [
-      'Review cluster-level LimitRange and ResourceQuota policies across affected namespaces.',
-      'Coordinate with cluster administrator to adjust node capacity or redistribute workloads.',
-      'Consider implementing VPA or horizontal autoscaling for workloads hitting quota limits.',
-    ],
+    details:
+      'Namespace quota exhaustion was detected across 3 namespaces: production, staging, and shared-services. Automated quota expansion retries failed because a cluster-level resource ceiling prevents in-place quota increases. The run is now waiting for a human operator to perform a manual cluster resource governance review.',
+    failureReason:
+      'Cluster-level LimitRange prevents automated quota expansion across production, staging, and shared-services namespaces.',
     dispatchedTargets: [],
   },
   'op5-manual-escalation': {
-    analysis: [
-      'Failure is in the escalation rendering path, not in the Grafana pod or WAL lock itself.',
-      'escalation_request.tmpl tries to access .Success on a value of type v1alpha1.StepResultRef.',
-      'Go template execution fails because StepResultRef does not expose a Success field.',
-      'Result: the escalation request cannot be generated, so prior failed attempts are not being packaged for handoff.',
-    ],
-    recommendedNextSteps: [
-      'Check the v1alpha1.StepResultRef type definition and confirm the intended field or method.',
-      'Fix escalation_request.tmpl line 9 to use a valid property (e.g. .Phase == "Succeeded"), or pass the full step result object instead of a reference.',
-      'Add a template/unit test that renders escalation_request.tmpl with a real StepResultRef payload.',
-      'Re-run escalation generation after the template/data-model mismatch is corrected.',
-    ],
+    details:
+      'The failure is in the escalation rendering path, not in the Grafana pod or WAL lock itself. The escalation_request.tmpl template tries to access .Success on a value of type v1alpha1.StepResultRef, but StepResultRef does not expose a Success field. Go template execution fails as a result, which means prior failed attempts cannot be packaged for handoff.',
+    failureReason:
+      'Verification failed: PVC payments-db-data still Pending after remediation retries.',
     dispatchedTargets: [],
   },
 };
@@ -3863,42 +3841,22 @@ const EscalationSummaryCard: React.FC<{
             </div>
           )}
 
-          {/* ── Escalation analysis ── */}
+          {/* ── Details ── */}
           <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-            <Content component="small" style={SECTION_OVERLINE_STYLE}>Escalation analysis</Content>
-            {summary ? (
-              <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6, listStyleType: 'disc' }}>
-                {summary.analysis.map((line, i) => (
-                  <li key={i}>
-                    <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>{line}</Content>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                Escalation analysis is being generated…
-              </Content>
-            )}
+            <Content component="small" style={SECTION_OVERLINE_STYLE}>Details</Content>
+            <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>
+              {summary?.details ?? 'Escalation details are being generated…'}
+            </Content>
           </div>
 
           <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
 
-          {/* ── Recommended next steps ── */}
+          {/* ── Failure reason ── */}
           <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-            <Content component="small" style={SECTION_OVERLINE_STYLE}>Recommended next steps</Content>
-            {summary ? (
-              <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6, listStyleType: 'disc' }}>
-                {summary.recommendedNextSteps.map((step, i) => (
-                  <li key={i}>
-                    <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>{step}</Content>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                Generating recommended next steps…
-              </Content>
-            )}
+            <Content component="small" style={SECTION_OVERLINE_STYLE}>Failure reason</Content>
+            <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>
+              {summary?.failureReason ?? 'Failure reason is being determined…'}
+            </Content>
           </div>
 
           {/* ── Log footer ── */}
