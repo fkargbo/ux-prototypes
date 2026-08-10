@@ -23,11 +23,7 @@ import {
   Badge,
   Button,
   Divider,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
   Label,
-  MenuToggle,
   SearchInput,
   Tooltip,
 } from '@patternfly/react-core';
@@ -35,7 +31,6 @@ import {
   CheckCircleIcon,
   CommentIcon,
   FilterIcon,
-  SortAmountDownAltIcon,
   TimesCircleIcon,
   TimesIcon,
   CaretRightIcon,
@@ -386,7 +381,6 @@ export const FeedbackSidePanel: React.FC = () => {
   const [pins, setPins] = useState<FeedbackPin[]>([]);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('newest');
-  const [isSortOpen, setIsSortOpen] = useState(false);
   const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const projectIdRef = useRef('');
@@ -661,42 +655,30 @@ export const FeedbackSidePanel: React.FC = () => {
             onClear={() => setSearch('')}
             style={{ flex: 1, minWidth: 0 }}
           />
-          {/* Sort dropdown — appended to body so it never clips inside the panel */}
-          <Dropdown
-            isOpen={isSortOpen}
-            onOpenChange={setIsSortOpen}
-            popperProps={{ appendTo: () => document.body, position: 'left' }}
-            toggle={(ref) => (
-              <MenuToggle
-                ref={ref}
-                aria-label={`Sort: ${SORT_LABELS[sortKey]}`}
-                onClick={() => setIsSortOpen((o) => !o)}
-                isExpanded={isSortOpen}
-                variant="plain"
-                style={{ padding: '0 6px', color: isSortOpen ? T.brand : T.textSubtle }}
-              >
-                <Tooltip content={`Sort: ${SORT_LABELS[sortKey]}`} position="top">
-                  <SortAmountDownAltIcon />
-                </Tooltip>
-              </MenuToggle>
-            )}
+          {/* Sort — native <select> always stays inside the viewport */}
+          <select
+            aria-label={`Sort: ${SORT_LABELS[sortKey]}`}
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as SortKey)}
+            style={{
+              border: `1px solid ${T.border}`,
+              borderRadius: 4,
+              padding: '5px 8px',
+              backgroundColor: T.bg,
+              color: T.text,
+              fontSize: '0.8125rem',
+              cursor: 'pointer',
+              flexShrink: 0,
+              fontFamily: 'inherit',
+              colorScheme: 'light',
+            }}
           >
-            <DropdownList>
-              {(['newest', 'oldest', 'unread-first'] as SortKey[]).map((key) => (
-                <DropdownItem
-                  key={key}
-                  onClick={() => {
-                    setSortKey(key);
-                    setIsSortOpen(false);
-                  }}
-                  style={{ fontWeight: sortKey === key ? 600 : undefined }}
-                  description={sortKey === key ? '✓ Active' : undefined}
-                >
-                  {SORT_LABELS[key]}
-                </DropdownItem>
-              ))}
-            </DropdownList>
-          </Dropdown>
+            {(['newest', 'oldest', 'unread-first'] as SortKey[]).map((key) => (
+              <option key={key} value={key}>
+                {SORT_LABELS[key]}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Active sort indicator strip */}
