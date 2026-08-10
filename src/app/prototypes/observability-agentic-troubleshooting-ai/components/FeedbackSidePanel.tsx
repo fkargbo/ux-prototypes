@@ -24,13 +24,18 @@ import {
   Button,
   Divider,
   Label,
+  MenuToggle,
   SearchInput,
+  Select,
+  SelectList,
+  SelectOption,
   Tooltip,
 } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   CommentIcon,
   FilterIcon,
+  SortAmountDownAltIcon,
   TimesCircleIcon,
   TimesIcon,
   CaretRightIcon,
@@ -381,6 +386,7 @@ export const FeedbackSidePanel: React.FC = () => {
   const [pins, setPins] = useState<FeedbackPin[]>([]);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('newest');
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const projectIdRef = useRef('');
@@ -655,30 +661,43 @@ export const FeedbackSidePanel: React.FC = () => {
             onClear={() => setSearch('')}
             style={{ flex: 1, minWidth: 0 }}
           />
-          {/* Sort — native <select> always stays inside the viewport */}
-          <select
-            aria-label={`Sort: ${SORT_LABELS[sortKey]}`}
-            value={sortKey}
-            onChange={(e) => setSortKey(e.target.value as SortKey)}
-            style={{
-              border: `1px solid ${T.border}`,
-              borderRadius: 4,
-              padding: '5px 8px',
-              backgroundColor: T.bg,
-              color: T.text,
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-              flexShrink: 0,
-              fontFamily: 'inherit',
-              colorScheme: 'light',
+          {/* Sort — PF6 Select appended to <body> so it never clips at the panel edge */}
+          <Select
+            isOpen={isSortOpen}
+            onOpenChange={setIsSortOpen}
+            onSelect={(_e, val) => {
+              setSortKey(val as SortKey);
+              setIsSortOpen(false);
             }}
+            selected={sortKey}
+            popperProps={{ appendTo: () => document.body, position: 'bottom-end', enableFlip: true }}
+            toggle={(ref) => (
+              <MenuToggle
+                ref={ref}
+                aria-label={`Sort: ${SORT_LABELS[sortKey]}`}
+                onClick={() => setIsSortOpen((o) => !o)}
+                isExpanded={isSortOpen}
+                variant="plain"
+                style={{ padding: '0 4px', color: T.textSubtle }}
+              >
+                <Tooltip content={`Sort: ${SORT_LABELS[sortKey]}`} position="top">
+                  <SortAmountDownAltIcon />
+                </Tooltip>
+              </MenuToggle>
+            )}
           >
-            {(['newest', 'oldest', 'unread-first'] as SortKey[]).map((key) => (
-              <option key={key} value={key}>
-                {SORT_LABELS[key]}
-              </option>
-            ))}
-          </select>
+            <SelectList>
+              {(['newest', 'oldest', 'unread-first'] as SortKey[]).map((key) => (
+                <SelectOption
+                  key={key}
+                  value={key}
+                  isSelected={sortKey === key}
+                >
+                  {SORT_LABELS[key]}
+                </SelectOption>
+              ))}
+            </SelectList>
+          </Select>
         </div>
 
         {/* Active sort indicator strip */}
