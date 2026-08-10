@@ -3798,10 +3798,7 @@ const EscalationSummaryCard: React.FC<{
   plan: PlanRow;
   escalationLog: string;
   escalationPolicy: 'manual' | 'auto';
-  onDispatch?: () => void;
-  onRetry?: () => void;
-  onMarkResolved?: () => void;
-}> = ({ plan, escalationLog, escalationPolicy, onDispatch, onRetry, onMarkResolved }) => {
+}> = ({ plan, escalationLog, escalationPolicy }) => {
   const summary = PLAN_ESCALATION_SUMMARY[plan.id];
   const isAutoPolicy = escalationPolicy === 'auto';
   const hasDispatched = isAutoPolicy && summary?.dispatchedTargets && summary.dispatchedTargets.length > 0;
@@ -3871,34 +3868,6 @@ const EscalationSummaryCard: React.FC<{
             </>
           )}
 
-          {/* ── Manual policy action bar ── */}
-          {!isAutoPolicy && (
-            <>
-              <Divider style={{ margin: 'var(--pf-t--global--spacer--lg) 0' }} />
-              <Flex
-                justifyContent={{ default: 'justifyContentFlexStart' }}
-                gap={{ default: 'gapSm' }}
-                flexWrap={{ default: 'wrap' }}
-                alignItems={{ default: 'alignItemsCenter' }}
-              >
-                <FlexItem>
-                  <Button variant="primary" onClick={onDispatch}>
-                    Dispatch escalation
-                  </Button>
-                </FlexItem>
-                <FlexItem>
-                  <Button variant="secondary" onClick={onRetry}>
-                    Retry run
-                  </Button>
-                </FlexItem>
-                <FlexItem>
-                  <Button variant="link" isInline onClick={onMarkResolved}>
-                    Mark resolved
-                  </Button>
-                </FlexItem>
-              </Flex>
-            </>
-          )}
         </CardBody>
       </Card>
     </>
