@@ -1900,6 +1900,16 @@ export interface ExecutionSummaryData {
   /** Description of the cluster changes the remediation actually made. */
   remediationDelta: string;
   actionsTaken: ExecutionAction[];
+  /**
+   * Simulated audit record for pre-seeded terminal runs that were never executed
+   * interactively in the current session. Mirrors the fields from ExecutionApproval.
+   */
+  mockAudit?: {
+    selectedOptionTitle: string;
+    approvedBy: string;
+    approvedAt: string;
+    maxAttempts: number;
+  };
 }
 
 /** A single verification check run after remediation with its actual result. */
@@ -2704,6 +2714,12 @@ const PLAN_EXECUTION_SUMMARY: Record<string, ExecutionSummaryData> = {
       { category: 'mutation', status: 'Succeeded', description: 'Update NTP pool config and restart chrony on node-2', command: 'chronyc makestep && systemctl restart chronyd', output: 'chrony-sync-daemon on node-2: restarted (offset was +851ms)' },
       { category: 'mutation', status: 'Succeeded', description: 'Update NTP pool config and restart chrony on node-3', command: 'chronyc makestep && systemctl restart chronyd', output: 'chrony-sync-daemon on node-3: restarted (offset was +843ms)' },
     ],
+    mockAudit: {
+      selectedOptionTitle: 'Resync NTP on affected nodes via chrony',
+      approvedBy: 'Marcus Chen',
+      approvedAt: 'Jun 9, 2026, 4:15 PM',
+      maxAttempts: 3,
+    },
   },
   op2: {
     targetedRootCause: 'The alertmanager-main PagerDuty integration key expired, causing all PagerDuty-routed alerts to fail delivery with HTTP 403 errors.',
@@ -2749,6 +2765,12 @@ const PLAN_EXECUTION_SUMMARY: Record<string, ExecutionSummaryData> = {
       { category: 'mutation', status: 'Succeeded', description: 'Defragment etcd on etcd-master-03', command: 'etcdctl defrag --endpoints=https://etcd-master-03:2379', output: 'Finished defragmenting etcd member[https://etcd-master-03:2379]' },
       { category: 'verification', status: 'Failed', description: 'Verify fragmentation ratio has been reduced', command: 'etcdctl endpoint status --endpoints=https://etcd-master-01:2379 --write-out=table', output: 'fragmentation_ratio: 0.67 — unchanged from pre-execution baseline (0.67). Compaction window had not run prior to defrag.' },
     ],
+    mockAudit: {
+      selectedOptionTitle: 'Sequential etcd defragmentation across control plane members',
+      approvedBy: 'Marcus Chen',
+      approvedAt: 'Jun 9, 2026, 5:44 PM',
+      maxAttempts: 3,
+    },
   },
 };
 
@@ -3575,6 +3597,13 @@ const ExecutionSummaryCard: React.FC<{
 }> = ({ plan, executionLog, selectedOptionTitle, maxAttempts, approval }) => {
   const summary = PLAN_EXECUTION_SUMMARY[plan.id];
 
+  // For pre-seeded terminal runs that were never executed in the current session,
+  // fall back to the mock audit baked into PLAN_EXECUTION_SUMMARY.
+  const resolvedOptionTitle  = selectedOptionTitle  ?? summary?.mockAudit?.selectedOptionTitle;
+  const resolvedMaxAttempts  = maxAttempts          ?? summary?.mockAudit?.maxAttempts;
+  const resolvedApprovedBy   = approval?.approvedBy ?? summary?.mockAudit?.approvedBy;
+  const resolvedApprovedAt   = approval?.approvedAt ?? summary?.mockAudit?.approvedAt;
+
   return (
     <>
       <Flex
@@ -3587,26 +3616,26 @@ const ExecutionSummaryCard: React.FC<{
       <Card style={{ borderRadius: '16px' }}>
       <CardBody>
         {/* ── Audit record (OLS-3694) ── */}
-        {(selectedOptionTitle || maxAttempts !== undefined || approval) && (
+        {(resolvedOptionTitle || resolvedMaxAttempts !== undefined || resolvedApprovedBy) && (
           <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
             <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '15ch' }}>
-              {selectedOptionTitle && (
+              {resolvedOptionTitle && (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Selected option</DescriptionListTerm>
-                  <DescriptionListDescription>{selectedOptionTitle}</DescriptionListDescription>
+                  <DescriptionListDescription>{resolvedOptionTitle}</DescriptionListDescription>
                 </DescriptionListGroup>
               )}
-              {maxAttempts !== undefined && (
+              {resolvedMaxAttempts !== undefined && (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Max attempts</DescriptionListTerm>
-                  <DescriptionListDescription>{maxAttempts}</DescriptionListDescription>
+                  <DescriptionListDescription>{resolvedMaxAttempts}</DescriptionListDescription>
                 </DescriptionListGroup>
               )}
-              {approval && (
+              {resolvedApprovedBy && (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Executed by</DescriptionListTerm>
                   <DescriptionListDescription>
-                    {approval.approvedBy}{approval.approvedAt ? `, ${approval.approvedAt}` : ''}
+                    {resolvedApprovedBy}{resolvedApprovedAt ? `, ${resolvedApprovedAt}` : ''}
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               )}
