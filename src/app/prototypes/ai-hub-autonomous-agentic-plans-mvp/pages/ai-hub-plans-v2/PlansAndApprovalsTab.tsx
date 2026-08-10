@@ -2286,8 +2286,8 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         namespaceScope: {
           namespace: 'openshift-monitoring',
           rules: [
-            { resource: 'secrets', verbs: 'get, create, patch', purpose: 'Rotate PagerDuty integration key in alertmanager-pagerduty secret', isWrite: true },
-            { resource: 'statefulsets (apps)', verbs: 'get, patch', purpose: 'Trigger rolling restart of alertmanager-main to pick up the new secret', isWrite: true },
+            { resource: 'secrets', instanceName: 'alertmanager-pagerduty', verbs: 'get, create, patch', purpose: 'Rotate PagerDuty integration key in this specific secret', isWrite: true },
+            { resource: 'statefulsets (apps)', instanceName: 'alertmanager-main', verbs: 'get, patch', purpose: 'Trigger rolling restart to pick up the new secret', isWrite: true },
             { resource: 'pods', verbs: 'get, list', purpose: 'Monitor pod restart progress during rolling reload', isWrite: false },
           ],
         },
@@ -2312,8 +2312,8 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         namespaceScope: {
           namespace: 'openshift-monitoring',
           rules: [
-            { resource: 'secrets', verbs: 'get, patch', purpose: 'Silence PagerDuty route in Alertmanager configuration secret', isWrite: true },
-            { resource: 'pods', verbs: 'get, list, delete', purpose: 'Force-restart alertmanager-main-0 to apply the silenced config', isWrite: true },
+            { resource: 'secrets', instanceName: 'alertmanager-main', verbs: 'get, patch', purpose: 'Silence PagerDuty route in this specific Alertmanager configuration secret', isWrite: true },
+            { resource: 'pods', instanceName: 'alertmanager-main-0', verbs: 'get, list, delete', purpose: 'Force-restart this pod to apply the silenced config', isWrite: true },
           ],
         },
       },
