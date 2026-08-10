@@ -1942,6 +1942,12 @@ export interface AgentCommand {
 export interface RbacRule {
   /** Kubernetes resource kind (e.g. 'secrets', 'deployments (apps)'). */
   resource: string;
+  /**
+   * Optional specific resource instance name (e.g. 'lightspeed-agentic-configuration').
+   * When present, the resource badge + instance name are rendered in place of plain kind text.
+   * Omit for rules that apply broadly to all instances of a kind.
+   */
+  instanceName?: string;
   /** Comma-separated verb list (e.g. 'get, list, patch'). */
   verbs: string;
   /** Short human-readable explanation of why this permission is needed. */
@@ -4145,10 +4151,14 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
                   {nsRules.map((rule, i) => (
                     <Tr key={`ns-${i}`}>
                       <Td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <ResourceIcon resource={rule.resource} />
+                        {rule.instanceName ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <ResourceIcon resource={rule.resource} />
+                            <code style={{ fontSize: '0.8125rem' }}>{rule.instanceName}</code>
+                          </div>
+                        ) : (
                           <code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code>
-                        </div>
+                        )}
                       </Td>
                       <Td><code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code></Td>
                       <Td>
@@ -4191,10 +4201,14 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
                   {clusterRules.map((rule, i) => (
                     <Tr key={`cluster-${i}`}>
                       <Td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <ResourceIcon resource={rule.resource} />
+                        {rule.instanceName ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <ResourceIcon resource={rule.resource} />
+                            <code style={{ fontSize: '0.8125rem' }}>{rule.instanceName}</code>
+                          </div>
+                        ) : (
                           <code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code>
-                        </div>
+                        )}
                       </Td>
                       <Td><code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code></Td>
                       <Td>
