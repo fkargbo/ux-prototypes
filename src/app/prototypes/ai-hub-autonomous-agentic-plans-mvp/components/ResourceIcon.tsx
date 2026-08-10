@@ -1,105 +1,85 @@
 import React from 'react';
-
-interface ResourceBadgeConfig {
-  abbr: string;
-  bg: string;
-  fg: string;
-}
+import { OpenShiftResourceBadge } from './NamespaceResourceLink';
 
 /**
- * Maps a normalised resource kind string to its OpenShift badge abbreviation and
- * colour. The input is lower-cased and stripped of any API group suffix before
- * matching, e.g. "securitycontextconstraints (security.openshift.io)" → "securitycontextconstraints".
+ * Color values sourced directly from the OCP console SCSS variables file:
+ * frontend/public/style/_vars.scss
+ *
+ * Only resource kinds that have an explicit CSS rule in
+ * frontend/public/components/_resource.scss are included here.
+ * Unknown / custom resources return null (no badge rendered).
  */
-const KIND_MAP: Record<string, ResourceBadgeConfig> = {
-  // Workloads — blue
-  deployments:   { abbr: 'D',   bg: '#0066CC', fg: '#fff' },
-  pods:          { abbr: 'P',   bg: '#0066CC', fg: '#fff' },
-  statefulsets:  { abbr: 'SS',  bg: '#0066CC', fg: '#fff' },
-  daemonsets:    { abbr: 'DS',  bg: '#0066CC', fg: '#fff' },
-  replicasets:   { abbr: 'RS',  bg: '#0066CC', fg: '#fff' },
-  jobs:          { abbr: 'J',   bg: '#0066CC', fg: '#fff' },
-  cronjobs:      { abbr: 'CJ',  bg: '#0066CC', fg: '#fff' },
-  // Config — purple
-  configmaps:    { abbr: 'CM',  bg: '#6A278C', fg: '#fff' },
-  secrets:       { abbr: 'S',   bg: '#6A278C', fg: '#fff' },
-  // Networking — green
-  services:      { abbr: 'SVC', bg: '#3E8635', fg: '#fff' },
-  routes:        { abbr: 'RT',  bg: '#3E8635', fg: '#fff' },
-  ingresses:     { abbr: 'I',   bg: '#3E8635', fg: '#fff' },
-  // Infrastructure — orange
-  nodes:         { abbr: 'N',   bg: '#EC7A08', fg: '#fff' },
-  persistentvolumeclaims: { abbr: 'PVC', bg: '#EC7A08', fg: '#fff' },
-  persistentvolumes:      { abbr: 'PV',  bg: '#EC7A08', fg: '#fff' },
-  storageclasses:         { abbr: 'SC',  bg: '#EC7A08', fg: '#fff' },
-  // Cluster-scoped — grey
-  namespaces:    { abbr: 'NS',  bg: '#6A6E73', fg: '#fff' },
-  clusterroles:  { abbr: 'CR',  bg: '#6A6E73', fg: '#fff' },
-  clusterrolebindings: { abbr: 'CRB', bg: '#6A6E73', fg: '#fff' },
-  // Security (OpenShift)
-  securitycontextconstraints: { abbr: 'SCC', bg: '#C9190B', fg: '#fff' },
-  mutatingwebhookconfigurations:   { abbr: 'MWC', bg: '#6A6E73', fg: '#fff' },
-  validatingwebhookconfigurations: { abbr: 'VWC', bg: '#6A6E73', fg: '#fff' },
+const KIND_MAP: Record<string, { abbr: string; color: string }> = {
+  // Workloads — $color-pod-overlord: #004080
+  deployments:             { abbr: 'D',   color: '#004080' },
+  deploymentconfigs:       { abbr: 'DC',  color: '#004080' },
+  daemonsets:              { abbr: 'DS',  color: '#004080' },
+  replicasets:             { abbr: 'RS',  color: '#004080' },
+  replicationcontrollers:  { abbr: 'RC',  color: '#004080' },
+  jobs:                    { abbr: 'J',   color: '#004080' },
+
+  // Pods — $color-pod-dark: #009596
+  pods:                    { abbr: 'P',   color: '#009596' },
+
+  // Config — $color-configmap-dark: #40199a
+  configmaps:              { abbr: 'CM',  color: '#40199a' },
+  serviceaccounts:         { abbr: 'SA',  color: '#40199a' },
+  ingresses:               { abbr: 'I',   color: '#40199a' },
+
+  // Secrets — $color-secret-dark: #c46100
+  secrets:                 { abbr: 'S',   color: '#c46100' },
+
+  // Networking — $color-service-dark: #6ca100
+  services:                { abbr: 'SVC', color: '#6ca100' },
+
+  // Namespace / Project — $color-namespace-dark: #1e4f18
+  namespaces:              { abbr: 'NS',  color: '#1e4f18' },
+  projects:                { abbr: 'PR',  color: '#1e4f18' },
+
+  // Nodes / Infrastructure — $color-node-dark: #8476d1
+  nodes:                   { abbr: 'N',   color: '#8476d1' },
+  machines:                { abbr: 'M',   color: '#8476d1' },
+
+  // RBAC — $color-rbac-role-dark: #795600
+  clusterroles:            { abbr: 'CR',  color: '#795600' },
+  roles:                   { abbr: 'R',   color: '#795600' },
+
+  // RBAC bindings — $color-rbac-binding-dark: #008bad
+  clusterrolebindings:     { abbr: 'CRB', color: '#008bad' },
+  rolebindings:            { abbr: 'RB',  color: '#008bad' },
 };
 
 /**
- * Resolve a `ResourceBadgeConfig` for a given resource string, or `null` for
- * unknown / custom resources that have no hardcoded console badge mapping.
- * Strips API group suffixes before lookup so that e.g.
- * "deployments (apps)" correctly resolves to the Deployments badge.
+ * Resolve badge config for a given resource string, or `null` for kinds that
+ * have no explicit OCP console CSS colour rule (CRDs, unknown resources, etc.).
+ *
+ * Strips API group suffixes before lookup, so
+ * `"deployments (apps)"` → `"deployments"` → Deployment badge.
  */
-function resolveConfig(resource: string): ResourceBadgeConfig | null {
+function resolveConfig(resource: string): { abbr: string; color: string } | null {
   const normalised = resource
-    .replace(/\s*\(.*?\)/, '') // strip "(apps)", "(security.openshift.io)" …
+    .replace(/\s*\(.*?\)/, '') // remove "(apps)", "(security.openshift.io)", …
     .trim()
     .toLowerCase();
-
   return KIND_MAP[normalised] ?? null;
 }
 
 interface ResourceIconProps {
-  /** Raw resource string as stored in RbacRule, e.g. "deployments (apps)". */
+  /** Raw resource string from RbacRule, e.g. "deployments (apps)". */
   resource: string;
-  size?: number;
 }
 
 /**
- * Circular badge that mirrors the OpenShift console resource-kind icon pattern.
- * Returns `null` for unknown or custom resources that have no console badge mapping,
- * so the resource name renders without a badge rather than showing a placeholder.
+ * OpenShift console–style resource kind badge using the same pill shape and
+ * exact colour values as `OpenShiftResourceBadge` in NamespaceResourceLink.tsx.
+ *
+ * Returns `null` for resource kinds not found in the OCP console CSS registry,
+ * so unknown / custom resources render with just the monospace name, no badge.
  */
-const ResourceIcon: React.FC<ResourceIconProps> = ({ resource, size = 22 }) => {
+const ResourceIcon: React.FC<ResourceIconProps> = ({ resource }) => {
   const config = resolveConfig(resource);
   if (!config) return null;
-
-  const { abbr, bg, fg } = config;
-  const fontSize = abbr.length >= 3 ? size * 0.38 : size * 0.44;
-
-  return (
-    <span
-      aria-hidden
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: size,
-        height: size,
-        minWidth: size,
-        borderRadius: '50%',
-        backgroundColor: bg,
-        color: fg,
-        fontSize,
-        fontWeight: 700,
-        fontFamily: 'var(--pf-t--global--font--family--sans)',
-        letterSpacing: '-0.02em',
-        lineHeight: 1,
-        userSelect: 'none',
-        flexShrink: 0,
-      }}
-    >
-      {abbr}
-    </span>
-  );
+  return <OpenShiftResourceBadge label={config.abbr} backgroundColor={config.color} />;
 };
 
 export default ResourceIcon;
