@@ -3803,10 +3803,6 @@ const EscalationSummaryCard: React.FC<{
   const isAutoPolicy = escalationPolicy === 'auto';
   const hasDispatched = isAutoPolicy && summary?.dispatchedTargets && summary.dispatchedTargets.length > 0;
 
-  const statusBadge = hasDispatched
-    ? <Label color="red" isCompact>Dispatched</Label>
-    : <Label color="orange" isCompact>Awaiting Action</Label>;
-
   return (
     <>
       <Flex
@@ -3820,7 +3816,7 @@ const EscalationSummaryCard: React.FC<{
         />
         <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>Escalation summary</Title>
         <Label color="grey" isCompact>AI-generated</Label>
-        {statusBadge}
+        {hasDispatched && <Label color="red" isCompact>Dispatched</Label>}
       </Flex>
       <Card style={{ borderRadius: '16px' }}>
         <CardBody>
