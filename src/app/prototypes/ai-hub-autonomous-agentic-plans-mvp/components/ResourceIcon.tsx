@@ -42,37 +42,19 @@ const KIND_MAP: Record<string, ResourceBadgeConfig> = {
   validatingwebhookconfigurations: { abbr: 'VWC', bg: '#6A6E73', fg: '#fff' },
 };
 
-/** Neutral fallback badge style for unknown or custom resources. */
-const FALLBACK_CONFIG: Omit<ResourceBadgeConfig, 'abbr'> = {
-  bg: '#6A6E73',
-  fg: '#fff',
-};
-
 /**
- * Derive a 1-2 character abbreviation from an arbitrary resource string.
- * Strips API group suffixes like "(apps)", "(security.openshift.io)", etc.
- */
-function deriveAbbr(raw: string): string {
-  const base = raw.replace(/\s*\(.*?\)/, '').trim();
-  const words = base.split(/[\s_-]+/).filter(Boolean);
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
-  }
-  return base.slice(0, 2).toUpperCase();
-}
-
-/**
- * Resolve a `ResourceBadgeConfig` for a given resource string.
+ * Resolve a `ResourceBadgeConfig` for a given resource string, or `null` for
+ * unknown / custom resources that have no hardcoded console badge mapping.
  * Strips API group suffixes before lookup so that e.g.
  * "deployments (apps)" correctly resolves to the Deployments badge.
  */
-function resolveConfig(resource: string): ResourceBadgeConfig {
+function resolveConfig(resource: string): ResourceBadgeConfig | null {
   const normalised = resource
     .replace(/\s*\(.*?\)/, '') // strip "(apps)", "(security.openshift.io)" …
     .trim()
     .toLowerCase();
 
-  return KIND_MAP[normalised] ?? { abbr: deriveAbbr(resource), ...FALLBACK_CONFIG };
+  return KIND_MAP[normalised] ?? null;
 }
 
 interface ResourceIconProps {
@@ -83,11 +65,14 @@ interface ResourceIconProps {
 
 /**
  * Circular badge that mirrors the OpenShift console resource-kind icon pattern.
- * Renders a coloured circle with a short abbreviation, sized to align with
- * monospace resource text in table rows.
+ * Returns `null` for unknown or custom resources that have no console badge mapping,
+ * so the resource name renders without a badge rather than showing a placeholder.
  */
 const ResourceIcon: React.FC<ResourceIconProps> = ({ resource, size = 22 }) => {
-  const { abbr, bg, fg } = resolveConfig(resource);
+  const config = resolveConfig(resource);
+  if (!config) return null;
+
+  const { abbr, bg, fg } = config;
   const fontSize = abbr.length >= 3 ? size * 0.38 : size * 0.44;
 
   return (
