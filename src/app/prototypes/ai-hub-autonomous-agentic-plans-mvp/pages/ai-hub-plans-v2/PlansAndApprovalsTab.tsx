@@ -115,6 +115,7 @@ import {
 import { getPlanDetailHref, resolvePlanDomainAnnotations } from './domainPlanNavigation';
 import { downloadAnalysisReportMarkdown, downloadRemediationPlanMarkdown } from '../../utils/downloadRemediationPlan';
 import { ExpandableCodeBlock } from '../../components/ExpandableCodeBlock';
+import ResourceIcon from '../../components/ResourceIcon';
 import { LogViewer } from '@patternfly/react-log-viewer';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -4143,7 +4144,12 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
                 <Tbody>
                   {nsRules.map((rule, i) => (
                     <Tr key={`ns-${i}`}>
-                      <Td><code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code></Td>
+                      <Td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <ResourceIcon resource={rule.resource} />
+                          <code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code>
+                        </div>
+                      </Td>
                       <Td><code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code></Td>
                       <Td>
                         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -4184,7 +4190,12 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
                 <Tbody>
                   {clusterRules.map((rule, i) => (
                     <Tr key={`cluster-${i}`}>
-                      <Td><code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code></Td>
+                      <Td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <ResourceIcon resource={rule.resource} />
+                          <code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code>
+                        </div>
+                      </Td>
                       <Td><code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code></Td>
                       <Td>
                         <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
