@@ -24,11 +24,7 @@ import {
   Button,
   Divider,
   Label,
-  MenuToggle,
   SearchInput,
-  Select,
-  SelectList,
-  SelectOption,
   Tooltip,
 } from '@patternfly/react-core';
 import {
@@ -387,6 +383,7 @@ export const FeedbackSidePanel: React.FC = () => {
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('newest');
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
   const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const projectIdRef = useRef('');
@@ -445,11 +442,26 @@ export const FeedbackSidePanel: React.FC = () => {
   // Keyboard close
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) setIsOpen(false);
+      if (e.key === 'Escape') {
+        if (isSortOpen) { setIsSortOpen(false); return; }
+        if (isOpen) setIsOpen(false);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen]);
+  }, [isOpen, isSortOpen]);
+
+  // Close sort menu on outside click
+  useEffect(() => {
+    if (!isSortOpen) return;
+    const onOutside = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setIsSortOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onOutside);
+    return () => document.removeEventListener('mousedown', onOutside);
+  }, [isSortOpen]);
 
   const toggleResolved = useCallback((pinId: string) => {
     setResolvedIds((prev) => {
@@ -661,43 +673,90 @@ export const FeedbackSidePanel: React.FC = () => {
             onClear={() => setSearch('')}
             style={{ flex: 1, minWidth: 0 }}
           />
-          {/* Sort — PF6 Select appended to <body> so it never clips at the panel edge */}
-          <Select
-            isOpen={isSortOpen}
-            onOpenChange={setIsSortOpen}
-            onSelect={(_e, val) => {
-              setSortKey(val as SortKey);
-              setIsSortOpen(false);
-            }}
-            selected={sortKey}
-            popperProps={{ appendTo: () => document.body, position: 'bottom-end', enableFlip: true }}
-            toggle={(ref) => (
-              <MenuToggle
-                ref={ref}
+          {/* Sort — self-contained dropdown anchored inside the panel (no Popper) */}
+          <div ref={sortRef} style={{ position: 'relative', flexShrink: 0 }}>
+            <Tooltip content={`Sort: ${SORT_LABELS[sortKey]}`} position="top">
+              <button
                 aria-label={`Sort: ${SORT_LABELS[sortKey]}`}
+                aria-expanded={isSortOpen}
+                aria-haspopup="listbox"
                 onClick={() => setIsSortOpen((o) => !o)}
-                isExpanded={isSortOpen}
-                variant="plain"
-                style={{ padding: '0 4px', color: T.textSubtle }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 34,
+                  height: 34,
+                  border: `1px solid ${isSortOpen ? T.brand : T.border}`,
+                  borderRadius: 4,
+                  backgroundColor: isSortOpen ? '#e7f1fa' : T.bg,
+                  color: isSortOpen ? T.brand : T.textSubtle,
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
               >
-                <Tooltip content={`Sort: ${SORT_LABELS[sortKey]}`} position="top">
-                  <SortAmountDownAltIcon />
-                </Tooltip>
-              </MenuToggle>
+                <SortAmountDownAltIcon />
+              </button>
+            </Tooltip>
+
+            {/* Menu — right-aligned inside the panel, never escapes viewport */}
+            {isSortOpen && (
+              <ul
+                role="listbox"
+                aria-label="Sort options"
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: 4,
+                  width: 160,
+                  backgroundColor: T.bg,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 6,
+                  boxShadow: `0 4px 12px ${T.shadow}`,
+                  padding: '4px 0',
+                  listStyle: 'none',
+                  margin: '4px 0 0',
+                  zIndex: 10,
+                }}
+              >
+                {(['newest', 'oldest', 'unread-first'] as SortKey[]).map((key) => (
+                  <li key={key} role="option" aria-selected={sortKey === key}>
+                    <button
+                      onClick={() => { setSortKey(key); setIsSortOpen(false); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%',
+                        padding: '7px 14px',
+                        border: 'none',
+                        background: sortKey === key ? '#e7f1fa' : 'none',
+                        color: sortKey === key ? T.brand : T.text,
+                        fontWeight: sortKey === key ? 600 : 400,
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontFamily: 'inherit',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (sortKey !== key) (e.currentTarget as HTMLElement).style.backgroundColor = T.bgSecondary;
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLElement).style.backgroundColor =
+                          sortKey === key ? '#e7f1fa' : 'transparent';
+                      }}
+                    >
+                      {SORT_LABELS[key]}
+                      {sortKey === key && (
+                        <span style={{ fontSize: '0.7rem', color: T.brand }}>✓</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
-          >
-            <SelectList>
-              {(['newest', 'oldest', 'unread-first'] as SortKey[]).map((key) => (
-                <SelectOption
-                  key={key}
-                  value={key}
-                  isSelected={sortKey === key}
-                >
-                  {SORT_LABELS[key]}
-                </SelectOption>
-              ))}
-            </SelectList>
-          </Select>
+          </div>
         </div>
 
         {/* Active sort indicator strip */}
