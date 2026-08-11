@@ -3591,10 +3591,12 @@ const SECTION_OVERLINE_STYLE: React.CSSProperties = {
 const ExecutionSummaryCard: React.FC<{
   plan: PlanRow;
   executionLog: string;
+  /** When true the card renders in its final completed state — no spinners or loading text. */
+  isCompleted?: boolean;
   selectedOptionTitle?: string;
   maxAttempts?: number;
   approval?: import('../../context/PlanWorkflowContext').ExecutionApproval | null;
-}> = ({ plan, executionLog, selectedOptionTitle, maxAttempts, approval }) => {
+}> = ({ plan, executionLog, isCompleted = false, selectedOptionTitle, maxAttempts, approval }) => {
   const summary = PLAN_EXECUTION_SUMMARY[plan.id];
 
   // For pre-seeded terminal runs that were never executed in the current session,
@@ -3662,6 +3664,10 @@ const ExecutionSummaryCard: React.FC<{
                 <Content component="p" style={{ fontSize: '0.875rem' }}>{summary.remediationDelta}</Content>
               </StackItem>
             </Stack>
+          ) : isCompleted ? (
+            <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              Execution completed — logs available below.
+            </Content>
           ) : (
             <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
               Execution context is being assembled…
@@ -3715,6 +3721,10 @@ const ExecutionSummaryCard: React.FC<{
                 </StackItem>
               ))}
             </Stack>
+          ) : isCompleted ? (
+            <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              All actions completed — no structured action data available for this run.
+            </Content>
           ) : (
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
               <FlexItem><Spinner size="sm" aria-label="Executing" /></FlexItem>
@@ -3754,9 +3764,135 @@ const CHECK_STATUS_COLOR: Record<VerificationCheck['status'], 'green' | 'red'> =
 const VerificationSummaryCard: React.FC<{
   plan: PlanRow;
   verificationLog: string;
-}> = ({ plan, verificationLog }) => {
+  verification?: import('../../context/PlanWorkflowContext').VerificationState | null;
+  isLive?: boolean;
+  verificationPolicy?: 'manual' | 'auto';
+  onApproveVerification?: () => void;
+}> = ({ plan, verificationLog, verification, isLive = false, verificationPolicy, onApproveVerification }) => {
   const summary = PLAN_VERIFICATION_SUMMARY[plan.id];
+  const isInProgress = !summary;
 
+  // Stream health check lines while live verification is running.
+  const checkLines = (verification?.checks?.length ?? 0) > 0
+    ? (verification!.checks)
+    : VERIFICATION_CHECK_LINES;
+
+  const [visibleCount, setVisibleCount] = useState(isLive ? 0 : checkLines.length);
+
+  useEffect(() => {
+    if (!isInProgress || !isLive) {
+      setVisibleCount(checkLines.length);
+      return undefined;
+    }
+    setVisibleCount(0);
+    let count = 0;
+    const interval = window.setInterval(() => {
+      count += 1;
+      setVisibleCount(count);
+      if (count >= checkLines.length) window.clearInterval(interval);
+    }, 700);
+    return () => window.clearInterval(interval);
+  }, [isInProgress, isLive, checkLines]);
+
+  const visibleLines = checkLines.slice(0, visibleCount);
+  const attempt = verification?.attempt ?? 1;
+  const maxAttempts = verification?.maxAttempts ?? 3;
+
+  // ── In-progress layout (status = Verifying, no completed summary yet) ──────
+  if (isInProgress) {
+    return (
+      <>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapSm' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+        >
+          <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>Verification summary</Title>
+          <Spinner size="sm" aria-label="Verifying health checks" />
+        </Flex>
+        <Card style={{ borderRadius: '16px' }}>
+          <CardBody>
+            {/* Attempt counter */}
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              gap={{ default: 'gapSm' }}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+            >
+              <FlexItem>
+                <Label color="blue" isCompact>
+                  Attempt {attempt} of {maxAttempts}
+                </Label>
+              </FlexItem>
+            </Flex>
+
+            {/* Live health check probe stream */}
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>Health check probes</Content>
+              <div
+                style={{
+                  fontFamily: 'var(--pf-t--global--font--family--mono)',
+                  fontSize: '0.8125rem',
+                  lineHeight: 1.7,
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  background: 'var(--pf-t--global--background--color--secondary--default)',
+                  borderRadius: '8px',
+                  padding: 'var(--pf-t--global--spacer--md)',
+                  minHeight: '80px',
+                }}
+              >
+                {visibleLines.map((line, i) => (
+                  <div key={i}>{line}</div>
+                ))}
+                {visibleLines.length === 0 && (
+                  <span style={{ opacity: 0.5 }}>Initializing health check probes…</span>
+                )}
+              </div>
+            </div>
+
+            {/* Outcome placeholder */}
+            <Content
+              component="small"
+              style={{
+                display: 'block',
+                color: 'var(--pf-t--global--text--color--subtle)',
+                fontStyle: 'italic',
+                marginBottom: verificationLog ? 'var(--pf-t--global--spacer--lg)' : 0,
+              }}
+            >
+              Outcome assessment will be generated upon completion of health checks.
+            </Content>
+
+            {/* Log footer */}
+            {verificationLog && (
+              <>
+                <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+                <LogExpandable
+                  idPrefix={`verif-log-${plan.id}`}
+                  toggleText="View verification logs"
+                  logText={verificationLog}
+                />
+              </>
+            )}
+
+            {/* Manual policy: Approve verification button */}
+            {verificationPolicy === 'manual' && !verification?.outcome && (
+              <>
+                <Divider style={{ margin: 'var(--pf-t--global--spacer--lg) 0 var(--pf-t--global--spacer--md)' }} />
+                <Button
+                  variant="primary"
+                  onClick={onApproveVerification}
+                >
+                  Approve verification
+                </Button>
+              </>
+            )}
+          </CardBody>
+        </Card>
+      </>
+    );
+  }
+
+  // ── Completed layout (summary data available) ─────────────────────────────
   return (
     <>
       <Flex
@@ -3772,19 +3908,13 @@ const VerificationSummaryCard: React.FC<{
         {/* ── Outcome assessment ── */}
         <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
           <Content component="small" style={SECTION_OVERLINE_STYLE}>Outcome assessment</Content>
-          {summary ? (
-            <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6 }}>
-              {summary.outcomeAssessment.map((line, i) => (
-                <li key={i}>
-                  <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>{line}</Content>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-              Outcome assessment is being generated…
-            </Content>
-          )}
+          <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6 }}>
+            {summary.outcomeAssessment.map((line, i) => (
+              <li key={i}>
+                <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>{line}</Content>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
@@ -3792,59 +3922,48 @@ const VerificationSummaryCard: React.FC<{
         {/* ── Verification checks ── */}
         <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
           <Content component="small" style={SECTION_OVERLINE_STYLE}>Verification checks</Content>
-          {summary ? (
-            <Stack hasGutter>
-              {summary.checks.map((check, i) => (
-                <StackItem key={i}>
-                  <Flex
-                    alignItems={{ default: 'alignItemsCenter' }}
-                    gap={{ default: 'gapSm' }}
-                    style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                  >
-                    <FlexItem>
-                      <Content
-                        component="small"
-                        style={{ fontWeight: 600, fontFamily: 'var(--pf-t--global--font--family--mono)' }}
-                      >
-                        {check.id}
-                      </Content>
-                    </FlexItem>
-                    <FlexItem>
-                      <Label isCompact color={CHECK_STATUS_COLOR[check.status]}>{check.status}</Label>
-                    </FlexItem>
-                  </Flex>
-                  <ExpandableCodeBlock
-                    id={`verif-check-${plan.id}-${i}`}
-                    code={check.command}
-                    codeStyle={{ fontSize: '12px' }}
-                  />
-                  {check.output && (
+          <Stack hasGutter>
+            {summary.checks.map((check, i) => (
+              <StackItem key={i}>
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapSm' }}
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                >
+                  <FlexItem>
                     <Content
                       component="small"
-                      style={{
-                        display: 'block',
-                        marginTop: 'var(--pf-t--global--spacer--xs)',
-                        fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        color: 'var(--pf-t--global--text--color--subtle)',
-                        fontSize: '11px',
-                      }}
+                      style={{ fontWeight: 600, fontFamily: 'var(--pf-t--global--font--family--mono)' }}
                     >
-                      {check.output}
+                      {check.id}
                     </Content>
-                  )}
-                </StackItem>
-              ))}
-            </Stack>
-          ) : (
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <FlexItem><Spinner size="sm" aria-label="Verifying" /></FlexItem>
-              <FlexItem>
-                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                  Running verification checks…
-                </Content>
-              </FlexItem>
-            </Flex>
-          )}
+                  </FlexItem>
+                  <FlexItem>
+                    <Label isCompact color={CHECK_STATUS_COLOR[check.status]}>{check.status}</Label>
+                  </FlexItem>
+                </Flex>
+                <ExpandableCodeBlock
+                  id={`verif-check-${plan.id}-${i}`}
+                  code={check.command}
+                  codeStyle={{ fontSize: '12px' }}
+                />
+                {check.output && (
+                  <Content
+                    component="small"
+                    style={{
+                      display: 'block',
+                      marginTop: 'var(--pf-t--global--spacer--xs)',
+                      fontFamily: 'var(--pf-t--global--font--family--mono)',
+                      color: 'var(--pf-t--global--text--color--subtle)',
+                      fontSize: '11px',
+                    }}
+                  >
+                    {check.output}
+                  </Content>
+                )}
+              </StackItem>
+            ))}
+          </Stack>
         </div>
 
         {/* ── Log footer ── */}
@@ -5798,7 +5917,7 @@ export const RemediationBlueprintPanel: React.FC<{
                 );
               })}
             </Stack>
-          ) : isTerminal ? (
+          ) : (isTerminal || isVerifying) ? (
             <>
               {terminalVisibleOptions.length > 0 && (
                 <Stack hasGutter>
@@ -5827,28 +5946,6 @@ export const RemediationBlueprintPanel: React.FC<{
               )}
               {terminalVisibleOptions.length === 0 && (
                 <TerminalEvidenceCard plan={plan} />
-              )}
-            </>
-          ) : isVerifying && verificationState ? (
-            <>
-              <VerificationPanel
-                verification={verificationState}
-                isLive={Boolean(workflow.verification) && !showStaticVerification && isAgenticAutomationEnabled}
-                onComplete={verificationPolicy === 'auto' ? handleVerificationComplete : undefined}
-              />
-              {/* Manual verification gate: SRE triggers health check and marks resolved */}
-              {verificationPolicy === 'manual' && !workflow.verification?.outcome && (
-                <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                  <FlexItem>
-                    <Button
-                      variant="primary"
-                      isDisabled={!isAgenticAutomationEnabled}
-                      onClick={handleVerificationComplete}
-                    >
-                      Approve verification
-                    </Button>
-                  </FlexItem>
-                </Flex>
               )}
             </>
           ) : (
@@ -6124,6 +6221,7 @@ export const RemediationBlueprintPanel: React.FC<{
           <ExecutionSummaryCard
             plan={plan}
             executionLog={summaryExecutionLog}
+            isCompleted={isVerifying || isTerminal}
             selectedOptionTitle={selectedOption?.title}
             maxAttempts={configMaxRetryAttempts}
             approval={workflow.executionApproval}
@@ -6134,7 +6232,14 @@ export const RemediationBlueprintPanel: React.FC<{
       {/* ── Verification Summary Card ───────────────────────────────────── */}
       {(isVerifying || isTerminal) && (
         <StackItem>
-          <VerificationSummaryCard plan={plan} verificationLog={summaryVerificationLog} />
+          <VerificationSummaryCard
+            plan={plan}
+            verificationLog={summaryVerificationLog}
+            verification={workflow.verification ?? verificationState}
+            isLive={isVerifying && Boolean(workflow.verification) && isAgenticAutomationEnabled}
+            verificationPolicy={verificationPolicy}
+            onApproveVerification={isVerifying ? handleVerificationComplete : undefined}
+          />
         </StackItem>
       )}
 
