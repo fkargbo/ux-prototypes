@@ -3003,28 +3003,42 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   status,
   terminatedAt,
 }) => {
+  // Phase-specific cancellation labels (OLS-3298) — makes it immediately clear
+  // to operators which phase was stopped and what action is needed next.
   if (status === 'Run aborted') {
     return (
-      <Tooltip content={`Analysis stopped at ${terminatedAt ?? '—'}. Run canceled before execution began.`} position="top">
+      <Tooltip
+        content={`Analysis stopped at ${terminatedAt ?? '—'}. No root cause was determined — cluster was not modified.`}
+        position="top"
+      >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" isCompact style={{ whiteSpace: 'nowrap' }}>Run aborted</Label>
+          <Label color="orange" isCompact style={{ whiteSpace: 'nowrap' }}>Analysis stopped</Label>
         </span>
       </Tooltip>
     );
   }
 
-  if (status === 'Plan aborted' || status === 'EmergencyStopped') {
-    const tooltipContent =
-      status === 'EmergencyStopped'
-        ? `Emergency stop issued by operator at ${terminatedAt ?? '—'}. Execution halted mid-flight.`
-        : `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
-    const displayLabel = status === 'EmergencyStopped' ? 'Emergency stopped' : 'Plan aborted';
+  if (status === 'Plan aborted') {
     return (
-      <Tooltip content={tooltipContent} position="top">
+      <Tooltip
+        content={`Execution stopped at ${terminatedAt ?? '—'}. Cluster may be in a partial state — verify manually.`}
+        position="top"
+      >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" isCompact style={{ whiteSpace: 'nowrap' }}>
-            {displayLabel}
-          </Label>
+          <Label color="red" isCompact style={{ whiteSpace: 'nowrap' }}>Execution stopped</Label>
+        </span>
+      </Tooltip>
+    );
+  }
+
+  if (status === 'EmergencyStopped') {
+    return (
+      <Tooltip
+        content={`Emergency stop issued at ${terminatedAt ?? '—'}. All in-flight runs halted by global kill switch.`}
+        position="top"
+      >
+        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
+          <Label color="red" isCompact style={{ whiteSpace: 'nowrap' }}>Emergency stopped</Label>
         </span>
       </Tooltip>
     );

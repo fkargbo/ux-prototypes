@@ -253,7 +253,7 @@ export function buildTimelineSteps(
       return [
         done ('s1', 'agenticrun.received',  'Run created — controller dispatched', 0),
         done ('s2', 'agenticrun.analyze',    'Analysis phase started', 1),
-        warn ('s3', 'agenticrun.terminal',   'Analysis stopped — run aborted by user', 9),
+        warn ('s3', 'agenticrun.terminal',   'Analysis stopped — canceled before root cause determined', 9),
       ];
 
     // ── Emergency stopped / Plan aborted (execution-phase halt) ──────────────
@@ -267,7 +267,7 @@ export function buildTimelineSteps(
         done  ('s3', 'agenticrun.analysis.completed', 'Analysis completed', 4),
         done  ('s4', 'agenticrun.human_approval',     'Human approval — approved', 6),
         done  ('s5', 'agenticrun.execute',            'Execution phase started', 7),
-        failed('s6', 'agenticrun.terminal',           'Terminal state reached — Emergency stopped', 11),
+        failed('s6', 'agenticrun.terminal',           'Execution stopped — cluster may be in partial state', 11),
       ];
 
     // ── Approved (execution imminent) ────────────────────────────────────────
