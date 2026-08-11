@@ -5579,6 +5579,15 @@ export const RemediationBlueprintPanel: React.FC<{
             </CardBody>
           </Card>
         </StackItem>
+
+        {/* E. Timeline — preserved showing partial analysis steps up to abort */}
+        <StackItem>
+          <AgenticRunTimeline
+            status={status}
+            createdAt={plan.createdAt}
+            isCapabilitiesDisabled={!isAgenticAutomationEnabled}
+          />
+        </StackItem>
       </Stack>
     );
   }
