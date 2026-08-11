@@ -1754,6 +1754,7 @@ const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Escalated':        'orange',
   'EmergencyStopped': 'red',
   'Plan aborted':     'red',
+  'Run aborted':      'orange',
 };
 
 const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
