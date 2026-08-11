@@ -232,9 +232,9 @@ export function buildTimelineSteps(
     // Steps after analysis phase are never reached.
     case 'Run aborted':
       return [
-        done  ('s1', 'agenticrun.received',  'Run created — controller dispatched', 0),
-        done  ('s2', 'agenticrun.analyze',    'Analysis phase started', 1),
-        failed('s3', 'agenticrun.terminal',   'Analysis stopped — run aborted by user', 9),
+        done ('s1', 'agenticrun.received',  'Run created — controller dispatched', 0),
+        done ('s2', 'agenticrun.analyze',    'Analysis phase started', 1),
+        warn ('s3', 'agenticrun.terminal',   'Analysis stopped — run aborted by user', 9),
       ];
 
     // ── Emergency stopped / Plan aborted (execution-phase halt) ──────────────
