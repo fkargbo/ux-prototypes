@@ -3680,7 +3680,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                           index={optionIndex}
                           plan={plan}
                           executionKillState={executionKillState}
-                          onConfirmStopExecution={(killedAt) => registerPlanTermination(plan.id, killedAt)}
+                          onConfirmStopExecution={(killedAt) => registerPlanTermination(plan.id, killedAt, 'execution')}
                           isSelected={isOptionLocked || selectedOptionId === opt.id}
                           isAgenticAutomationEnabled={isAgenticAutomationEnabled}
                           onSelect={setSelectedOptionId}
@@ -3770,7 +3770,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <Button
                 variant="danger"
                 onClick={() => {
-                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
+                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()), 'analysis');
                   setIsStopAnalysisModalOpen(false);
                 }}
               >

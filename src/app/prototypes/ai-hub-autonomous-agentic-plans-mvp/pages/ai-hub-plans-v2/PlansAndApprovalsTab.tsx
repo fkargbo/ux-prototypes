@@ -6386,7 +6386,7 @@ export const RemediationBlueprintPanel: React.FC<{
               <Button
                 variant="danger"
                 onClick={() => {
-                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
+                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()), 'execution');
                   setIsStopExecutionModalOpen(false);
                 }}
               >
@@ -6476,7 +6476,7 @@ export const RemediationBlueprintPanel: React.FC<{
         <Button
           variant="danger"
           onClick={() => {
-            registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
+            registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()), 'analysis');
             setIsStopAnalysisModalOpen(false);
           }}
         >
@@ -6561,10 +6561,14 @@ export function buildPlansForPerspective(
       };
 
       if (abortedPlans[row.id]) {
+        const abortEntry = abortedPlans[row.id];
+        // 'analysis' phase abort → analysis was stopped before execution began → 'Run aborted'
+        // 'execution' phase abort → execution was halted mid-flight → 'Plan aborted'
+        const abortStatus = abortEntry.phase === 'analysis' ? 'Run aborted' : 'Plan aborted';
         return {
           ...baseRow,
-          status: 'Plan aborted',
-          terminatedAt: abortedPlans[row.id].terminatedAt,
+          status: abortStatus,
+          terminatedAt: abortEntry.terminatedAt,
         };
       }
 
