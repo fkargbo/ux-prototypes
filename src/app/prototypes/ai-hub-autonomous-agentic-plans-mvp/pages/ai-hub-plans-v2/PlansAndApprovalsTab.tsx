@@ -5558,26 +5558,22 @@ export const RemediationBlueprintPanel: React.FC<{
           </div>
         </StackItem>
 
-        {/* D. Remediation Hub Card — muted, no options available */}
+        {/* D. Remediation Hub — muted, no options available */}
         <StackItem>
           <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
             Remediation hub
           </Title>
-          <Card style={{ borderRadius: '16px' }}>
-            <CardBody>
-              <div style={LOCKED_BOX_STYLE}>
-                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                  <BanIcon
-                    style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
-                    aria-hidden
-                  />
-                  <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
-                    No remediation options available because analysis was canceled.
-                  </Content>
-                </Flex>
-              </div>
-            </CardBody>
-          </Card>
+          <div style={LOCKED_BOX_STYLE}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <BanIcon
+                style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
+                aria-hidden
+              />
+              <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
+                No remediation options available because analysis was canceled.
+              </Content>
+            </Flex>
+          </div>
         </StackItem>
 
         {/* E. Timeline — preserved showing partial analysis steps up to abort */}
