@@ -42,11 +42,15 @@ function offsetTimestamp(baseIso: string, offsetMinutes: number): string {
  * Maps a plan status to a full ordered list of the 12 backend-supported
  * OLS audit events, assigning each step the correct variant and marking
  * the current active step.
+ *
+ * @param isAwaitingAnalysisApproval - When true (Pending + manual policy gate),
+ *   inserts an explicit "Human approval requested" active step before analysis begins.
  */
 export function buildTimelineSteps(
   status: PlanStatus,
   createdAt: string = new Date().toISOString(),
   retryCount = 0,
+  isAwaitingAnalysisApproval = false,
 ): TimelineStep[] {
   const t = (min: number) => offsetTimestamp(createdAt, min);
 
@@ -76,6 +80,21 @@ export function buildTimelineSteps(
   switch (status) {
     // ── Pre-analysis ──────────────────────────────────────────────────────────
     case 'Pending':
+      // When the run is gated on human approval before analysis can begin,
+      // surface that gate as an explicit active step so the operator understands why nothing has progressed.
+      if (isAwaitingAnalysisApproval) {
+        return [
+          done  ('s1', 'agenticrun.received',            'Run created — controller dispatched', 0),
+          active('s2', 'agenticrun.human_approval',       'Human approval requested — awaiting analysis approval', 1),
+          waiting('s3', 'agenticrun.analyze',             'Analysis phase started'),
+          waiting('s4', 'agenticrun.analysis.completed',  'Analysis completed'),
+          waiting('s5', 'agenticrun.execute',             'Execution phase started'),
+          waiting('s6', 'agenticrun.execution.completed', 'Execution completed'),
+          waiting('s7', 'agenticrun.verify',              'Verification phase started'),
+          waiting('s8', 'agenticrun.verification.completed', 'Verification completed'),
+          waiting('s9', 'agenticrun.terminal',            'Terminal state reached'),
+        ];
+      }
       return [
         active('s1', 'agenticrun.received',  'Run created — controller dispatched', 0),
         waiting('s2', 'agenticrun.analyze',   'Analysis phase started'),
@@ -293,6 +312,11 @@ interface AgenticRunTimelineProps {
    * run was administratively suspended, not failed.
    */
   isCapabilitiesDisabled?: boolean;
+  /**
+   * When true, the Pending timeline shows an explicit "Human approval requested"
+   * active step, reflecting that the run is gated on manual analysis approval.
+   */
+  isAwaitingAnalysisApproval?: boolean;
 }
 
 /**
@@ -304,13 +328,14 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   createdAt,
   retryCount = 0,
   isCapabilitiesDisabled = false,
+  isAwaitingAnalysisApproval = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   // Only surface steps that have been processed or are currently in progress.
   // Pending (unreached) steps are intentionally excluded — not all runs pass
   // through every phase (e.g. Denied runs never reach execution).
-  const steps = buildTimelineSteps(status, createdAt, retryCount)
+  const steps = buildTimelineSteps(status, createdAt, retryCount, isAwaitingAnalysisApproval)
     .filter((s) => s.variant !== 'pending')
     .map((s) => {
       // When the kill switch is engaged, demote the active (blue) step to

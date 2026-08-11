@@ -5733,6 +5733,7 @@ export const RemediationBlueprintPanel: React.FC<{
             status={status}
             createdAt={plan.createdAt}
             isCapabilitiesDisabled={!isAgenticAutomationEnabled}
+            isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
           />
         </StackItem>
       </Stack>
@@ -6461,6 +6462,7 @@ export const RemediationBlueprintPanel: React.FC<{
           status={status}
           createdAt={plan.createdAt}
           isCapabilitiesDisabled={!isAgenticAutomationEnabled}
+          isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
         />
       </StackItem>
     </Stack>
