@@ -41,7 +41,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiDownloadIcon, SearchIcon } from '@patternfly/react-icons';
+import { BanIcon, CheckCircleIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiDownloadIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
@@ -156,8 +156,10 @@ export interface PlanRow {
   namespace?: string;
   /** Perspective-aware scope cell (cluster or namespace). */
   scope?: string;
-  /** Display timestamp when execution was halted (Plan aborted). */
+  /** Display timestamp when execution was halted (Plan aborted / Run aborted). */
   terminatedAt?: string;
+  /** Username who stopped the analysis (Run aborted only). */
+  abortedBy?: string;
   /** Investigation-only proposals have analysis but no remediation hub. */
   planKind?: 'remediation' | 'analysis-only';
   /**
@@ -566,8 +568,9 @@ const ALL_PLANS: RawPlanRow[] = [
   {
     id: 'ap2',
     severity: 'warning',
-    status: 'Plan aborted',
+    status: 'Run aborted',
     terminatedAt: 'Jun 9, 2026, 2:48 PM',
+    abortedBy: 'sre-platform-admin',
     score: 75,
     synopsis: 'Repair Dev CI/CD Webhook Block',
     consolidationScope: '1 Failure / 2 Alerts',
@@ -2961,6 +2964,7 @@ const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Escalated':        'yellow',
   'EmergencyStopped': 'red',
   'Plan aborted':     'red',
+  'Run aborted':      'red',
 };
 
 const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
@@ -2999,12 +3003,22 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   status,
   terminatedAt,
 }) => {
+  if (status === 'Run aborted') {
+    return (
+      <Tooltip content={`Analysis stopped at ${terminatedAt ?? '—'}. Run canceled before execution began.`} position="top">
+        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
+          <Label color="red" isCompact style={{ whiteSpace: 'nowrap' }}>Run aborted</Label>
+        </span>
+      </Tooltip>
+    );
+  }
+
   if (status === 'Plan aborted' || status === 'EmergencyStopped') {
     const tooltipContent =
       status === 'EmergencyStopped'
         ? `Emergency stop issued by operator at ${terminatedAt ?? '—'}. Execution halted mid-flight.`
         : `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
-    const displayLabel = status === 'EmergencyStopped' ? 'Emergency stopped' : 'Run aborted';
+    const displayLabel = status === 'EmergencyStopped' ? 'Emergency stopped' : 'Plan aborted';
     return (
       <Tooltip content={tooltipContent} position="top">
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
@@ -5136,6 +5150,29 @@ function generateVerificationLogs(planId: string): string {
   ].join('\n');
 }
 
+/** Generates deterministic partial analysis log lines captured before the run was aborted. */
+function generateAbortedAnalysisLogs(planId: string): string {
+  const h = planId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const ts = (offset: number) => {
+    const rawSec = (h % 45) + offset;
+    const m = String(55 + (h % 4) + Math.floor(rawSec / 60)).padStart(2, '0');
+    const s = String(rawSec % 60).padStart(2, '0');
+    return `2026-06-09T10:${m}:${s}.000000000Z`;
+  };
+  return [
+    `${ts(0)}   INFO [analysis]  AgenticRun ${planId} — analysis phase started`,
+    `${ts(1)}   INFO [analysis]  Fetching alert context from Alertmanager...`,
+    `${ts(2)}   INFO [analysis]  Resolved 3 active alerts from cluster telemetry`,
+    `${ts(3)}   INFO [analysis]  Querying Prometheus for metric correlation window (30m)...`,
+    `${ts(5)}   INFO [analysis]  Fetching namespace event log — namespace=${planId.replace(/[^a-z-]/gi, '-')}`,
+    `${ts(7)}   INFO [analysis]  Correlating alert sequences against known failure signatures...`,
+    `${ts(9)}   INFO [analysis]  Candidate root cause ranked: confidence=pending`,
+    `${ts(10)}  WARN [analysis]  Analysis interrupted — stop signal received from control plane`,
+    `${ts(10)}  INFO [analysis]  Flushing partial context to audit log (plan_id=${planId})`,
+    `${ts(11)}  INFO [analysis]  AgenticRun ${planId} transitioned → RunAborted`,
+  ].join('\n');
+}
+
 export const RemediationBlueprintPanel: React.FC<{
   plan: PlanRow;
   onRejectPlan?: () => void;
@@ -5157,8 +5194,11 @@ export const RemediationBlueprintPanel: React.FC<{
   const isExecuting = status === 'Executing';
   const isVerifying = status === 'Verifying';
   const isPlanAborted = status === 'Plan aborted';
+  /** Analysis was stopped before execution began — shows recovery layout, not execution cards. */
+  const isRunAborted = status === 'Run aborted';
   const isEscalating = status === 'Escalating';
   const isEscalated  = status === 'Escalated';
+  // Run aborted is an analysis-phase cancel — it never entered execution, so it's excluded here.
   const isExecutionPhase = isExecuting || isPlanAborted;
   const isOptionLocked = isExecutionPhase || isVerifying;
   const isTerminal  = status === 'Completed' || status === 'Failed';
@@ -5422,7 +5462,126 @@ export const RemediationBlueprintPanel: React.FC<{
   );
   const summaryEscalationLog = (isEscalated || isEscalating) ? generateEscalationLogs(plan.id) : '';
 
-  if (!drawer && !isEscalating && !isPending && !isAnalyzing) return null;
+  if (!drawer && !isEscalating && !isPending && !isAnalyzing && !isRunAborted) return null;
+
+  // ── Analysis-aborted layout ────────────────────────────────────────────────
+  // Rendered when the analysis phase was manually canceled before execution began.
+  if (isRunAborted) {
+    const abortedAnalysisLog = generateAbortedAnalysisLogs(plan.id);
+    return (
+      <Stack style={{ gap: '24px' }}>
+        {/* Page heading + AI disclaimer */}
+        <StackItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+            <AiExperienceIcon size={20} />
+            <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
+              Agentic run details
+            </Title>
+          </Flex>
+          <Content component="p" className="ols-ai-hub-page-disclaimer">
+            <InfoCircleIcon
+              style={{
+                color: 'var(--pf-t--global--icon--color--status--info--default)',
+                marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+                verticalAlign: 'middle',
+                flexShrink: 0,
+              }}
+              aria-hidden
+            />
+            The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
+            review AI-generated content prior to use.
+          </Content>
+        </StackItem>
+
+        {/* A. Analysis Request Card — preserved with partial log access */}
+        <StackItem>
+          <TriggerRequestSection
+            request={plan.request}
+            planId={plan.id}
+            logsLifecycle="completed"
+            logFinding={abortedAnalysisLog}
+            logNarrative="Analysis stopped before root cause could be confirmed."
+            analysisFailedToInitialize={false}
+            traceId={plan.traceId}
+            runStatus={status}
+          />
+        </StackItem>
+
+        {/* B. Alert banner — cancellation metadata + Re-run analysis CTA */}
+        <StackItem>
+          <Alert
+            isInline
+            variant="info"
+            title="Analysis stopped"
+            actionLinks={
+              <Button
+                variant="link"
+                isInline
+                onClick={() => {
+                  // OLS-3719: patches spec.revisionFeedback on the AgenticRun CR
+                  // to trigger re-analysis. State transition is handled by the operator.
+                  // In this prototype we optimistically show Analyzing state.
+                  // eslint-disable-next-line no-alert
+                  window.alert('Re-run analysis: In production this patches spec.revisionFeedback on the AgenticRun CR (OLS-3719). Not yet wired in prototype.');
+                }}
+              >
+                Re-run analysis
+              </Button>
+            }
+          >
+            Analysis was stopped on {plan.terminatedAt ?? '—'} by user {plan.abortedBy ?? 'platform-admin'}.
+          </Alert>
+        </StackItem>
+
+        {/* C. Root Cause Analysis Card — muted, no result available */}
+        <StackItem>
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            gap={{ default: 'gapSm' }}
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+          >
+            <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+              Root cause analysis
+            </Title>
+            <Label color="grey" isCompact>AI-generated</Label>
+          </Flex>
+          <div style={LOCKED_BOX_STYLE}>
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <BanIcon
+                style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
+                aria-hidden
+              />
+              <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
+                Analysis was aborted before a root cause could be determined.
+              </Content>
+            </Flex>
+          </div>
+        </StackItem>
+
+        {/* D. Remediation Hub Card — muted, no options available */}
+        <StackItem>
+          <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            Remediation hub
+          </Title>
+          <Card style={{ borderRadius: '16px' }}>
+            <CardBody>
+              <div style={LOCKED_BOX_STYLE}>
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                  <BanIcon
+                    style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
+                    aria-hidden
+                  />
+                  <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
+                    No remediation options available because analysis was canceled.
+                  </Content>
+                </Flex>
+              </div>
+            </CardBody>
+          </Card>
+        </StackItem>
+      </Stack>
+    );
+  }
 
   // Cluster-update domain: RCA + handoff to Administration → Cluster Update (shared for all these runs).
   if (isClusterUpdatePlan) {
