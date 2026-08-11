@@ -138,7 +138,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     status: {
       kind: 'configuration-required',
       label: 'Partial setup',
-      color: 'yellow',
+      color: 'grey',
       srText: 'Status: partial setup — Logging UI Plugin disabled',
     },
     summary:
