@@ -227,7 +227,19 @@ export function buildTimelineSteps(
         warn('s11', 'agenticrun.terminal',              'Terminal state reached — Escalated', 43),
       ];
 
-    // ── Emergency stopped ────────────────────────────────────────────────────
+    // ── Run aborted (analysis canceled before execution) ─────────────────────
+    // Analysis was stopped by the operator before a root cause could be confirmed.
+    // Steps after analysis phase are never reached.
+    case 'Run aborted':
+      return [
+        done  ('s1', 'agenticrun.received',  'Run created — controller dispatched', 0),
+        done  ('s2', 'agenticrun.analyze',    'Analysis phase started', 1),
+        failed('s3', 'agenticrun.terminal',   'Analysis stopped — run aborted by user', 9),
+      ];
+
+    // ── Emergency stopped / Plan aborted (execution-phase halt) ──────────────
+    // Execution was halted mid-flight by an administrative override after
+    // analysis and approval had already completed.
     case 'EmergencyStopped':
     case 'Plan aborted':
       return [
