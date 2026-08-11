@@ -158,7 +158,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     actions: [
       {
         id: 'enable-logging-plugin',
-        label: 'Enable logging plugin',
+        label: 'Install',
         variant: 'secondary',
         href: '/core/observe/observability-services#enable-logging-plugin',
         helperText:
