@@ -3591,13 +3591,19 @@ const SECTION_OVERLINE_STYLE: React.CSSProperties = {
 const ExecutionSummaryCard: React.FC<{
   plan: PlanRow;
   executionLog: string;
+  /**
+   * True while the execution phase is actively running (status === 'Executing').
+   * Forces the loading/spinner state regardless of pre-seeded summary data.
+   */
+  isExecuting?: boolean;
   /** When true the card renders in its final completed state — no spinners or loading text. */
   isCompleted?: boolean;
   selectedOptionTitle?: string;
   maxAttempts?: number;
   approval?: import('../../context/PlanWorkflowContext').ExecutionApproval | null;
-}> = ({ plan, executionLog, isCompleted = false, selectedOptionTitle, maxAttempts, approval }) => {
-  const summary = PLAN_EXECUTION_SUMMARY[plan.id];
+}> = ({ plan, executionLog, isExecuting = false, isCompleted = false, selectedOptionTitle, maxAttempts, approval }) => {
+  // Only show pre-seeded summary data when execution is no longer active.
+  const summary = isExecuting ? null : PLAN_EXECUTION_SUMMARY[plan.id];
 
   // For pre-seeded terminal runs that were never executed in the current session,
   // fall back to the mock audit baked into PLAN_EXECUTION_SUMMARY.
@@ -3765,12 +3771,18 @@ const VerificationSummaryCard: React.FC<{
   plan: PlanRow;
   verificationLog: string;
   verification?: import('../../context/PlanWorkflowContext').VerificationState | null;
+  /**
+   * True while status === 'Verifying'. Forces the in-progress render path
+   * regardless of any pre-seeded summary data, so the UI shows a realistic
+   * simulation before auto-completing to the finished state.
+   */
+  isVerifyingActive?: boolean;
   isLive?: boolean;
   verificationPolicy?: 'manual' | 'auto';
   onApproveVerification?: () => void;
-}> = ({ plan, verificationLog, verification, isLive = false, verificationPolicy, onApproveVerification }) => {
-  const summary = PLAN_VERIFICATION_SUMMARY[plan.id];
-  const isInProgress = !summary;
+}> = ({ plan, verificationLog, verification, isVerifyingActive = false, isLive = false, verificationPolicy, onApproveVerification }) => {
+  const summary = isVerifyingActive ? null : PLAN_VERIFICATION_SUMMARY[plan.id];
+  const isInProgress = isVerifyingActive || !summary;
 
   // Stream health check lines while live verification is running.
   const checkLines = (verification?.checks?.length ?? 0) > 0
@@ -3779,6 +3791,7 @@ const VerificationSummaryCard: React.FC<{
 
   const [visibleCount, setVisibleCount] = useState(isLive ? 0 : checkLines.length);
 
+  // Stream check lines one-by-one while verifying.
   useEffect(() => {
     if (!isInProgress || !isLive) {
       setVisibleCount(checkLines.length);
@@ -3793,6 +3806,17 @@ const VerificationSummaryCard: React.FC<{
     }, 700);
     return () => window.clearInterval(interval);
   }, [isInProgress, isLive, checkLines]);
+
+  // Auto-complete verification after health-check stream finishes (auto policy only).
+  // This replaces the timer that previously lived in VerificationPanel.
+  useEffect(() => {
+    if (!isInProgress || !isLive || verificationPolicy !== 'auto' || !onApproveVerification) {
+      return undefined;
+    }
+    const streamDurationMs = checkLines.length * 700 + 1200;
+    const timer = window.setTimeout(onApproveVerification, streamDurationMs);
+    return () => window.clearTimeout(timer);
+  }, [isInProgress, isLive, verificationPolicy, onApproveVerification, checkLines.length]);
 
   const visibleLines = checkLines.slice(0, visibleCount);
   const attempt = verification?.attempt ?? 1;
@@ -6221,6 +6245,7 @@ export const RemediationBlueprintPanel: React.FC<{
           <ExecutionSummaryCard
             plan={plan}
             executionLog={summaryExecutionLog}
+            isExecuting={isExecuting}
             isCompleted={isVerifying || isTerminal}
             selectedOptionTitle={selectedOption?.title}
             maxAttempts={configMaxRetryAttempts}
@@ -6236,6 +6261,7 @@ export const RemediationBlueprintPanel: React.FC<{
             plan={plan}
             verificationLog={summaryVerificationLog}
             verification={workflow.verification ?? verificationState}
+            isVerifyingActive={isVerifying}
             isLive={isVerifying && Boolean(workflow.verification) && isAgenticAutomationEnabled}
             verificationPolicy={verificationPolicy}
             onApproveVerification={isVerifying ? handleVerificationComplete : undefined}
