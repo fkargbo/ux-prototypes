@@ -4301,7 +4301,7 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
         {clusRules.length > 0 && (
           <FlexItem>
             <Label color="purple" isCompact>
-              {clusRules.length} cluster-wide
+              {clusRules.length} cluster-wide permission{clusRules.length !== 1 ? 's' : ''}
             </Label>
           </FlexItem>
         )}
