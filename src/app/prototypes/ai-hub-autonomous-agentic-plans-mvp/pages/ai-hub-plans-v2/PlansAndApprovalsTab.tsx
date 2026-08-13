@@ -4348,7 +4348,36 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
                   {rule.namespace === 'cluster-wide' ? (
                     <Label color="purple" isCompact>Cluster-wide</Label>
                   ) : (
-                    <code style={{ fontSize: '0.8125rem' }}>{rule.namespace}</code>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <span
+                        style={{
+                          backgroundColor: '#1E4F18',
+                          color: '#FFFFFF',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          lineHeight: 1,
+                          display: 'inline-block',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}
+                      >
+                        NS
+                      </span>
+                      <a
+                        href={`/k8s/cluster/namespaces/${rule.namespace}`}
+                        style={{
+                          color: 'var(--pf-t--global--color--brand--default)',
+                          textDecoration: 'none',
+                          borderBottom: '1px dashed var(--pf-t--global--border--color--default)',
+                          fontFamily: 'monospace',
+                          fontSize: '0.8125rem',
+                        }}
+                      >
+                        {rule.namespace}
+                      </a>
+                    </div>
                   )}
                 </Td>
 
