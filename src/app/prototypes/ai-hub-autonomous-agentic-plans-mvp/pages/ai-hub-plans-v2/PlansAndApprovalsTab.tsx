@@ -1957,12 +1957,22 @@ export interface AgentCommand {
 
 /** A single Kubernetes RBAC rule required by the agent Service Account for this option. */
 export interface RbacRule {
-  /** Kubernetes resource kind (e.g. 'secrets', 'deployments (apps)'). */
+  /**
+   * Namespace this rule applies to.
+   * Use the literal string `'cluster-wide'` for non-namespaced resources.
+   */
+  namespace: string;
+  /** Kubernetes resource kind string as shown in `oc api-resources` (e.g. 'secrets', 'deployments'). */
   resource: string;
   /**
-   * Optional specific resource instance name (e.g. 'lightspeed-agentic-configuration').
-   * When present, the resource badge + instance name are rendered in place of plain kind text.
-   * Omit for rules that apply broadly to all instances of a kind.
+   * Optional Kubernetes Kind name used for `ResourceIcon` badge resolution
+   * (e.g. 'Secret', 'Deployment'). Only needed when `instanceName` is set.
+   */
+  kind?: string;
+  /**
+   * Optional specific resource instance name (e.g. 'alertmanager-pagerduty').
+   * When present, the ResourceIcon badge + instance name are rendered.
+   * Omit for rules that apply to all instances of a kind.
    */
   instanceName?: string;
   /** Comma-separated verb list (e.g. 'get, list, patch'). */
@@ -1970,25 +1980,21 @@ export interface RbacRule {
   /** Short human-readable explanation of why this permission is needed. */
   purpose: string;
   /** True if any listed verb is a mutating operation (create, update, patch, delete, exec). */
-  isWrite: boolean;
+  isWrite?: boolean;
 }
 
 /**
- * Namespace-scoped or cluster-wide RBAC requirements for a remediation option.
+ * RBAC requirements for a remediation option — flat rule list.
+ * Each rule carries its own `namespace` value, enabling multi-namespace
+ * permissions to be displayed in a single unified table
+ * (Namespace | Resource | Verbs | Purpose) without repeating table headers.
  * Backend field: options[].proposal.rbac.
  */
 export interface RbacSpec {
   /** One-line callout summarising the write operations (shown above the expandable table). */
   summary: string;
-  /** Rules that apply within a specific namespace. */
-  namespaceScope?: {
-    namespace: string;
-    rules: RbacRule[];
-  };
-  /** Rules that apply cluster-wide (no namespace constraint). */
-  clusterScope?: {
-    rules: RbacRule[];
-  };
+  /** Flat ordered list of all RBAC rules for this option. */
+  rules: RbacRule[];
 }
 
 export interface RemediationOption {
@@ -2168,19 +2174,12 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
       },
       rbac: {
         summary: 'Includes write: patch securitycontextconstraints · create mutatingwebhookconfigurations',
-        namespaceScope: {
-          namespace: 'production',
-          rules: [
-            { resource: 'pods', verbs: 'get, list', purpose: 'Pre-check running pods with hostNetwork before mutation', isWrite: false },
-            { resource: 'deployments (apps)', verbs: 'get, list', purpose: 'Identify non-compliant deployment specs', isWrite: false },
-          ],
-        },
-        clusterScope: {
-          rules: [
-            { resource: 'securitycontextconstraints (security.openshift.io)', verbs: 'get, list, patch, update', purpose: 'Modify SCC to deny cluster-wide host network access', isWrite: true },
-            { resource: 'mutatingwebhookconfigurations (admissionregistration.k8s.io)', verbs: 'get, create, patch', purpose: 'Install admission webhook to block future hostNetwork violations', isWrite: true },
-          ],
-        },
+        rules: [
+          { namespace: 'production', resource: 'pods', verbs: 'get, list', purpose: 'Pre-check running pods with hostNetwork before mutation' },
+          { namespace: 'production', resource: 'deployments (apps)', verbs: 'get, list', purpose: 'Identify non-compliant deployment specs' },
+          { namespace: 'cluster-wide', resource: 'securitycontextconstraints (security.openshift.io)', verbs: 'get, list, patch, update', purpose: 'Modify SCC to deny cluster-wide host network access', isWrite: true },
+          { namespace: 'cluster-wide', resource: 'mutatingwebhookconfigurations (admissionregistration.k8s.io)', verbs: 'get, create, patch', purpose: 'Install admission webhook to block future hostNetwork violations', isWrite: true },
+        ],
       },
     },
     {
@@ -2199,13 +2198,10 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
       },
       rbac: {
         summary: 'Includes write: delete deployments',
-        namespaceScope: {
-          namespace: 'production',
-          rules: [
-            { resource: 'deployments (apps)', verbs: 'get, list, delete', purpose: 'List and delete deployments tagged as non-compliant', isWrite: true },
-            { resource: 'pods', verbs: 'get, list', purpose: 'Confirm pod shutdown after deployment deletion', isWrite: false },
-          ],
-        },
+        rules: [
+          { namespace: 'production', resource: 'deployments (apps)', verbs: 'get, list, delete', purpose: 'List and delete deployments tagged as non-compliant', isWrite: true },
+          { namespace: 'production', resource: 'pods', verbs: 'get, list', purpose: 'Confirm pod shutdown after deployment deletion' },
+        ],
       },
     },
   ],
@@ -2250,13 +2246,11 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
       },
       rbac: {
         summary: 'Includes write: update clusterversions',
-        clusterScope: {
-          rules: [
-            { resource: 'clusterversions (config.openshift.io)', verbs: 'get, update, patch', purpose: 'Initiate and track rolling upgrade to 4.15.8 via upgrade graph', isWrite: true },
-            { resource: 'clusteroperators (config.openshift.io)', verbs: 'get, list, watch', purpose: 'Gate upgrade on all ClusterOperators being healthy before and after', isWrite: false },
-            { resource: 'nodes', verbs: 'get, list', purpose: 'Verify all nodes are Ready after upgrade completion', isWrite: false },
-          ],
-        },
+        rules: [
+          { namespace: 'cluster-wide', resource: 'clusterversions (config.openshift.io)', verbs: 'get, update, patch', purpose: 'Initiate and track rolling upgrade to 4.15.8 via upgrade graph', isWrite: true },
+          { namespace: 'cluster-wide', resource: 'clusteroperators (config.openshift.io)', verbs: 'get, list, watch', purpose: 'Gate upgrade on all ClusterOperators being healthy before and after' },
+          { namespace: 'cluster-wide', resource: 'nodes', verbs: 'get, list', purpose: 'Verify all nodes are Ready after upgrade completion' },
+        ],
       },
     },
     {
@@ -2273,12 +2267,10 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
       },
       rbac: {
         summary: 'Read-only · no write operations required',
-        clusterScope: {
-          rules: [
-            { resource: 'clusterversions (config.openshift.io)', verbs: 'get, watch', purpose: 'Read upgrade graph and validate target version availability', isWrite: false },
-            { resource: 'clusteroperators (config.openshift.io)', verbs: 'get, list', purpose: 'Gate preflight on all ClusterOperators being healthy', isWrite: false },
-          ],
-        },
+        rules: [
+          { namespace: 'cluster-wide', resource: 'clusterversions (config.openshift.io)', verbs: 'get, watch', purpose: 'Read upgrade graph and validate target version availability' },
+          { namespace: 'cluster-wide', resource: 'clusteroperators (config.openshift.io)', verbs: 'get, list', purpose: 'Gate preflight on all ClusterOperators being healthy' },
+        ],
       },
     },
   ],
@@ -2300,14 +2292,11 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
       },
       rbac: {
         summary: 'Includes write: patch secrets · patch statefulsets',
-        namespaceScope: {
-          namespace: 'openshift-monitoring',
-          rules: [
-            { resource: 'secrets', instanceName: 'alertmanager-pagerduty', verbs: 'get, create, patch', purpose: 'Rotate PagerDuty integration key in this specific secret', isWrite: true },
-            { resource: 'statefulsets (apps)', instanceName: 'alertmanager-main', verbs: 'get, patch', purpose: 'Trigger rolling restart to pick up the new secret', isWrite: true },
-            { resource: 'pods', verbs: 'get, list', purpose: 'Monitor pod restart progress during rolling reload', isWrite: false },
-          ],
-        },
+        rules: [
+          { namespace: 'openshift-monitoring', resource: 'secrets', kind: 'Secret', instanceName: 'alertmanager-pagerduty', verbs: 'get, create, patch', purpose: 'Rotate PagerDuty integration key in this specific secret', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'statefulsets (apps)', kind: 'StatefulSet', instanceName: 'alertmanager-main', verbs: 'get, patch', purpose: 'Trigger rolling restart to pick up the new secret', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, list', purpose: 'Monitor pod restart progress during rolling reload' },
+        ],
       },
     },
     {
@@ -2326,13 +2315,10 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
       },
       rbac: {
         summary: 'Includes write: patch secrets · delete pods',
-        namespaceScope: {
-          namespace: 'openshift-monitoring',
-          rules: [
-            { resource: 'secrets', instanceName: 'alertmanager-main', verbs: 'get, patch', purpose: 'Silence PagerDuty route in this specific Alertmanager configuration secret', isWrite: true },
-            { resource: 'pods', instanceName: 'alertmanager-main-0', verbs: 'get, list, delete', purpose: 'Force-restart this pod to apply the silenced config', isWrite: true },
-          ],
-        },
+        rules: [
+          { namespace: 'openshift-monitoring', resource: 'secrets', kind: 'Secret', instanceName: 'alertmanager-main', verbs: 'get, patch', purpose: 'Silence PagerDuty route in this specific Alertmanager configuration secret', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'pods', kind: 'Pod', instanceName: 'alertmanager-main-0', verbs: 'get, list, delete', purpose: 'Force-restart this pod to apply the silenced config', isWrite: true },
+        ],
       },
     },
   ],
@@ -2355,19 +2341,12 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
       },
       rbac: {
         summary: 'Includes write: patch statefulsets · exec pods',
-        namespaceScope: {
-          namespace: 'openshift-monitoring',
-          rules: [
-            { resource: 'statefulsets (apps)', verbs: 'get, list, patch', purpose: 'Scale thanos-compactor to zero then back to one for safe PVC access', isWrite: true },
-            { resource: 'pods', verbs: 'get, list, exec', purpose: 'Exec into compactor pod to remove the corrupted TSDB block', isWrite: true },
-          ],
-        },
-        clusterScope: {
-          rules: [
-            { resource: 'nodes', verbs: 'get, list', purpose: 'Check node disk pressure before scaling compactor — abort if storage is constrained', isWrite: false },
-            { resource: 'storageclasses (storage.k8s.io)', verbs: 'get', purpose: 'Verify the storage class supports ReadWriteOnce before PVC re-attachment', isWrite: false },
-          ],
-        },
+        rules: [
+          { namespace: 'openshift-monitoring', resource: 'statefulsets (apps)', verbs: 'get, list, patch', purpose: 'Scale thanos-compactor to zero then back to one for safe PVC access', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, list, exec', purpose: 'Exec into compactor pod to remove the corrupted TSDB block', isWrite: true },
+          { namespace: 'cluster-wide', resource: 'nodes', verbs: 'get, list', purpose: 'Check node disk pressure before scaling compactor — abort if storage is constrained' },
+          { namespace: 'cluster-wide', resource: 'storageclasses (storage.k8s.io)', verbs: 'get', purpose: 'Verify the storage class supports ReadWriteOnce before PVC re-attachment' },
+        ],
       },
     },
     {
@@ -2386,13 +2365,10 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
       },
       rbac: {
         summary: 'Includes write: patch persistentvolumeclaims · delete pods',
-        namespaceScope: {
-          namespace: 'openshift-monitoring',
-          rules: [
-            { resource: 'persistentvolumeclaims', verbs: 'get, patch', purpose: 'Resize thanos-compactor-data PVC to 200 GiB storage', isWrite: true },
-            { resource: 'pods', verbs: 'get, list, delete', purpose: 'Delete compactor pod to force re-attachment on the resized PVC', isWrite: true },
-          ],
-        },
+        rules: [
+          { namespace: 'openshift-monitoring', resource: 'persistentvolumeclaims', kind: 'PersistentVolumeClaim', instanceName: 'thanos-compactor-data', verbs: 'get, patch', purpose: 'Resize thanos-compactor-data PVC to 200 GiB storage', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, list, delete', purpose: 'Delete compactor pod to force re-attachment on the resized PVC', isWrite: true },
+        ],
       },
     },
   ],
@@ -2415,13 +2391,10 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
       },
       rbac: {
         summary: 'Includes write: patch deployments · exec pods',
-        namespaceScope: {
-          namespace: 'openshift-monitoring',
-          rules: [
-            { resource: 'deployments (apps)', verbs: 'get, patch', purpose: 'Scale grafana to zero and back to one for safe PVC access', isWrite: true },
-            { resource: 'pods', verbs: 'get, list, exec', purpose: 'Exec into grafana-debug pod to remove the stale WAL lock file', isWrite: true },
-          ],
-        },
+        rules: [
+          { namespace: 'openshift-monitoring', resource: 'deployments (apps)', verbs: 'get, patch', purpose: 'Scale grafana to zero and back to one for safe PVC access', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, list, exec', purpose: 'Exec into grafana-debug pod to remove the stale WAL lock file', isWrite: true },
+        ],
       },
     },
     {
@@ -2441,13 +2414,10 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
       },
       rbac: {
         summary: 'Includes write: create volumesnapshots · exec pods',
-        namespaceScope: {
-          namespace: 'openshift-monitoring',
-          rules: [
-            { resource: 'volumesnapshots (snapshot.storage.k8s.io)', verbs: 'get, create', purpose: 'Take PVC snapshot before WAL checkpoint as a rollback point', isWrite: true },
-            { resource: 'pods', verbs: 'get, exec', purpose: 'Exec into Grafana container to run SQLite WAL checkpoint', isWrite: true },
-          ],
-        },
+        rules: [
+          { namespace: 'openshift-monitoring', resource: 'volumesnapshots (snapshot.storage.k8s.io)', verbs: 'get, create', purpose: 'Take PVC snapshot before WAL checkpoint as a rollback point', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, exec', purpose: 'Exec into Grafana container to run SQLite WAL checkpoint', isWrite: true },
+        ],
       },
     },
   ],
@@ -4301,10 +4271,9 @@ const TerminalEvidenceCard: React.FC<{
 
 const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = ({ rbac, optionId }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const nsRules = rbac.namespaceScope?.rules ?? [];
-  const clusterRules = rbac.clusterScope?.rules ?? [];
-  const totalNs = nsRules.length;
-  const totalCluster = clusterRules.length;
+
+  const nsRules   = rbac.rules.filter((r) => r.namespace !== 'cluster-wide');
+  const clusRules = rbac.rules.filter((r) => r.namespace === 'cluster-wide');
 
   return (
     <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
@@ -4322,17 +4291,17 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
 
       {/* Scope count badges */}
       <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-        {totalNs > 0 && (
+        {nsRules.length > 0 && (
           <FlexItem>
             <Label color="blue" isCompact>
-              {totalNs} namespace permission{totalNs !== 1 ? 's' : ''}
+              {nsRules.length} namespace permission{nsRules.length !== 1 ? 's' : ''}
             </Label>
           </FlexItem>
         )}
-        {totalCluster > 0 && (
+        {clusRules.length > 0 && (
           <FlexItem>
             <Label color="purple" isCompact>
-              {totalCluster} cluster-wide
+              {clusRules.length} cluster-wide
             </Label>
           </FlexItem>
         )}
@@ -4351,115 +4320,68 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
         {rbac.summary}
       </Content>
 
-      {/* Expandable permission table — one independent table per scope group */}
+      {/* Expandable flat permission table: Namespace | Resource | Verbs | Purpose */}
       <ExpandableSection
         toggleText={isExpanded ? 'Hide permission details' : 'View permission details'}
         isExpanded={isExpanded}
         onToggle={(_e, expanded) => setIsExpanded(expanded)}
       >
-        <Stack style={{ marginTop: 'var(--pf-t--global--spacer--sm)', gap: 'var(--pf-t--global--spacer--md)' }}>
-          {rbac.namespaceScope && nsRules.length > 0 && (
-            <StackItem>
-              {/* Group label sits above the table so Thead appears directly below it */}
-              <div
-                style={{
-                  background: 'var(--pf-t--global--background--color--secondary--default)',
-                  borderRadius: '4px 4px 0 0',
-                  padding: '4px 12px',
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  color: 'var(--pf-t--global--text--color--subtle)',
-                }}
-              >
-                Namespace: {rbac.namespaceScope.namespace}
-              </div>
-              <Table variant="compact" aria-label={`Namespace-scoped RBAC for ${optionId}`} borders>
-                <Thead>
-                  <Tr>
-                    <Th>Resource</Th>
-                    <Th>Verbs</Th>
-                    <Th>Purpose</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {nsRules.map((rule, i) => (
-                    <Tr key={`ns-${i}`}>
-                      <Td>
-                        {rule.instanceName ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <ResourceIcon resource={rule.resource} />
-                            <code style={{ fontSize: '0.8125rem' }}>{rule.instanceName}</code>
-                          </div>
-                        ) : (
-                          <code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code>
-                        )}
-                      </Td>
-                      <Td><code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code></Td>
-                      <Td>
-                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                          <FlexItem>{rule.purpose}</FlexItem>
-                          {rule.isWrite && <FlexItem><Label color="orange" isCompact>write</Label></FlexItem>}
-                        </Flex>
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            </StackItem>
-          )}
-          {rbac.clusterScope && clusterRules.length > 0 && (
-            <StackItem>
-              <div
-                style={{
-                  background: 'var(--pf-t--global--background--color--secondary--default)',
-                  borderRadius: '4px 4px 0 0',
-                  padding: '4px 12px',
-                  fontWeight: 600,
-                  fontSize: '0.75rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  color: 'var(--pf-t--global--text--color--subtle)',
-                }}
-              >
-                Cluster-wide
-              </div>
-              <Table variant="compact" aria-label={`Cluster-scoped RBAC for ${optionId}`} borders>
-                <Thead>
-                  <Tr>
-                    <Th>Resource</Th>
-                    <Th>Verbs</Th>
-                    <Th>Purpose</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {clusterRules.map((rule, i) => (
-                    <Tr key={`cluster-${i}`}>
-                      <Td>
-                        {rule.instanceName ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <ResourceIcon resource={rule.resource} />
-                            <code style={{ fontSize: '0.8125rem' }}>{rule.instanceName}</code>
-                          </div>
-                        ) : (
-                          <code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code>
-                        )}
-                      </Td>
-                      <Td><code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code></Td>
-                      <Td>
-                        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                          <FlexItem>{rule.purpose}</FlexItem>
-                          {rule.isWrite && <FlexItem><Label color="orange" isCompact>write</Label></FlexItem>}
-                        </Flex>
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            </StackItem>
-          )}
-        </Stack>
+        <Table
+          variant="compact"
+          aria-label={`Required permissions for ${optionId}`}
+          borders
+          style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          <Thead>
+            <Tr>
+              <Th>Namespace</Th>
+              <Th>Resource</Th>
+              <Th>Verbs</Th>
+              <Th>Purpose</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {rbac.rules.map((rule, i) => (
+              <Tr key={i}>
+                {/* Namespace column */}
+                <Td data-label="Namespace">
+                  {rule.namespace === 'cluster-wide' ? (
+                    <Label color="purple" isCompact>Cluster-wide</Label>
+                  ) : (
+                    <code style={{ fontSize: '0.8125rem' }}>{rule.namespace}</code>
+                  )}
+                </Td>
+
+                {/* Resource column — badge only for specific named instances */}
+                <Td data-label="Resource">
+                  {rule.instanceName ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <ResourceIcon resource={rule.kind ?? rule.resource} />
+                      <code style={{ fontSize: '0.8125rem' }}>{rule.instanceName}</code>
+                    </div>
+                  ) : (
+                    <code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code>
+                  )}
+                </Td>
+
+                {/* Verbs column */}
+                <Td data-label="Verbs">
+                  <code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code>
+                </Td>
+
+                {/* Purpose column */}
+                <Td data-label="Purpose">
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                    <FlexItem>{rule.purpose}</FlexItem>
+                    {rule.isWrite && (
+                      <FlexItem><Label color="orange" isCompact>write</Label></FlexItem>
+                    )}
+                  </Flex>
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
       </ExpandableSection>
     </div>
   );
