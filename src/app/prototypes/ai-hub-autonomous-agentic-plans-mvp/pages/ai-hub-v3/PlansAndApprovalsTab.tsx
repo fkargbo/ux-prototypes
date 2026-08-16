@@ -1738,42 +1738,28 @@ const formatPlanCreatedAt = (iso: string): string => {
 // ─── Status label ─────────────────────────────────────────────────────────────
 
 type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey' | 'yellow';
+type PfStatus = 'success' | 'warning' | 'danger' | 'info' | 'custom';
 
-const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
-  'Pending':          'grey',
-  'Analyzing':        'blue',
-  'Proposed':         'blue',
-  'Approved':         'orange',
-  'Executing':        'blue',
-  'Verifying':        'blue',
-  'Acknowledged':     'green',
-  'Completed':        'green',
-  'Failed':           'red',
-  'Denied':           'red',
-  'Escalating':       'yellow',
-  'Escalated':        'yellow',
-  'EmergencyStopped': 'red',
-  'Plan aborted':     'red',
-  'Run aborted':      'orange',
-};
+type StatusVisual =
+  | { kind: 'status'; status: PfStatus;   icon: React.ReactElement }
+  | { kind: 'color';  color: LabelColor;  icon: React.ReactElement };
 
-/** Icon per status — matches the agreed icon/colour token mapping. */
-const STATUS_ICON: Record<PlanStatus, React.ReactElement> = {
-  'Pending':          <PendingIcon />,
-  'Analyzing':        <InProgressIcon />,
-  'Proposed':         <PauseCircleIcon />,
-  'Approved':         <PauseCircleIcon />,
-  'Executing':        <RunningIcon />,
-  'Verifying':        <SyncAltIcon />,
-  'Acknowledged':     <CheckCircleIcon />,
-  'Completed':        <CheckCircleIcon />,
-  'Failed':           <ExclamationCircleIcon />,
-  'Denied':           <BanIcon />,
-  'Escalating':       <ExclamationTriangleIcon />,
-  'Escalated':        <ExclamationTriangleIcon />,
-  'EmergencyStopped': <BanIcon />,
-  'Plan aborted':     <BanIcon />,
-  'Run aborted':      <BanIcon />,
+const STATUS_VISUAL: Record<PlanStatus, StatusVisual> = {
+  'Pending':          { kind: 'color',  color: 'grey',   icon: <PendingIcon /> },
+  'Approved':         { kind: 'color',  color: 'orange', icon: <PauseCircleIcon /> },
+  'Analyzing':        { kind: 'color',  color: 'blue',   icon: <InProgressIcon /> },
+  'Proposed':         { kind: 'color',  color: 'blue',   icon: <PauseCircleIcon /> },
+  'Executing':        { kind: 'color',  color: 'blue',   icon: <RunningIcon /> },
+  'Verifying':        { kind: 'color',  color: 'blue',   icon: <SyncAltIcon /> },
+  'Acknowledged':     { kind: 'status', status: 'success', icon: <CheckCircleIcon /> },
+  'Completed':        { kind: 'status', status: 'success', icon: <CheckCircleIcon /> },
+  'Escalating':       { kind: 'status', status: 'warning', icon: <ExclamationTriangleIcon /> },
+  'Escalated':        { kind: 'status', status: 'warning', icon: <ExclamationTriangleIcon /> },
+  'Failed':           { kind: 'status', status: 'danger',  icon: <ExclamationCircleIcon /> },
+  'Denied':           { kind: 'status', status: 'danger',  icon: <BanIcon /> },
+  'EmergencyStopped': { kind: 'status', status: 'danger',  icon: <BanIcon /> },
+  'Plan aborted':     { kind: 'status', status: 'danger',  icon: <BanIcon /> },
+  'Run aborted':      { kind: 'color',  color: 'orange', icon: <BanIcon /> },
 };
 
 const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
@@ -1812,6 +1798,8 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   status,
   terminatedAt,
 }) => {
+  const visual = STATUS_VISUAL[status];
+
   if (status === 'Run aborted') {
     return (
       <Tooltip
@@ -1834,7 +1822,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         position="top"
       >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
+          <Label status="danger" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
             Execution stopped
           </Label>
         </span>
@@ -1849,7 +1837,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         position="top"
       >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
+          <Label status="danger" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
             Emergency stopped
           </Label>
         </span>
@@ -1857,13 +1845,16 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
     );
   }
 
+  if (visual.kind === 'status') {
+    return (
+      <Label status={visual.status} icon={visual.icon} isCompact style={{ whiteSpace: 'nowrap' }}>
+        {status}
+      </Label>
+    );
+  }
+
   return (
-    <Label
-      color={STATUS_LABEL_COLOR[status]}
-      icon={STATUS_ICON[status]}
-      isCompact
-      style={{ whiteSpace: 'nowrap' }}
-    >
+    <Label color={visual.color} icon={visual.icon} isCompact style={{ whiteSpace: 'nowrap' }}>
       {status}
     </Label>
   );

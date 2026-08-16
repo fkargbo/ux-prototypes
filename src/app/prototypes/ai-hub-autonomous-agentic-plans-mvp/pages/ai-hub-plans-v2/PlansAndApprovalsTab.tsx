@@ -2917,43 +2917,52 @@ const formatPlanCreatedAt = (iso: string): string => {
 // ─── Status label ─────────────────────────────────────────────────────────────
 
 type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey' | 'yellow';
+type PfStatus = 'success' | 'warning' | 'danger' | 'info' | 'custom';
 
-const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
-  'Pending':          'grey',
-  'Analyzing':        'blue',
-  'Proposed':         'blue',
-  'Approved':         'orange',
-  'Executing':        'blue',
-  'Verifying':        'blue',
-  'Acknowledged':     'green',
-  'Completed':        'green',
-  'Failed':           'red',
-  'Denied':           'red',
-  // Gold/yellow — SRE attention required, distinct from routine progress (blue) or terminal failure (red).
-  'Escalating':       'yellow',
-  'Escalated':        'yellow',
-  'EmergencyStopped': 'red',
-  'Plan aborted':     'red',
-  'Run aborted':      'orange',
-};
+/**
+ * Discriminated visual spec per run status.
+ *
+ * - `kind: 'status'`  → uses the PF6 Label `status` prop, which applies the
+ *   vibrant semantic palette (dark green for success, red-orange for danger,
+ *   bright yellow for warning) with guaranteed accessible contrast tokens.
+ *   The `icon` prop overrides the PF auto-icon so per-status icons are kept.
+ *
+ * - `kind: 'color'`   → uses the PF6 nonstatus `color` prop (pastel palette).
+ *   Used for statuses that have no direct PF6 semantic equivalent, where the
+ *   pastel treatment better communicates the intermediate/non-terminal nature
+ *   of the state (e.g. active in-progress blue, interrupted orange, waiting grey).
+ */
+type StatusVisual =
+  | { kind: 'status'; status: PfStatus;   icon: React.ReactElement }
+  | { kind: 'color';  color: LabelColor;  icon: React.ReactElement };
 
-/** Icon per status — matches the agreed icon/colour token mapping. */
-const STATUS_ICON: Record<PlanStatus, React.ReactElement> = {
-  'Pending':          <PendingIcon />,
-  'Analyzing':        <InProgressIcon />,
-  'Proposed':         <PauseCircleIcon />,
-  'Approved':         <PauseCircleIcon />,
-  'Executing':        <RunningIcon />,
-  'Verifying':        <SyncAltIcon />,
-  'Acknowledged':     <CheckCircleIcon />,
-  'Completed':        <CheckCircleIcon />,
-  'Failed':           <ExclamationCircleIcon />,
-  'Denied':           <BanIcon />,
-  'Escalating':       <ExclamationTriangleIcon />,
-  'Escalated':        <ExclamationTriangleIcon />,
-  'EmergencyStopped': <BanIcon />,
-  'Plan aborted':     <BanIcon />,
-  'Run aborted':      <BanIcon />,
+const STATUS_VISUAL: Record<PlanStatus, StatusVisual> = {
+  // ── Waiting / neutral ────────────────────────────────────────────────────
+  'Pending':          { kind: 'color',  color: 'grey',   icon: <PendingIcon /> },
+  'Approved':         { kind: 'color',  color: 'orange', icon: <PauseCircleIcon /> },
+
+  // ── Active / in-progress (nonstatus blue — OCP brand convention for active work) ──
+  'Analyzing':        { kind: 'color',  color: 'blue',   icon: <InProgressIcon /> },
+  'Proposed':         { kind: 'color',  color: 'blue',   icon: <PauseCircleIcon /> },
+  'Executing':        { kind: 'color',  color: 'blue',   icon: <RunningIcon /> },
+  'Verifying':        { kind: 'color',  color: 'blue',   icon: <SyncAltIcon /> },
+
+  // ── Terminal success — vibrant PF6 status green ──────────────────────────
+  'Acknowledged':     { kind: 'status', status: 'success', icon: <CheckCircleIcon /> },
+  'Completed':        { kind: 'status', status: 'success', icon: <CheckCircleIcon /> },
+
+  // ── SRE attention required — vibrant PF6 status yellow ──────────────────
+  'Escalating':       { kind: 'status', status: 'warning', icon: <ExclamationTriangleIcon /> },
+  'Escalated':        { kind: 'status', status: 'warning', icon: <ExclamationTriangleIcon /> },
+
+  // ── Terminal failure / hard stop — vibrant PF6 status red-orange ─────────
+  'Failed':           { kind: 'status', status: 'danger',  icon: <ExclamationCircleIcon /> },
+  'Denied':           { kind: 'status', status: 'danger',  icon: <BanIcon /> },
+  'EmergencyStopped': { kind: 'status', status: 'danger',  icon: <BanIcon /> },
+  'Plan aborted':     { kind: 'status', status: 'danger',  icon: <BanIcon /> },
+
+  // ── Interrupted before execution — nonstatus orange (not a hard failure) ─
+  'Run aborted':      { kind: 'color',  color: 'orange', icon: <BanIcon /> },
 };
 
 const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
@@ -2988,12 +2997,17 @@ const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
   );
 };
 
+/** Renders the Label for a given status, applying vibrant PF6 status shades
+ *  where a semantic mapping exists, and nonstatus pastel shades for states
+ *  that have no PF6 semantic equivalent (active in-progress, interrupted). */
 export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }> = ({
   status,
   terminatedAt,
 }) => {
-  // Phase-specific cancellation labels — tooltip clarifies which phase was stopped
-  // and the cluster impact. Icon reinforces the severity at a glance.
+  const visual = STATUS_VISUAL[status];
+
+  // Phase-specific cancellation statuses carry a tooltip that clarifies which
+  // phase was stopped and the cluster impact.
   if (status === 'Run aborted') {
     return (
       <Tooltip
@@ -3016,7 +3030,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         position="top"
       >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
+          <Label status="danger" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
             Execution stopped
           </Label>
         </span>
@@ -3031,7 +3045,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         position="top"
       >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
+          <Label status="danger" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
             Emergency stopped
           </Label>
         </span>
@@ -3039,13 +3053,16 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
     );
   }
 
+  if (visual.kind === 'status') {
+    return (
+      <Label status={visual.status} icon={visual.icon} isCompact style={{ whiteSpace: 'nowrap' }}>
+        {status}
+      </Label>
+    );
+  }
+
   return (
-    <Label
-      color={STATUS_LABEL_COLOR[status]}
-      icon={STATUS_ICON[status]}
-      isCompact
-      style={{ whiteSpace: 'nowrap' }}
-    >
+    <Label color={visual.color} icon={visual.icon} isCompact style={{ whiteSpace: 'nowrap' }}>
       {status}
     </Label>
   );
