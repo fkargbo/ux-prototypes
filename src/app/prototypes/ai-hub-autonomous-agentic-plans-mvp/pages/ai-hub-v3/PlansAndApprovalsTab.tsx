@@ -1819,7 +1819,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         position="top"
       >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="orange" icon={<BanIcon />} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
+          <Label color="orange" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
             Analysis stopped
           </Label>
         </span>
@@ -1834,7 +1834,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         position="top"
       >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" icon={<BanIcon />} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
+          <Label color="red" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
             Execution stopped
           </Label>
         </span>
@@ -1849,7 +1849,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         position="top"
       >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" icon={<BanIcon />} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
+          <Label color="red" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
             Emergency stopped
           </Label>
         </span>
@@ -1861,7 +1861,6 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
     <Label
       color={STATUS_LABEL_COLOR[status]}
       icon={STATUS_ICON[status]}
-      variant="outline"
       isCompact
       style={{ whiteSpace: 'nowrap' }}
     >
