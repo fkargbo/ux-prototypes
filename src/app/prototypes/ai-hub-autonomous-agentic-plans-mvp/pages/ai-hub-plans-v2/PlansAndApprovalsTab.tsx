@@ -41,7 +41,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { BanIcon, CheckCircleIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiDownloadIcon, SearchIcon } from '@patternfly/react-icons';
+import { BanIcon, CheckCircleIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, InProgressIcon, OutlinedClockIcon, PauseCircleIcon, PendingIcon, RhUiDownloadIcon, RunningIcon, SearchIcon, SyncAltIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
@@ -2923,18 +2923,37 @@ const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Analyzing':        'blue',
   'Proposed':         'blue',
   'Approved':         'orange',
-  'Executing':        'teal',
-  'Verifying':        'teal',
+  'Executing':        'blue',
+  'Verifying':        'blue',
   'Acknowledged':     'green',
   'Completed':        'green',
   'Failed':           'red',
   'Denied':           'red',
-  // Gold/yellow — SRE attention required, distinct from routine progress (teal/blue) or terminal failure (red).
+  // Gold/yellow — SRE attention required, distinct from routine progress (blue) or terminal failure (red).
   'Escalating':       'yellow',
   'Escalated':        'yellow',
   'EmergencyStopped': 'red',
   'Plan aborted':     'red',
-  'Run aborted':      'red',
+  'Run aborted':      'orange',
+};
+
+/** Icon per status — matches the agreed icon/colour token mapping. */
+const STATUS_ICON: Record<PlanStatus, React.ReactElement> = {
+  'Pending':          <PendingIcon />,
+  'Analyzing':        <InProgressIcon />,
+  'Proposed':         <PauseCircleIcon />,
+  'Approved':         <PauseCircleIcon />,
+  'Executing':        <RunningIcon />,
+  'Verifying':        <SyncAltIcon />,
+  'Acknowledged':     <CheckCircleIcon />,
+  'Completed':        <CheckCircleIcon />,
+  'Failed':           <ExclamationCircleIcon />,
+  'Denied':           <BanIcon />,
+  'Escalating':       <ExclamationTriangleIcon />,
+  'Escalated':        <ExclamationTriangleIcon />,
+  'EmergencyStopped': <BanIcon />,
+  'Plan aborted':     <BanIcon />,
+  'Run aborted':      <BanIcon />,
 };
 
 const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
@@ -2973,8 +2992,8 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   status,
   terminatedAt,
 }) => {
-  // Phase-specific cancellation labels (OLS-3298) — makes it immediately clear
-  // to operators which phase was stopped and what action is needed next.
+  // Phase-specific cancellation labels — tooltip clarifies which phase was stopped
+  // and the cluster impact. Icon reinforces the severity at a glance.
   if (status === 'Run aborted') {
     return (
       <Tooltip
@@ -2982,7 +3001,9 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         position="top"
       >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="orange" isCompact style={{ whiteSpace: 'nowrap' }}>Analysis stopped</Label>
+          <Label color="orange" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
+            Analysis stopped
+          </Label>
         </span>
       </Tooltip>
     );
@@ -2995,7 +3016,9 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         position="top"
       >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" isCompact style={{ whiteSpace: 'nowrap' }}>Execution stopped</Label>
+          <Label color="red" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
+            Execution stopped
+          </Label>
         </span>
       </Tooltip>
     );
@@ -3008,14 +3031,21 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         position="top"
       >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" isCompact style={{ whiteSpace: 'nowrap' }}>Emergency stopped</Label>
+          <Label color="red" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
+            Emergency stopped
+          </Label>
         </span>
       </Tooltip>
     );
   }
 
   return (
-    <Label color={STATUS_LABEL_COLOR[status]} isCompact style={{ whiteSpace: 'nowrap' }}>
+    <Label
+      color={STATUS_LABEL_COLOR[status]}
+      icon={STATUS_ICON[status]}
+      isCompact
+      style={{ whiteSpace: 'nowrap' }}
+    >
       {status}
     </Label>
   );

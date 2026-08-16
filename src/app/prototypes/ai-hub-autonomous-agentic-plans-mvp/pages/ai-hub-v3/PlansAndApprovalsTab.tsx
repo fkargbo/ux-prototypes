@@ -44,7 +44,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, BanIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InProgressIcon, PauseCircleIcon, PendingIcon, RunningIcon, SearchIcon, SyncAltIcon, TerminalIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -1737,24 +1737,43 @@ const formatPlanCreatedAt = (iso: string): string => {
 
 // ─── Status label ─────────────────────────────────────────────────────────────
 
-type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey';
+type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey' | 'yellow';
 
 const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
   'Pending':          'grey',
   'Analyzing':        'blue',
-  'Proposed':         'orange',
+  'Proposed':         'blue',
   'Approved':         'orange',
-  'Executing':        'teal',
-  'Verifying':        'teal',
+  'Executing':        'blue',
+  'Verifying':        'blue',
   'Acknowledged':     'green',
   'Completed':        'green',
   'Failed':           'red',
   'Denied':           'red',
-  'Escalating':       'orange',
-  'Escalated':        'orange',
+  'Escalating':       'yellow',
+  'Escalated':        'yellow',
   'EmergencyStopped': 'red',
   'Plan aborted':     'red',
   'Run aborted':      'orange',
+};
+
+/** Icon per status — matches the agreed icon/colour token mapping. */
+const STATUS_ICON: Record<PlanStatus, React.ReactElement> = {
+  'Pending':          <PendingIcon />,
+  'Analyzing':        <InProgressIcon />,
+  'Proposed':         <PauseCircleIcon />,
+  'Approved':         <PauseCircleIcon />,
+  'Executing':        <RunningIcon />,
+  'Verifying':        <SyncAltIcon />,
+  'Acknowledged':     <CheckCircleIcon />,
+  'Completed':        <CheckCircleIcon />,
+  'Failed':           <ExclamationCircleIcon />,
+  'Denied':           <BanIcon />,
+  'Escalating':       <ExclamationTriangleIcon />,
+  'Escalated':        <ExclamationTriangleIcon />,
+  'EmergencyStopped': <BanIcon />,
+  'Plan aborted':     <BanIcon />,
+  'Run aborted':      <BanIcon />,
 };
 
 const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
@@ -1793,17 +1812,45 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   status,
   terminatedAt,
 }) => {
-  if (status === 'Plan aborted' || status === 'EmergencyStopped') {
-    const tooltipContent =
-      status === 'EmergencyStopped'
-        ? `Emergency stop issued by operator at ${terminatedAt ?? '—'}. Execution halted mid-flight.`
-        : `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
-    const displayLabel = status === 'EmergencyStopped' ? 'Emergency stopped' : 'Plan aborted';
+  if (status === 'Run aborted') {
     return (
-      <Tooltip content={tooltipContent} position="top">
+      <Tooltip
+        content={`Analysis stopped at ${terminatedAt ?? '—'}. No root cause was determined — cluster was not modified.`}
+        position="top"
+      >
         <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
-            {displayLabel}
+          <Label color="orange" icon={<BanIcon />} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
+            Analysis stopped
+          </Label>
+        </span>
+      </Tooltip>
+    );
+  }
+
+  if (status === 'Plan aborted') {
+    return (
+      <Tooltip
+        content={`Execution stopped at ${terminatedAt ?? '—'}. Cluster may be in a partial state — verify manually.`}
+        position="top"
+      >
+        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
+          <Label color="red" icon={<BanIcon />} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
+            Execution stopped
+          </Label>
+        </span>
+      </Tooltip>
+    );
+  }
+
+  if (status === 'EmergencyStopped') {
+    return (
+      <Tooltip
+        content={`Emergency stop issued by operator at ${terminatedAt ?? '—'}. Execution halted mid-flight.`}
+        position="top"
+      >
+        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
+          <Label color="red" icon={<BanIcon />} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
+            Emergency stopped
           </Label>
         </span>
       </Tooltip>
@@ -1811,7 +1858,13 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   }
 
   return (
-    <Label color={STATUS_LABEL_COLOR[status]} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
+    <Label
+      color={STATUS_LABEL_COLOR[status]}
+      icon={STATUS_ICON[status]}
+      variant="outline"
+      isCompact
+      style={{ whiteSpace: 'nowrap' }}
+    >
       {status}
     </Label>
   );
