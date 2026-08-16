@@ -2941,11 +2941,11 @@ const STATUS_VISUAL: Record<PlanStatus, StatusVisual> = {
   'Pending':          { kind: 'color',  color: 'grey',   icon: <PendingIcon /> },
   'Approved':         { kind: 'color',  color: 'orange', icon: <PauseCircleIcon /> },
 
-  // ── Active / in-progress (nonstatus blue — OCP brand convention for active work) ──
-  'Analyzing':        { kind: 'color',  color: 'blue',   icon: <InProgressIcon /> },
-  'Proposed':         { kind: 'color',  color: 'blue',   icon: <PauseCircleIcon /> },
-  'Executing':        { kind: 'color',  color: 'blue',   icon: <RunningIcon /> },
-  'Verifying':        { kind: 'color',  color: 'blue',   icon: <SyncAltIcon /> },
+  // ── Active / transient — vibrant PF6 info purple (#5E40BE) ─────────────────
+  'Analyzing':        { kind: 'status', status: 'info',  icon: <InProgressIcon /> },
+  'Proposed':         { kind: 'status', status: 'info',  icon: <PauseCircleIcon /> },
+  'Executing':        { kind: 'status', status: 'info',  icon: <RunningIcon /> },
+  'Verifying':        { kind: 'status', status: 'info',  icon: <SyncAltIcon /> },
 
   // ── Terminal success — vibrant PF6 status green ──────────────────────────
   'Acknowledged':     { kind: 'status', status: 'success', icon: <CheckCircleIcon /> },
