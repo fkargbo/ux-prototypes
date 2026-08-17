@@ -2187,7 +2187,6 @@ const PlansTable: React.FC<PlansTableProps> = ({
   }, [
     filteredRows.length,
     plansFilter.searchInputValue,
-    plansFilter.searchCategory,
     plansFilter.statusFilters,
     plansFilter.triggerDomainFilters,
   ]);
