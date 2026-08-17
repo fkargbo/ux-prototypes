@@ -35,11 +35,16 @@ export const EchartsOptionChart: React.FC<{
     const chart = echarts.init(el, undefined, { renderer: 'svg', height });
     chart.setOption(option, { notMerge: true });
 
-    const handleClick = (params: ChartClickParams) => {
-      onChartClick?.(params);
-    };
     if (onChartClick) {
-      chart.on('click', handleClick);
+      chart.on('click', (params) => {
+        const data = params.data;
+        onChartClick({
+          data:
+            data && typeof data === 'object'
+              ? (data as NonNullable<ChartClickParams['data']>)
+              : undefined
+        });
+      });
     }
 
     const resize = () => chart.resize();
@@ -52,7 +57,7 @@ export const EchartsOptionChart: React.FC<{
       window.cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
       observer?.disconnect();
-      chart.off('click', handleClick);
+      chart.off('click');
       chart.dispose();
     };
   }, [option, height, onChartClick]);
