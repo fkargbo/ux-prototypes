@@ -2997,27 +2997,73 @@ const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
   );
 };
 
-/** Renders the Label for a given status, applying vibrant PF6 status shades
- *  where a semantic mapping exists, and nonstatus pastel shades for states
- *  that have no PF6 semantic equivalent (active in-progress, interrupted). */
+/**
+ * Icon color per status — follows OCP console's Status component conventions:
+ * - Active / transient states → OCP blue (#0066CC), matching running workloads
+ * - Success / warning / danger → PF6 semantic icon color tokens
+ * - Neutral / interrupted → subtle grey or warning amber
+ */
+const STATUS_ICON_CSS_COLOR: Record<PlanStatus, string> = {
+  'Pending':          'var(--pf-t--global--icon--color--subtle)',
+  'Approved':         'var(--pf-t--global--icon--color--status--warning--default)',
+  'Analyzing':        '#0066CC',
+  'Proposed':         '#0066CC',
+  'Executing':        '#0066CC',
+  'Verifying':        '#0066CC',
+  'Acknowledged':     'var(--pf-t--global--icon--color--status--success--default)',
+  'Completed':        'var(--pf-t--global--icon--color--status--success--default)',
+  'Failed':           'var(--pf-t--global--icon--color--status--danger--default)',
+  'Denied':           'var(--pf-t--global--icon--color--status--danger--default)',
+  'Escalating':       'var(--pf-t--global--icon--color--status--warning--default)',
+  'Escalated':        'var(--pf-t--global--icon--color--status--warning--default)',
+  'EmergencyStopped': 'var(--pf-t--global--icon--color--status--danger--default)',
+  'Plan aborted':     'var(--pf-t--global--icon--color--status--danger--default)',
+  'Run aborted':      'var(--pf-t--global--icon--color--status--warning--default)',
+};
+
+/** Display text overrides for statuses whose string key is not user-facing. */
+const STATUS_DISPLAY_TEXT: Partial<Record<PlanStatus, string>> = {
+  'EmergencyStopped': 'Emergency stopped',
+  'Run aborted':      'Analysis stopped',
+  'Plan aborted':     'Execution stopped',
+};
+
+const STATUS_ICON_ROW_STYLE: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 'var(--pf-t--global--spacer--xs)',
+  whiteSpace: 'nowrap',
+};
+
+/**
+ * OCP-style icon + text status indicator — no pill/badge wrapper.
+ * Matches the OpenShift console Status component pattern where a coloured
+ * icon and plain body-weight text sit inline without a background chip.
+ * Aborted / stopped states retain a tooltip for cluster-impact context.
+ */
 export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }> = ({
   status,
   terminatedAt,
 }) => {
-  const visual = STATUS_VISUAL[status];
+  const displayText = STATUS_DISPLAY_TEXT[status] ?? status;
+  const iconEl = (
+    <span
+      aria-hidden="true"
+      style={{ color: STATUS_ICON_CSS_COLOR[status], display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+    >
+      {STATUS_VISUAL[status].icon}
+    </span>
+  );
 
-  // Phase-specific cancellation statuses carry a tooltip that clarifies which
-  // phase was stopped and the cluster impact.
   if (status === 'Run aborted') {
     return (
       <Tooltip
         content={`Analysis stopped at ${terminatedAt ?? '—'}. No root cause was determined — cluster was not modified.`}
         position="top"
       >
-        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="orange" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
-            Analysis stopped
-          </Label>
+        <span tabIndex={0} style={{ ...STATUS_ICON_ROW_STYLE, cursor: 'default' }}>
+          {iconEl}
+          {displayText}
         </span>
       </Tooltip>
     );
@@ -3029,10 +3075,9 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         content={`Execution stopped at ${terminatedAt ?? '—'}. Cluster may be in a partial state — verify manually.`}
         position="top"
       >
-        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label status="danger" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
-            Execution stopped
-          </Label>
+        <span tabIndex={0} style={{ ...STATUS_ICON_ROW_STYLE, cursor: 'default' }}>
+          {iconEl}
+          {displayText}
         </span>
       </Tooltip>
     );
@@ -3044,27 +3089,19 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         content={`Emergency stop issued at ${terminatedAt ?? '—'}. All in-flight runs halted by global kill switch.`}
         position="top"
       >
-        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label status="danger" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
-            Emergency stopped
-          </Label>
+        <span tabIndex={0} style={{ ...STATUS_ICON_ROW_STYLE, cursor: 'default' }}>
+          {iconEl}
+          {displayText}
         </span>
       </Tooltip>
     );
   }
 
-  if (visual.kind === 'status') {
-    return (
-      <Label status={visual.status} icon={visual.icon} isCompact style={{ whiteSpace: 'nowrap' }}>
-        {status}
-      </Label>
-    );
-  }
-
   return (
-    <Label color={visual.color} icon={visual.icon} isCompact style={{ whiteSpace: 'nowrap' }}>
-      {status}
-    </Label>
+    <span style={STATUS_ICON_ROW_STYLE}>
+      {iconEl}
+      {displayText}
+    </span>
   );
 };
 

@@ -1794,11 +1794,50 @@ const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
   );
 };
 
+const STATUS_ICON_CSS_COLOR: Record<PlanStatus, string> = {
+  'Pending':          'var(--pf-t--global--icon--color--subtle)',
+  'Approved':         'var(--pf-t--global--icon--color--status--warning--default)',
+  'Analyzing':        '#0066CC',
+  'Proposed':         '#0066CC',
+  'Executing':        '#0066CC',
+  'Verifying':        '#0066CC',
+  'Acknowledged':     'var(--pf-t--global--icon--color--status--success--default)',
+  'Completed':        'var(--pf-t--global--icon--color--status--success--default)',
+  'Failed':           'var(--pf-t--global--icon--color--status--danger--default)',
+  'Denied':           'var(--pf-t--global--icon--color--status--danger--default)',
+  'Escalating':       'var(--pf-t--global--icon--color--status--warning--default)',
+  'Escalated':        'var(--pf-t--global--icon--color--status--warning--default)',
+  'EmergencyStopped': 'var(--pf-t--global--icon--color--status--danger--default)',
+  'Plan aborted':     'var(--pf-t--global--icon--color--status--danger--default)',
+  'Run aborted':      'var(--pf-t--global--icon--color--status--warning--default)',
+};
+
+const STATUS_DISPLAY_TEXT: Partial<Record<PlanStatus, string>> = {
+  'EmergencyStopped': 'Emergency stopped',
+  'Run aborted':      'Analysis stopped',
+  'Plan aborted':     'Execution stopped',
+};
+
+const STATUS_ICON_ROW_STYLE: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 'var(--pf-t--global--spacer--xs)',
+  whiteSpace: 'nowrap',
+};
+
 export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }> = ({
   status,
   terminatedAt,
 }) => {
-  const visual = STATUS_VISUAL[status];
+  const displayText = STATUS_DISPLAY_TEXT[status] ?? status;
+  const iconEl = (
+    <span
+      aria-hidden="true"
+      style={{ color: STATUS_ICON_CSS_COLOR[status], display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+    >
+      {STATUS_VISUAL[status].icon}
+    </span>
+  );
 
   if (status === 'Run aborted') {
     return (
@@ -1806,10 +1845,9 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         content={`Analysis stopped at ${terminatedAt ?? '—'}. No root cause was determined — cluster was not modified.`}
         position="top"
       >
-        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="orange" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
-            Analysis stopped
-          </Label>
+        <span tabIndex={0} style={{ ...STATUS_ICON_ROW_STYLE, cursor: 'default' }}>
+          {iconEl}
+          {displayText}
         </span>
       </Tooltip>
     );
@@ -1821,10 +1859,9 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         content={`Execution stopped at ${terminatedAt ?? '—'}. Cluster may be in a partial state — verify manually.`}
         position="top"
       >
-        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label status="danger" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
-            Execution stopped
-          </Label>
+        <span tabIndex={0} style={{ ...STATUS_ICON_ROW_STYLE, cursor: 'default' }}>
+          {iconEl}
+          {displayText}
         </span>
       </Tooltip>
     );
@@ -1836,27 +1873,19 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
         content={`Emergency stop issued by operator at ${terminatedAt ?? '—'}. Execution halted mid-flight.`}
         position="top"
       >
-        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label status="danger" icon={<BanIcon />} isCompact style={{ whiteSpace: 'nowrap' }}>
-            Emergency stopped
-          </Label>
+        <span tabIndex={0} style={{ ...STATUS_ICON_ROW_STYLE, cursor: 'default' }}>
+          {iconEl}
+          {displayText}
         </span>
       </Tooltip>
     );
   }
 
-  if (visual.kind === 'status') {
-    return (
-      <Label status={visual.status} icon={visual.icon} isCompact style={{ whiteSpace: 'nowrap' }}>
-        {status}
-      </Label>
-    );
-  }
-
   return (
-    <Label color={visual.color} icon={visual.icon} isCompact style={{ whiteSpace: 'nowrap' }}>
-      {status}
-    </Label>
+    <span style={STATUS_ICON_ROW_STYLE}>
+      {iconEl}
+      {displayText}
+    </span>
   );
 };
 
