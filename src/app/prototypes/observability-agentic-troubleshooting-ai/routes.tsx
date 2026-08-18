@@ -16,9 +16,16 @@ import {
 import { Content, PageSection } from '@patternfly/react-core';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
 import { FeedbackPanelWrapper } from './components/FeedbackPanelWrapper';
-import { TroubleshootingPlansPage } from './pages/TroubleshootingPlansPage';
-import { TroubleshootingPlanDetail } from './pages/TroubleshootingPlanDetail';
+import { withPerspectiveUrlSync } from './components/AiHubPerspectiveRouteShell';
 import { RecommendationHubPage } from './pages/ai-hub-v4/RecommendationHubPage';
+import { GitOpsApplicationsPage } from './pages/gitops/GitOpsApplicationsPage';
+import { PipelineRunsPage } from './pages/pipelines/PipelineRunsPage';
+import { BridgeRedirect } from './pages/BridgeRedirect';
+import { AIHubPageV2 } from './pages/v2/AIHubPageV2';
+import { PlanRemediationPageV2 } from './pages/v2/PlanRemediationPageV2';
+import { AcsPlanDetailPageV2 } from './pages/v2/AcsPlanDetailPageV2';
+import { TroubleshootingPlanDetailV2 } from './pages/v2/TroubleshootingPlanDetailV2';
+import { AgenticRunConfigPage } from './pages/v2/AgenticRunConfigPage';
 
 const ObserveNavPlaceholder: React.FC = () => (
   <PageSection>
@@ -98,18 +105,51 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/troubleshooting-plans/:planId',
-    element: <TroubleshootingPlanDetail />,
+    element: <BridgeRedirect to="/v2/ai-hub/agentic-runs/runs/:planId" />,
     title: 'Agentic run details',
   },
   {
     path: '/core/observe/troubleshooting-plans',
-    element: <TroubleshootingPlansPage />,
+    element: <BridgeRedirect to="/v2/ai-hub/observe/plans" />,
     label: 'Agentic runs',
     title: 'Agentic runs',
     navigation: {
-      group: 'Observe',
-      order: 3,
+      group: 'Agentic Runs',
+      order: 1,
+      insertAfterGroup: 'Compute',
+      activeMatchPaths: [
+        '/v2/ai-hub/observe/plans',
+        '/v2/ai-hub/agentic-runs/runs',
+        '/v2/ai-hub/observe/acs-plans',
+        '/core/observe/troubleshooting-plans',
+      ],
     },
+  },
+  // ── V2 Agentic runs workspace (MVP list + detail experience) ───────────────
+  {
+    path: '/v2/ai-hub/observe/plans',
+    element: withPerspectiveUrlSync(<AIHubPageV2 />),
+    title: 'Agentic runs',
+  },
+  {
+    path: '/v2/ai-hub/observe/plans/config',
+    element: withPerspectiveUrlSync(<AgenticRunConfigPage />),
+    title: 'Agentic runs configuration',
+  },
+  {
+    path: '/v2/ai-hub/observe/plans/:planSlug/remediation',
+    element: withPerspectiveUrlSync(<PlanRemediationPageV2 />),
+    title: 'Plan remediation',
+  },
+  {
+    path: '/v2/ai-hub/observe/acs-plans/:planSlug',
+    element: withPerspectiveUrlSync(<AcsPlanDetailPageV2 />),
+    title: 'ACS plan detail',
+  },
+  {
+    path: '/v2/ai-hub/agentic-runs/runs/:planId',
+    element: withPerspectiveUrlSync(<TroubleshootingPlanDetailV2 />),
+    title: 'Agentic run details',
   },
   {
     path: '/core/observe/alerting-v2/create-alert-rule',
@@ -196,6 +236,129 @@ export const routes: RouteConfig[] = [
     path: '/core/observe/pod-detail',
     element: <PodDetailDashboardPage />,
     title: 'Pod detail',
+  },
+  // ── Pipelines domain (failure analysis handoff exploration) ──────────────────
+  {
+    path: '/core/pipelines/overview',
+    element: <ObserveNavPlaceholder />,
+    label: 'Overview',
+    title: 'Pipelines overview',
+    navigation: {
+      group: 'Pipelines',
+      order: 1,
+    },
+  },
+  {
+    path: '/core/pipelines/pipelines',
+    element: <ObserveNavPlaceholder />,
+    label: 'Pipelines',
+    title: 'Pipelines',
+    navigation: {
+      group: 'Pipelines',
+      order: 2,
+    },
+  },
+  {
+    path: '/core/pipelines/pipelineruns',
+    element: <PipelineRunsPage />,
+    label: 'PipelineRuns',
+    title: 'PipelineRuns',
+    navigation: {
+      group: 'Pipelines',
+      order: 3,
+    },
+  },
+  {
+    path: '/core/pipelines/tasks',
+    element: <ObserveNavPlaceholder />,
+    label: 'Tasks',
+    title: 'Tasks',
+    navigation: {
+      group: 'Pipelines',
+      order: 4,
+    },
+  },
+  // ── GitOps domain (HPUX-1984 — lightspeed domains exploration) ─────────────
+  // Nav structure aligned with OpenShift GitOps plugin (Kevin’s Aug 2026 review recording).
+  {
+    path: '/core/gitops/dashboard',
+    element: <ObserveNavPlaceholder />,
+    label: 'Dashboard',
+    title: 'GitOps overview',
+    navigation: {
+      group: 'GitOps',
+      order: 1,
+    },
+  },
+  {
+    path: '/core/gitops/instances',
+    element: <ObserveNavPlaceholder />,
+    label: 'ArgoCD instances',
+    title: 'ArgoCD instances',
+    navigation: {
+      group: 'GitOps',
+      order: 2,
+    },
+  },
+  {
+    path: '/core/gitops/applications',
+    element: <GitOpsApplicationsPage />,
+    label: 'Applications',
+    title: 'Applications',
+    navigation: {
+      group: 'GitOps',
+      order: 3,
+    },
+  },
+  {
+    path: '/core/gitops/applicationsets',
+    element: <ObserveNavPlaceholder />,
+    label: 'ApplicationSets',
+    title: 'ApplicationSets',
+    navigation: {
+      group: 'GitOps',
+      order: 4,
+    },
+  },
+  {
+    path: '/core/gitops/promotion-pipelines',
+    element: <ObserveNavPlaceholder />,
+    label: 'Promotion pipelines',
+    title: 'Promotion pipelines',
+    navigation: {
+      group: 'GitOps',
+      order: 5,
+    },
+  },
+  {
+    path: '/core/gitops/rollouts',
+    element: <ObserveNavPlaceholder />,
+    label: 'Rollouts',
+    title: 'Rollouts',
+    navigation: {
+      group: 'GitOps',
+      order: 6,
+    },
+  },
+  {
+    path: '/core/gitops/app-projects',
+    element: <ObserveNavPlaceholder />,
+    label: 'AppProjects',
+    title: 'AppProjects',
+    navigation: {
+      group: 'GitOps',
+      order: 7,
+    },
+  },
+  {
+    path: '/core/gitops/settings',
+    element: <ObserveNavPlaceholder />,
+    label: 'Settings',
+    title: 'GitOps settings',
+    navigation: {
+      group: 'GitOps',
+      order: 8,
+    },
   },
   // ── v4.0 — Recommendation Hub (HPUX-1653) ──────────────────────────────────
   // Unique shareable URL isolated from all prior versions.

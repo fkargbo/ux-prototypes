@@ -25,7 +25,7 @@ export const config: PrototypeConfig = {
     name: 'SRE / Platform engineer',
     role: 'Diagnosing observability pipeline and workload issues',
   },
-  perspectives: ['fleet-management', 'core-platforms'],
+  perspectives: ['core-platforms'],
   tags: ['Observability', 'AI', 'Troubleshooting', 'Agents'],
   createdAt: '2026-04-23',
   updatedAt: '2026-04-23',

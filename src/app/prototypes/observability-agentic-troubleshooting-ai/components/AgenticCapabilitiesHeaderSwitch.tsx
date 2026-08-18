@@ -1,0 +1,146 @@
+import React, { useState } from 'react';
+import { Button, Content, Modal, ModalBody, ModalFooter, ModalHeader, ModalVariant, Popover, Switch } from '@patternfly/react-core';
+import { HelpIcon } from '@patternfly/react-icons';
+import { useLocation } from 'react-router-dom';
+import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
+import {
+  DEFAULT_PROTOTYPE_PERSPECTIVE,
+  perspectiveKeyFromShellName,
+  readPerspectiveFromSearch,
+} from '../prototypePerspectiveUrl';
+import {
+  resolveAgentCapabilitiesClusterId,
+  useAgenticCapabilities,
+} from '../context/AgenticCapabilitiesContext';
+
+/**
+ * Cluster-scoped agentic kill switch.
+ * Layout mirrors OpenShift Virtualization → Overview → Settings feature rows:
+ * feature name + help on the left, PatternFly Switch on the right (no custom chip chrome).
+ */
+const AgenticCapabilitiesPopoverBody = (
+  <>
+    <Content component="p" style={{ margin: '0 0 var(--pf-t--global--spacer--sm)' }}>
+      Controls the autonomous analysis engine for this cluster.
+    </Content>
+    <ul
+      style={{
+        margin: 0,
+        paddingLeft: 'var(--pf-t--global--spacer--md)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--pf-t--global--spacer--xs)',
+      }}
+    >
+      <li>
+        <strong>When Enabled:</strong> The AI actively monitors incoming alerts, collects diagnostic
+        logs, correlates telemetry, and creates structured remediation plans.
+      </li>
+      <li>
+        <strong>When Disabled:</strong> The engine goes entirely code-silent. Background analysis
+        halts, active executions freeze, and API token consumption drops to zero.
+      </li>
+    </ul>
+  </>
+);
+
+type AgenticCapabilitiesHeaderSwitchProps = {
+  /** When true, turning the switch off opens a confirmation modal. */
+  confirmOnDisable?: boolean;
+};
+
+export const AgenticCapabilitiesHeaderSwitch: React.FC<AgenticCapabilitiesHeaderSwitchProps> = ({
+  confirmOnDisable = false,
+}) => {
+  const location = useLocation();
+  const { activePerspective } = useActivePerspective();
+  const perspectiveKey =
+    readPerspectiveFromSearch(new URLSearchParams(location.search))
+    ?? perspectiveKeyFromShellName(activePerspective)
+    ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
+  const isSingleCluster = perspectiveKey === 'core-platforms';
+  const clusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
+  const { isAgentActiveForCluster, setAgentActiveForCluster } = useAgenticCapabilities();
+  const isChecked = isAgentActiveForCluster(clusterId);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+  const handleChange = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
+    if (!checked && confirmOnDisable && isChecked) {
+      setIsConfirmOpen(true);
+      return;
+    }
+    setAgentActiveForCluster(clusterId, checked);
+  };
+
+  const handleConfirmDisable = () => {
+    setAgentActiveForCluster(clusterId, false);
+    setIsConfirmOpen(false);
+  };
+
+  const labelId = `agentic-capabilities-label-${clusterId}`;
+
+  return (
+    <>
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 'var(--pf-t--global--spacer--md)',
+          flexWrap: 'wrap',
+        }}
+      >
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--pf-t--global--spacer--xs)',
+          }}
+        >
+          <span id={labelId}>Agentic capabilities</span>
+          <Popover
+            headerContent="Cluster agentic capabilities"
+            bodyContent={AgenticCapabilitiesPopoverBody}
+            position="bottom-end"
+          >
+            <Button
+              variant="plain"
+              aria-label="More information about Agentic capabilities"
+              icon={<HelpIcon />}
+              style={{ padding: 0 }}
+            />
+          </Popover>
+        </span>
+        <Switch
+          id={`agentic-capabilities-${clusterId}`}
+          aria-labelledby={labelId}
+          isChecked={isChecked}
+          onChange={handleChange}
+          hasCheckIcon
+        />
+      </div>
+
+      {confirmOnDisable && (
+        <Modal
+          variant={ModalVariant.small}
+          isOpen={isConfirmOpen}
+          onClose={() => setIsConfirmOpen(false)}
+          aria-labelledby="disable-ai-title"
+        >
+          <ModalHeader title="Disable AI?" labelId="disable-ai-title" />
+          <ModalBody>
+            Stops all background analysis, active executions, and API token consumption for this cluster. You can
+            re-enable agentic capabilities at any time.
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="danger" onClick={handleConfirmDisable}>
+              Disable AI
+            </Button>
+            <Button variant="link" onClick={() => setIsConfirmOpen(false)}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
+      )}
+    </>
+  );
+};

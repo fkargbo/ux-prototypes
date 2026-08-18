@@ -216,6 +216,26 @@ export function resolveAlertInvestigationPlan(
   return resolveAlertInvestigationNavigation(payload, isSingleCluster).plan;
 }
 
+/** Register a plan (if not already in catalog) and return navigation targets for agentic run detail. */
+export function resolveInvestigationPlanNavigation(
+  plan: PlanRow,
+  isSingleCluster?: boolean,
+): { href: string; plan: PlanRow; planId: string } {
+  const existing = findTroubleshootingPlanById(plan.id, isSingleCluster);
+  const resolved = existing ?? plan;
+
+  if (!existing) {
+    addDynamicTroubleshootingPlan(resolved);
+  }
+
+  writeTroubleshootingPlanDrillSession(resolved);
+  return {
+    planId: resolved.id,
+    plan: resolved,
+    href: getTroubleshootingPlanDetailHref(resolved.id, isSingleCluster),
+  };
+}
+
 /** Resolve plan + detail href in one pass so navigation state always matches the URL. */
 export function resolveAlertInvestigationNavigation(
   payload: AlertInvestigationPayload,
