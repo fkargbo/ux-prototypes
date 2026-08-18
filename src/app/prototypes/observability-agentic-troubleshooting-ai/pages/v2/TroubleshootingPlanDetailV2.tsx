@@ -11,13 +11,13 @@ import {
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
-  NamespaceResourceLink,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
   WaitingApprovalPlanMeta,
   type PlanRow,
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
+import { NamespaceResourceLink } from '../../components/NamespaceResourceLink';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import {

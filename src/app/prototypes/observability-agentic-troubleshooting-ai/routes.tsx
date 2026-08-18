@@ -110,7 +110,7 @@ export const routes: RouteConfig[] = [
   },
   {
     path: '/core/observe/troubleshooting-plans',
-    element: <BridgeRedirect to="/v2/ai-hub/observe/plans" />,
+    element: withPerspectiveUrlSync(<AIHubPageV2 />),
     label: 'Agentic runs',
     title: 'Agentic runs',
     navigation: {
@@ -128,7 +128,7 @@ export const routes: RouteConfig[] = [
   // ── V2 Agentic runs workspace (MVP list + detail experience) ───────────────
   {
     path: '/v2/ai-hub/observe/plans',
-    element: withPerspectiveUrlSync(<AIHubPageV2 />),
+    element: <BridgeRedirect to="/core/observe/troubleshooting-plans" />,
     title: 'Agentic runs',
   },
   {

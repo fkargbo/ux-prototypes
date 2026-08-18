@@ -88,15 +88,38 @@ html:has(.hpux-prototype-chrome-scroll) #root {
   overflow: hidden;
 }
 
+/*
+ * Left nav: bound sidebar to the viewport row below the masthead and scroll overflow
+ * (GitOps, Pipelines, Administration, etc.) inside sidebar-body.
+ */
 .hpux-prototype-app-shell .pf-v6-c-page > .pf-v6-c-page__sidebar {
   position: relative;
   z-index: var(--pf-t--global--z-index--sm, 100);
+  display: flex !important;
+  flex-direction: column !important;
+  align-self: stretch !important;
+  height: 100% !important;
+  max-height: 100% !important;
+}
+
+.hpux-prototype-app-shell .pf-v6-c-page > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-main {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
 }
 
 .hpux-prototype-app-shell .pf-v6-c-page > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
-  max-height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -117,7 +140,8 @@ html:has(.hpux-prototype-chrome-scroll) #root {
 
 .ols-ai-hub-page,
 .ols-observe-overview-page,
-.ols-gitops-page {
+.ols-gitops-page,
+.ols-pipelines-page {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;

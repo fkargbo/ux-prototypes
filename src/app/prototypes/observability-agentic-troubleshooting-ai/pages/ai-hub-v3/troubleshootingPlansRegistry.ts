@@ -19,6 +19,7 @@ import {
   resolveNewInvestigationPlanIdForAlert,
 } from './newInvestigationPlans';
 
+/** Canonical Agentic runs list (sidebar nav + share links). */
 export const TROUBLESHOOTING_PLANS_LIST_PATH = '/core/observe/troubleshooting-plans';
 
 const DYNAMIC_TROUBLESHOOTING_PLANS_KEY =
@@ -135,7 +136,7 @@ export function getTroubleshootingPlanDetailHref(planId: string, isSingleCluster
     return appendPerspectiveQuery(TROUBLESHOOTING_PLANS_LIST_PATH, isSingleCluster);
   }
   return appendPerspectiveQuery(
-    `${TROUBLESHOOTING_PLANS_LIST_PATH}/${encodeURIComponent(normalized)}`,
+    `/v2/ai-hub/agentic-runs/runs/${encodeURIComponent(normalized)}`,
     isSingleCluster,
   );
 }

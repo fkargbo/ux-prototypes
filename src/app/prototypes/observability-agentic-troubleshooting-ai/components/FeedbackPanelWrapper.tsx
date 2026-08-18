@@ -15,7 +15,6 @@ import { DeletedPlansProvider } from '../context/DeletedPlansContext';
 import { PlanWorkflowProvider } from '../context/PlanWorkflowContext';
 import { PlanWorkflowBridge } from './PlanWorkflowBridge';
 import { FeedbackSidePanel } from './FeedbackSidePanel';
-import { PrototypePerspectiveUrlSync } from './PrototypePerspectiveUrlSync';
 
 export const FeedbackPanelWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <AiHubAppearanceProvider>
@@ -25,7 +24,6 @@ export const FeedbackPanelWrapper: React.FC<{ children: React.ReactNode }> = ({ 
           <DeletedPlansProvider>
             <PlanWorkflowProvider>
               <PlanWorkflowBridge />
-              <PrototypePerspectiveUrlSync />
               {children}
               <FeedbackSidePanel />
             </PlanWorkflowProvider>

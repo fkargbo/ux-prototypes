@@ -25,7 +25,7 @@ export {
   type PlanRemediationSource,
 } from '../prototypePerspectiveUrl';
 
-export const PLANS_LIST_PATH = '/v2/ai-hub/observe/plans';
+export const PLANS_LIST_PATH = '/core/observe/troubleshooting-plans';
 
 /**
  * Option A: plan details are consolidated under the Agentic Plans workspace.

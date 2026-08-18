@@ -1,14 +1,15 @@
 /**
- * BridgeRedirect — retires the legacy, non-versioned "/core/observe/ai-hub/*"
- * and "/core/observe/troubleshooting-plans*" paths now that the v2 (Option A)
- * workspace is the single supported Agentic runs experience.
- *
- * `to` may reference route params via `:paramName` tokens, which are
- * substituted from the current route match. The original query string
- * (e.g. `?perspective=...`) is preserved on the redirect.
+ * BridgeRedirect — retires alternate Agentic runs entry paths in favour of the
+ * canonical sidebar URL. Substitutes route params and preserves/injects query
+ * (`?perspective=`) in a single replace navigation.
  */
 import React from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  buildPrototypeHref,
+  DEFAULT_PROTOTYPE_PERSPECTIVE,
+  readPerspectiveFromSearch,
+} from '../prototypePerspectiveUrl';
 
 export const BridgeRedirect: React.FC<{ to: string }> = ({ to }) => {
   const params = useParams();
@@ -21,6 +22,10 @@ export const BridgeRedirect: React.FC<{ to: string }> = ({ to }) => {
     }
   });
 
-  const query = searchParams.toString();
-  return <Navigate to={query ? `${target}?${query}` : target} replace />;
+  const merged = new URLSearchParams(searchParams);
+  const perspective =
+    readPerspectiveFromSearch(merged) ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
+  const href = buildPrototypeHref(target, perspective, merged);
+
+  return <Navigate to={href} replace />;
 };

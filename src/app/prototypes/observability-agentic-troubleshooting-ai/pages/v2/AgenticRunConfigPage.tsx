@@ -28,6 +28,8 @@ import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import '../ai-hub-page.css';
 
+import { PLANS_LIST_PATH } from '../v2PerspectiveUrl';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ApprovalMode = 'auto' | 'manual';
@@ -39,8 +41,6 @@ const POLICY_STAGE_LABELS: Record<PolicyStage, string> = {
   verification: 'Verification',
   escalation: 'Escalation',
 };
-
-const AGENTIC_RUNS_LIST_PATH = '/v2/ai-hub/observe/plans';
 
 // ─── Manual → Automatic 3-click safety modal ─────────────────────────────────
 
@@ -308,7 +308,7 @@ const ApprovalPolicyView: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
           </Button>
         </FlexItem>
         <FlexItem>
-          <Button variant="link" onClick={() => navigate(AGENTIC_RUNS_LIST_PATH)}>
+          <Button variant="link" onClick={() => navigate(PLANS_LIST_PATH)}>
             Cancel
           </Button>
         </FlexItem>
@@ -332,7 +332,7 @@ export const AgenticRunConfigPage: React.FC = () => {
 
   const navigateBackToPlans = (event: React.MouseEvent) => {
     event.preventDefault();
-    navigate(AGENTIC_RUNS_LIST_PATH);
+    navigate(PLANS_LIST_PATH);
   };
 
   return (

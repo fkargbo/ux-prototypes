@@ -417,26 +417,45 @@ body:has(.ols-ai-hub-page),
   flex-direction: column !important;
 }
 
-/*
- * Sidebar body: same frosted surface + `--pf-t--global--box-shadow--lg` as `.pf-v6-c-page__main-container`
- * (see base.css `--pf-t--global--box-shadow--lg` composite shadow).
- * Scroll container moved here from `.pf-v6-c-page__sidebar` so elevation isn’t clipped.
- */
-:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-body {
+/* Single glass card on sidebar-main (PF surface). Do not frost sidebar-body. */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar .pf-v6-c-page__sidebar-main {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
   background-color: var(--ols-ai-hub-glass-surface-tint) !important;
+  border: var(--ols-ai-hub-glass-chrome-border-width, 1px) solid var(--ols-ai-hub-glass-chrome-border-color, transparent) !important;
+  border-radius: var(--ols-ai-hub-glass-chrome-radius, var(--pf-t--global--border--radius--medium)) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
+  box-shadow: var(--ols-ai-hub-glass-chrome-shadow, var(--pf-t--global--box-shadow--lg)) !important;
+  overflow: hidden !important;
+}
+
+/*
+ * Transparent scrollport inside the glass card — nav overflow scrolls here.
+ */
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar > .pf-v6-c-page__sidebar-main > .pf-v6-c-page__sidebar-body,
+:root.pf-v6-theme-glass .pf-v6-c-page:has(.ols-ai-hub-page) > .pf-v6-c-page__sidebar > .pf-v6-c-page__sidebar-body {
+  background-color: transparent !important;
   border: none !important;
   outline: none !important;
-  border-radius: var(--pf-t--global--border--radius--medium) !important;
-  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary) !important;
-  box-shadow: var(--pf-t--global--box-shadow--lg);
-  flex: 1 1 auto;
-  min-height: 0;
-  height: 100%;
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
   position: relative;
-  z-index: var(--pf-t--global--z-index--xs);
+  z-index: auto;
 }
 
 /* Sidebar body: remove gray frame from inline perspective control (AppLayout). */
