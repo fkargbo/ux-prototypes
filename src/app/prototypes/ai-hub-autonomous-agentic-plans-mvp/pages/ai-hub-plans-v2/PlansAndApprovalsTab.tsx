@@ -3199,7 +3199,7 @@ const PlanScopeCell: React.FC<{
 // ─── Table column header with informational popover ───────────────────────────
 
 const PLANS_TABLE_HEADER_TH_STYLE: React.CSSProperties = {
-  verticalAlign: 'top',
+  verticalAlign: 'middle',
 };
 
 const PLANS_TABLE_HEADER_POPOVER_CONTENT_STYLE: React.CSSProperties = {
@@ -3480,7 +3480,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
     switch (colIndex) {
       case 0: return (row.name ?? row.id).toLowerCase();
       case 1: return (row.scope ?? '').toLowerCase();
-      case 2: return (row.triggerDomain ?? '').toLowerCase();
+      case 2: return resolveDisplayDomain(row.triggerDomain ?? '').toLowerCase();
       case 3: return (row.status ?? '').toLowerCase();
       default: return '';
     }
