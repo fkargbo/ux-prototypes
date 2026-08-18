@@ -835,3 +835,11 @@ span.ols-aio-card-stat-number {
   );
 }
 
+/* Neutralise the extra block padding PF adds inside sort-Th buttons so that
+   sortable and non-sortable column headers sit on the same baseline. */
+.ols-plans-table thead .pf-v6-c-table__sort .pf-v6-c-table__button {
+  padding-block-start: 0;
+  padding-block-end: 0;
+  margin-block-end: 0;
+}
+

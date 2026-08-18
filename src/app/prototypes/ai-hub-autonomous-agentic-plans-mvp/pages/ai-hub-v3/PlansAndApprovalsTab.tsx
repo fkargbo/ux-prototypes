@@ -2101,6 +2101,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   onSort,
 }) => {
   const statusColIndex = showTriggerDomainColumn ? 3 : 2;
+  const createdColIndex = showTriggerDomainColumn ? 5 : 4;
   const getSortProps = (colIndex: number) =>
     !onSort
       ? {}
@@ -2132,7 +2133,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
         ) : null}
         <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(statusColIndex)}>Status</Th>
         <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(createdColIndex)}>Created</Th>
         <Th screenReaderText="Actions" />
       </Tr>
     </Thead>
@@ -2245,6 +2246,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
       case 1: return (row.scope ?? '').toLowerCase();
       case 2: return resolveDisplayDomain(row.triggerDomain ?? '').toLowerCase();
       case 3: return (row.status ?? '').toLowerCase();
+      case 5: return row.createdAt ?? '';
       default: return '';
     }
   }, []);
