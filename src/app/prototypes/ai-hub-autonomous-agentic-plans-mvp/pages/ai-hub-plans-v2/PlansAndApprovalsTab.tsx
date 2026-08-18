@@ -41,7 +41,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { BanIcon, CheckCircleIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, InProgressIcon, OutlinedClockIcon, PauseCircleIcon, PendingIcon, RhUiDownloadIcon, RunningIcon, SearchIcon, SyncAltIcon } from '@patternfly/react-icons';
+import { EllipsisVIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiBanIcon, RhUiCheckCircleFillIcon, RhUiDownloadIcon, RhUiErrorFillIcon, RhUiInProgressIcon, RhUiPauseCircleIcon, RhUiPendingIcon, RhUiRunningIcon, RhUiSyncIcon, RhUiWarningFillIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
@@ -2938,31 +2938,31 @@ type StatusVisual =
 
 const STATUS_VISUAL: Record<PlanStatus, StatusVisual> = {
   // ── Waiting / neutral ────────────────────────────────────────────────────
-  'Pending':          { kind: 'color',  color: 'grey',   icon: <PendingIcon /> },
-  'Approved':         { kind: 'color',  color: 'orange', icon: <PauseCircleIcon /> },
+  'Pending':          { kind: 'color',  color: 'grey',   icon: <RhUiPendingIcon /> },
+  'Approved':         { kind: 'color',  color: 'orange', icon: <RhUiPauseCircleIcon /> },
 
   // ── Active / transient — vibrant PF6 info purple (#5E40BE) ─────────────────
-  'Analyzing':        { kind: 'status', status: 'info',  icon: <InProgressIcon /> },
-  'Proposed':         { kind: 'status', status: 'info',  icon: <PauseCircleIcon /> },
-  'Executing':        { kind: 'status', status: 'info',  icon: <RunningIcon /> },
-  'Verifying':        { kind: 'status', status: 'info',  icon: <SyncAltIcon /> },
+  'Analyzing':        { kind: 'status', status: 'info',  icon: <RhUiInProgressIcon /> },
+  'Proposed':         { kind: 'status', status: 'info',  icon: <RhUiPauseCircleIcon /> },
+  'Executing':        { kind: 'status', status: 'info',  icon: <RhUiRunningIcon /> },
+  'Verifying':        { kind: 'status', status: 'info',  icon: <RhUiSyncIcon /> },
 
   // ── Terminal success — vibrant PF6 status green ──────────────────────────
-  'Acknowledged':     { kind: 'status', status: 'success', icon: <CheckCircleIcon /> },
-  'Completed':        { kind: 'status', status: 'success', icon: <CheckCircleIcon /> },
+  'Acknowledged':     { kind: 'status', status: 'success', icon: <RhUiCheckCircleFillIcon /> },
+  'Completed':        { kind: 'status', status: 'success', icon: <RhUiCheckCircleFillIcon /> },
 
   // ── SRE attention required — vibrant PF6 status yellow ──────────────────
-  'Escalating':       { kind: 'status', status: 'warning', icon: <ExclamationTriangleIcon /> },
-  'Escalated':        { kind: 'status', status: 'warning', icon: <ExclamationTriangleIcon /> },
+  'Escalating':       { kind: 'status', status: 'warning', icon: <RhUiWarningFillIcon /> },
+  'Escalated':        { kind: 'status', status: 'warning', icon: <RhUiWarningFillIcon /> },
 
   // ── Terminal failure / hard stop — vibrant PF6 status red-orange ─────────
-  'Failed':           { kind: 'status', status: 'danger',  icon: <ExclamationCircleIcon /> },
-  'Denied':           { kind: 'status', status: 'danger',  icon: <BanIcon /> },
-  'EmergencyStopped': { kind: 'status', status: 'danger',  icon: <BanIcon /> },
-  'Plan aborted':     { kind: 'status', status: 'danger',  icon: <BanIcon /> },
+  'Failed':           { kind: 'status', status: 'danger',  icon: <RhUiErrorFillIcon /> },
+  'Denied':           { kind: 'status', status: 'danger',  icon: <RhUiBanIcon /> },
+  'EmergencyStopped': { kind: 'status', status: 'danger',  icon: <RhUiBanIcon /> },
+  'Plan aborted':     { kind: 'status', status: 'danger',  icon: <RhUiBanIcon /> },
 
   // ── Interrupted before execution — nonstatus orange (not a hard failure) ─
-  'Run aborted':      { kind: 'color',  color: 'orange', icon: <BanIcon /> },
+  'Run aborted':      { kind: 'color',  color: 'orange', icon: <RhUiBanIcon /> },
 };
 
 const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
@@ -4106,7 +4106,7 @@ const EscalationSummaryCard: React.FC<{
         gap={{ default: 'gapSm' }}
         style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
       >
-        <ExclamationTriangleIcon
+        <RhUiWarningFillIcon
           style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)' }}
           aria-hidden
         />
@@ -4295,9 +4295,9 @@ const TerminalEvidenceCard: React.FC<{
   // Execution status now lives in the top-right corner of the card header
   // (rather than inline in the title row) — mirrors RemediationOptionCard.
   const executionStatusLabel = isCompleted ? (
-    <Label color="green" icon={<CheckCircleIcon />}>Execution successful</Label>
+    <Label color="green" icon={<RhUiCheckCircleFillIcon />}>Execution successful</Label>
   ) : isFailed ? (
-    <Label color="red" icon={<ExclamationCircleIcon />}>Execution failed</Label>
+    <Label color="red" icon={<RhUiErrorFillIcon />}>Execution failed</Label>
   ) : null;
 
   const headerContent = (
@@ -4606,9 +4606,9 @@ const RemediationOptionCard: React.FC<{
           Executing
         </Label>
       ) : isCompleted ? (
-        <Label color="green" icon={<CheckCircleIcon />}>Execution successful</Label>
+        <Label color="green" icon={<RhUiCheckCircleFillIcon />}>Execution successful</Label>
       ) : isFailed ? (
-        <Label color="red" icon={<ExclamationCircleIcon />}>Execution failed</Label>
+        <Label color="red" icon={<RhUiErrorFillIcon />}>Execution failed</Label>
       ) : null
     ) : null;
 
@@ -5004,7 +5004,7 @@ const RcaLockedPlaceholder: React.FC<{ isSuspended?: boolean; isPendingApproval?
       style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
     >
       {isSuspended ? (
-        <ExclamationTriangleIcon
+        <RhUiWarningFillIcon
           style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)', flexShrink: 0 }}
           aria-hidden
         />
@@ -5595,7 +5595,7 @@ export const RemediationBlueprintPanel: React.FC<{
           </Flex>
           <div style={LOCKED_BOX_STYLE}>
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <BanIcon
+              <RhUiBanIcon
                 style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
                 aria-hidden
               />
@@ -5613,7 +5613,7 @@ export const RemediationBlueprintPanel: React.FC<{
           </Title>
           <div style={LOCKED_BOX_STYLE}>
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <BanIcon
+              <RhUiBanIcon
                 style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
                 aria-hidden
               />
@@ -5741,17 +5741,17 @@ export const RemediationBlueprintPanel: React.FC<{
                 </FlexItem>
                 <FlexItem>
                   {isCompleted ? (
-                    <Label color="green" icon={<CheckCircleIcon />}>Completed</Label>
+                    <Label color="green" icon={<RhUiCheckCircleFillIcon />}>Completed</Label>
                   ) : status === 'Failed' ? (
-                    <Label color="red" icon={<ExclamationCircleIcon />}>Failed</Label>
+                    <Label color="red" icon={<RhUiErrorFillIcon />}>Failed</Label>
                   ) : (isExecuting || isVerifying) ? (
                     <Label color="blue" icon={<Spinner size="sm" aria-label="In progress" />}>In progress</Label>
                   ) : isEscalated ? (
-                    <Label color="yellow" icon={<ExclamationTriangleIcon />}>Escalated</Label>
+                    <Label color="yellow" icon={<RhUiWarningFillIcon />}>Escalated</Label>
                   ) : isDenied ? (
-                    <Label color="red" icon={<ExclamationCircleIcon />}>Denied</Label>
+                    <Label color="red" icon={<RhUiErrorFillIcon />}>Denied</Label>
                   ) : isEmergencyStopped ? (
-                    <Label color="orange" icon={<ExclamationTriangleIcon />}>Emergency stopped</Label>
+                    <Label color="orange" icon={<RhUiWarningFillIcon />}>Emergency stopped</Label>
                   ) : null}
                 </FlexItem>
               </Flex>
@@ -5798,7 +5798,7 @@ export const RemediationBlueprintPanel: React.FC<{
         headingLevel="h4"
         icon={() => isAgenticAutomationEnabled
           ? <Spinner size="lg" aria-label="Initializing" />
-          : <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)', fontSize: '2rem' }} aria-hidden />
+          : <RhUiWarningFillIcon style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)', fontSize: '2rem' }} aria-hidden />
         }
       >
         <EmptyStateBody>

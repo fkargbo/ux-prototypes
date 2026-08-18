@@ -44,7 +44,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, BanIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, InProgressIcon, PauseCircleIcon, PendingIcon, RunningIcon, SearchIcon, SyncAltIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, DownloadIcon, EllipsisVIcon, HelpIcon, RhUiBanIcon, RhUiCheckCircleFillIcon, RhUiErrorFillIcon, RhUiInProgressIcon, RhUiPauseCircleIcon, RhUiPendingIcon, RhUiRunningIcon, RhUiSyncIcon, RhUiWarningFillIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -1745,21 +1745,21 @@ type StatusVisual =
   | { kind: 'color';  color: LabelColor;  icon: React.ReactElement };
 
 const STATUS_VISUAL: Record<PlanStatus, StatusVisual> = {
-  'Pending':          { kind: 'color',  color: 'grey',   icon: <PendingIcon /> },
-  'Approved':         { kind: 'color',  color: 'orange', icon: <PauseCircleIcon /> },
-  'Analyzing':        { kind: 'status', status: 'info',  icon: <InProgressIcon /> },
-  'Proposed':         { kind: 'status', status: 'info',  icon: <PauseCircleIcon /> },
-  'Executing':        { kind: 'status', status: 'info',  icon: <RunningIcon /> },
-  'Verifying':        { kind: 'status', status: 'info',  icon: <SyncAltIcon /> },
-  'Acknowledged':     { kind: 'status', status: 'success', icon: <CheckCircleIcon /> },
-  'Completed':        { kind: 'status', status: 'success', icon: <CheckCircleIcon /> },
-  'Escalating':       { kind: 'status', status: 'warning', icon: <ExclamationTriangleIcon /> },
-  'Escalated':        { kind: 'status', status: 'warning', icon: <ExclamationTriangleIcon /> },
-  'Failed':           { kind: 'status', status: 'danger',  icon: <ExclamationCircleIcon /> },
-  'Denied':           { kind: 'status', status: 'danger',  icon: <BanIcon /> },
-  'EmergencyStopped': { kind: 'status', status: 'danger',  icon: <BanIcon /> },
-  'Plan aborted':     { kind: 'status', status: 'danger',  icon: <BanIcon /> },
-  'Run aborted':      { kind: 'color',  color: 'orange', icon: <BanIcon /> },
+  'Pending':          { kind: 'color',  color: 'grey',   icon: <RhUiPendingIcon /> },
+  'Approved':         { kind: 'color',  color: 'orange', icon: <RhUiPauseCircleIcon /> },
+  'Analyzing':        { kind: 'status', status: 'info',  icon: <RhUiInProgressIcon /> },
+  'Proposed':         { kind: 'status', status: 'info',  icon: <RhUiPauseCircleIcon /> },
+  'Executing':        { kind: 'status', status: 'info',  icon: <RhUiRunningIcon /> },
+  'Verifying':        { kind: 'status', status: 'info',  icon: <RhUiSyncIcon /> },
+  'Acknowledged':     { kind: 'status', status: 'success', icon: <RhUiCheckCircleFillIcon /> },
+  'Completed':        { kind: 'status', status: 'success', icon: <RhUiCheckCircleFillIcon /> },
+  'Escalating':       { kind: 'status', status: 'warning', icon: <RhUiWarningFillIcon /> },
+  'Escalated':        { kind: 'status', status: 'warning', icon: <RhUiWarningFillIcon /> },
+  'Failed':           { kind: 'status', status: 'danger',  icon: <RhUiErrorFillIcon /> },
+  'Denied':           { kind: 'status', status: 'danger',  icon: <RhUiBanIcon /> },
+  'EmergencyStopped': { kind: 'status', status: 'danger',  icon: <RhUiBanIcon /> },
+  'Plan aborted':     { kind: 'status', status: 'danger',  icon: <RhUiBanIcon /> },
+  'Run aborted':      { kind: 'color',  color: 'orange', icon: <RhUiBanIcon /> },
 };
 
 const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
@@ -2932,8 +2932,8 @@ const PostMortemPanel: React.FC<{
                 style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
                 {status === 'Failed'
-                  ? <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />
-                  : <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
+                  ? <RhUiErrorFillIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />
+                  : <RhUiCheckCircleFillIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
                 }
                 <Title headingLevel="h5" size="md">Execution summary</Title>
               </Flex>
@@ -3033,7 +3033,7 @@ const PostMortemPanel: React.FC<{
         {/* ── Header ── */}
         <StackItem>
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-            <ExclamationCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
+            <RhUiErrorFillIcon color="var(--pf-t--global--color--status--danger--default)" />
             <Title headingLevel="h5" size="md">Critical Automation Failure</Title>
           </Flex>
         </StackItem>
@@ -3445,7 +3445,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                 gap={{ default: 'gapSm' }}
                 style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
-                <ExclamationTriangleIcon
+                <RhUiWarningFillIcon
                   aria-hidden
                   style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
                 />
@@ -3591,7 +3591,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <Label
                 color="green"
                 isCompact
-                icon={<CheckCircleIcon />}
+                icon={<RhUiCheckCircleFillIcon />}
               >
                 Completed
               </Label>
@@ -3600,7 +3600,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <Label
                 color="red"
                 isCompact
-                icon={<ExclamationCircleIcon />}
+                icon={<RhUiErrorFillIcon />}
               >
                 Failed
               </Label>
@@ -3609,7 +3609,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <Label
                 color="orange"
                 isCompact
-                icon={<ExclamationTriangleIcon />}
+                icon={<RhUiWarningFillIcon />}
               >
                 Escalated
               </Label>
