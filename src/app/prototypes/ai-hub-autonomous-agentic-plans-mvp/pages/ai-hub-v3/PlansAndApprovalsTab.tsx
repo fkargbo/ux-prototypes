@@ -2082,6 +2082,9 @@ interface PlansTableCoreProps {
   mapObservabilityDomains?: boolean;
   /** Global Agentic plans list only — domain-scoped lists (e.g. Troubleshooting plans) omit this column. */
   showTriggerDomainColumn?: boolean;
+  activeSortIndex?: number;
+  activeSortDirection?: 'asc' | 'desc';
+  onSort?: (columnIndex: number, direction: 'asc' | 'desc') => void;
 }
 
 export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
@@ -2093,7 +2096,23 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   isAgenticAutomationEnabled,
   mapObservabilityDomains = false,
   showTriggerDomainColumn = true,
-}) => (
+  activeSortIndex,
+  activeSortDirection,
+  onSort,
+}) => {
+  const statusColIndex = showTriggerDomainColumn ? 3 : 2;
+  const getSortProps = (colIndex: number) =>
+    !onSort
+      ? {}
+      : {
+          sort: {
+            sortBy: { index: activeSortIndex, direction: activeSortDirection, defaultDirection: 'asc' as const },
+            onSort: (_evt: React.MouseEvent, index: number, direction: 'asc' | 'desc') => onSort(index, direction),
+            columnIndex: colIndex,
+          },
+        };
+
+  return (
   <Table
     aria-label={ariaLabel}
     className="ols-plans-table"
@@ -2106,12 +2125,12 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   >
     <Thead>
       <Tr>
-        <Th style={{ width: showTriggerDomainColumn ? '22%' : '28%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '14%' : '16%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '22%' : '28%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(0)}>Name</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '14%' : '16%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(1)}>{scopeColumnLabel}</Th>
         {showTriggerDomainColumn ? (
-          <Th style={{ width: '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
+          <Th style={{ width: '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(2)}>Trigger domain</Th>
         ) : null}
-        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(statusColIndex)}>Status</Th>
         <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
         <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
         <Th screenReaderText="Actions" />
@@ -2180,7 +2199,8 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
       ))}
     </Tbody>
   </Table>
-);
+  );
+};
 
 // ─── Plans table (pagination + filters + expand state) ───────────────────────
 
@@ -2211,6 +2231,34 @@ const PlansTable: React.FC<PlansTableProps> = ({
     [rows, plansFilter.filterRows],
   );
 
+  const [activeSortIndex, setActiveSortIndex] = useState<number | undefined>(undefined);
+  const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | undefined>(undefined);
+
+  const onSort = useCallback((index: number, direction: 'asc' | 'desc') => {
+    setActiveSortIndex(index);
+    setActiveSortDirection(direction);
+  }, []);
+
+  const getSortValue = useCallback((row: PlanRow, colIndex: number): string => {
+    switch (colIndex) {
+      case 0: return (row.name ?? row.id).toLowerCase();
+      case 1: return (row.scope ?? '').toLowerCase();
+      case 2: return (row.triggerDomain ?? '').toLowerCase();
+      case 3: return (row.status ?? '').toLowerCase();
+      default: return '';
+    }
+  }, []);
+
+  const sortedRows = useMemo(() => {
+    if (activeSortIndex === undefined || activeSortDirection === undefined) return filteredRows;
+    return [...filteredRows].sort((a, b) => {
+      const aVal = getSortValue(a, activeSortIndex);
+      const bVal = getSortValue(b, activeSortIndex);
+      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return activeSortDirection === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredRows, activeSortIndex, activeSortDirection, getSortValue]);
+
   useEffect(() => {
     setPage(1);
   }, [
@@ -2218,11 +2266,13 @@ const PlansTable: React.FC<PlansTableProps> = ({
     plansFilter.searchInputValue,
     plansFilter.statusFilters,
     plansFilter.triggerDomainFilters,
+    activeSortIndex,
+    activeSortDirection,
   ]);
 
-  const totalItems = filteredRows.length;
+  const totalItems = sortedRows.length;
   const start = (page - 1) * perPage;
-  const paginatedRows = filteredRows.slice(start, start + perPage);
+  const paginatedRows = sortedRows.slice(start, start + perPage);
 
   const onSetPage = useCallback(
     (_evt: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
@@ -2301,6 +2351,9 @@ const PlansTable: React.FC<PlansTableProps> = ({
             onDeletePlan={onDeletePlan}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
             mapObservabilityDomains
+            activeSortIndex={activeSortIndex}
+            activeSortDirection={activeSortDirection}
+            onSort={onSort}
           />
           <Pagination
             {...paginationProps}
