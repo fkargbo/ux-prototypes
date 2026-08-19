@@ -392,7 +392,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                 <TextInput
                   ref={searchInputRef}
                   aria-label="Filter plans by name"
-                  placeholder="Filter by name..."
+                  placeholder="Search by name..."
                   value={searchInputValue}
                   onChange={(_evt, value) => setSearchInputValue(value)}
                   onFocus={() => setIsSearchFocused(true)}

@@ -330,7 +330,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
             <FlexItem style={{ minWidth: 0 }}>
               <TextInput
                 aria-label="Filter plans by name"
-                placeholder="Filter by name..."
+                placeholder="Search by name..."
                 value={searchInputValue}
                 onChange={(_evt, value) => setSearchInputValue(value)}
                 style={{ minWidth: 220 }}

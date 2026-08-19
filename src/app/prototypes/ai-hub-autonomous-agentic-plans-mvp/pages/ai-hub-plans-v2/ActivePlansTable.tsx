@@ -422,7 +422,7 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
             <FlexItem>
               <TextInput
                 aria-label="Filter clusters by name"
-                placeholder="Filter by name..."
+                placeholder="Search by name..."
                 value={searchInputValue}
                 onChange={(_e, val) => setSearchInputValue(val)}
                 style={{ minWidth: 220 }}
