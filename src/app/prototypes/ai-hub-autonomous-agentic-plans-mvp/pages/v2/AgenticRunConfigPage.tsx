@@ -264,9 +264,6 @@ const ApprovalPolicyView: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
 
   return (
     <>
-      <Content component="p" className="ols-ai-hub-config-approval-description">
-        Configure whether each workflow stage requires manual approval or runs automatically.
-      </Content>
       <Form className="ols-ai-hub-config-content-width ols-ai-hub-config-approval-form">
         {renderToggleRow('analysis', 'Analysis policy')}
         {renderToggleRow('execution', 'Execution policy')}
@@ -358,7 +355,7 @@ export const AgenticRunConfigPage: React.FC = () => {
           </FlexItem>
         </Flex>
         <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}>
-          Configure runtime policies for agentic troubleshooting workflows.
+          Manage manual or automatic stage approval modes and retry limits across the agentic troubleshooting lifecycle.
         </Content>
       </AiHubPageHeading>
 
