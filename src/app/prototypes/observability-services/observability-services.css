@@ -21,58 +21,21 @@
 
 /* ─── Operational KPI ribbon ──────────────────────────────────────────────── */
 
-/*
- * Each KPI card carries a 3px top-border accent whose colour is driven by the
- * card's variant class. PF6 Card has a uniform 1px border on all sides; we
- * override only the top here so the coloured accent sits flush above the card
- * content. `!important` is required because the PF6 Card border is set via a
- * CSS custom property on `.pf-v6-c-card` that otherwise wins the specificity
- * race at the same selector depth.
- */
-.ols-obs-kpi-card--danger {
-  border-top: 3px solid var(--pf-t--global--color--status--danger--default) !important;
+/* Large metric value — plain black, not clickable, matching the old ribbon pattern. */
+.ols-obs-kpi-card__value {
+  display: block;
+  font-size: var(--pf-t--global--font--size--3xl);
+  font-weight: var(--pf-t--global--font--weight--heading--bold);
+  line-height: var(--pf-t--global--font--line-height--heading);
+  color: var(--pf-t--global--text--color--regular);
+  margin-top: var(--pf-t--global--spacer--sm);
 }
 
-.ols-obs-kpi-card--warning {
-  border-top: 3px solid var(--pf-t--global--color--status--warning--default) !important;
-}
-
-.ols-obs-kpi-card--success {
-  border-top: 3px solid var(--pf-t--global--color--status--success--default) !important;
-}
-
-.ols-obs-kpi-card--neutral {
-  border-top: 3px solid var(--pf-t--global--border--color--default) !important;
-}
-
-/* Category header row: label left, icon right */
-.ols-obs-kpi-card__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--pf-t--global--spacer--sm);
-}
-
-.ols-obs-kpi-card__category {
+/* Secondary label below the value (e.g. "Critical alerts") */
+.ols-obs-kpi-card__label {
   font-size: var(--pf-t--global--font--size--sm);
   color: var(--pf-t--global--text--color--subtle);
-  margin: 0;
-}
-
-/* Metric value — large heading; the trailing label uses regular weight */
-.ols-obs-kpi-card__value {
-  line-height: var(--pf-t--global--font--line-height--heading);
-  margin-bottom: var(--pf-t--global--spacer--xs);
-}
-
-.ols-obs-kpi-card__value-label {
-  font-weight: var(--pf-t--global--font--weight--body--default);
-  font-size: var(--pf-t--global--font--size--xl);
-}
-
-.ols-obs-kpi-card__subtext {
-  color: var(--pf-t--global--text--color--subtle);
-  display: block;
+  margin: var(--pf-t--global--spacer--xs) 0 0 0;
 }
 
 /* PF6's default HelperTextItem text color ("regular"/near-black) is meant for form
