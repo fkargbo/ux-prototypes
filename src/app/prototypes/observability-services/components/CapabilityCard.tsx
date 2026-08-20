@@ -98,6 +98,7 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
         <Flex
           justifyContent={{ default: 'justifyContentSpaceBetween' }}
           alignItems={{ default: 'alignItemsFlexStart' }}
+          flexWrap={{ default: 'nowrap' }}
           gap={{ default: 'gapSm' }}
         >
           <FlexItem style={{ minWidth: 0 }}>
