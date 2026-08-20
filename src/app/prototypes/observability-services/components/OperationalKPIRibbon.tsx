@@ -51,7 +51,12 @@ export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({ stat
                     <Icon
                       color={VALUE_ICON_COLOR_MAP[stat.valueIconVariant]}
                       aria-hidden
-                      style={{ marginRight: 'var(--pf-t--global--spacer--xs)', verticalAlign: 'middle' }}
+                      style={{
+                        width: 'var(--pf-t--global--font--size--sm)',
+                        height: 'var(--pf-t--global--font--size--sm)',
+                        marginRight: 'var(--pf-t--global--spacer--xs)',
+                        verticalAlign: 'middle',
+                      }}
                     />
                   ) : null;
                 })() : null}
