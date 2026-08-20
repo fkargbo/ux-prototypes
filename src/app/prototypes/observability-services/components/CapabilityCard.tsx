@@ -110,7 +110,7 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
               {capability.title}
             </CardTitle>
           </FlexItem>
-          <FlexItem>
+          <FlexItem style={{ flexShrink: 0 }}>
             <Label
               color={capability.status.color}
               isCompact
