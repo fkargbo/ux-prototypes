@@ -45,22 +45,23 @@ export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({ stat
                 {stat.category}
               </Title>
               <Title headingLevel="h4" size="2xl" className="ols-obs-kpi-card__value">
-                {stat.valueIconVariant ? (() => {
-                  const Icon = VALUE_ICON_MAP[stat.valueIconVariant];
-                  return Icon ? (
-                    <Icon
-                      color={VALUE_ICON_COLOR_MAP[stat.valueIconVariant]}
-                      aria-hidden
-                      style={{
-                        width: 'var(--pf-t--global--font--size--sm)',
-                        height: 'var(--pf-t--global--font--size--sm)',
-                        marginRight: 'var(--pf-t--global--spacer--xs)',
-                        verticalAlign: 'middle',
-                      }}
-                    />
-                  ) : null;
-                })() : null}
-                {stat.value}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--xs)' }}>
+                  {stat.valueIconVariant ? (() => {
+                    const Icon = VALUE_ICON_MAP[stat.valueIconVariant];
+                    return Icon ? (
+                      <Icon
+                        color={VALUE_ICON_COLOR_MAP[stat.valueIconVariant]}
+                        aria-hidden
+                        style={{
+                          width: 'var(--pf-t--global--font--size--sm)',
+                          height: 'var(--pf-t--global--font--size--sm)',
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : null;
+                  })() : null}
+                  {stat.value}
+                </span>
               </Title>
               {stat.label ? (
                 <Content component="small" className="ols-obs-kpi-card__label">
