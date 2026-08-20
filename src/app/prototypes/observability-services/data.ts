@@ -176,7 +176,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
   // ─── Installed: Distributed Tracing ─────────────────────────────────────────
   {
     id: 'distributed-tracing',
-    title: 'Traces',
+    title: 'Distributed tracing',
     subtitle: 'COO · Tempo · OpenTelemetry',
     status: {
       kind: 'fully-enabled',

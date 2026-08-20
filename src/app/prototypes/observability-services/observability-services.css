@@ -42,6 +42,16 @@
   --pf-v6-c-helper-text__item-text--Color: var(--pf-t--global--text--color--subtle);
 }
 
+/*
+ * Keep card subtitles (e.g. "COO · Tempo · OpenTelemetry") on a single line.
+ * Scoped to this page only so it doesn't affect other prototypes.
+ */
+.ols-obs-services-page .pf-v6-c-card__subtitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .ols-obs-services-capability-card__summary {
   margin: 0 0 var(--pf-t--global--spacer--md) 0;
 }
