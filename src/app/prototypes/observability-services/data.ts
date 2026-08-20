@@ -254,7 +254,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
   {
     id: 'health-analyzer',
     title: 'Incident detection',
-    subtitle: 'Health Analyzer',
+    subtitle: 'COO · Health Analyzer',
     status: {
       kind: 'available-addon',
       label: 'Not installed',
