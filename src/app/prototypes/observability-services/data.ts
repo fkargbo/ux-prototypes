@@ -96,7 +96,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
   // ─── Installed: Customizable Dashboards ─────────────────────────────────────
   {
     id: 'customizable-dashboards',
-    title: 'Customizable Dashboards',
+    title: 'Dashboards',
     subtitle: 'COO · Perses',
     status: {
       kind: 'fully-enabled',
@@ -176,7 +176,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
   // ─── Installed: Distributed Tracing ─────────────────────────────────────────
   {
     id: 'distributed-tracing',
-    title: 'Distributed Tracing',
+    title: 'Traces',
     subtitle: 'COO · Tempo · OpenTelemetry',
     status: {
       kind: 'fully-enabled',
@@ -253,7 +253,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
   // ─── Recommended: Health Analyzer ────────────────────────────────────────────
   {
     id: 'health-analyzer',
-    title: 'Health Analyzer',
+    title: 'Incident detection',
     subtitle: 'COO · Incidents',
     status: {
       kind: 'available-addon',
@@ -294,7 +294,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
   // ─── Recommended: Network Observability ──────────────────────────────────────
   {
     id: 'network-observability',
-    title: 'Network Observability',
+    title: 'Network observability',
     status: {
       kind: 'available-addon',
       label: 'Not Installed',
