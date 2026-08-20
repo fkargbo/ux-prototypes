@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardBody, Grid, GridItem, Title } from '@patternfly/react-core';
+import { Card, CardBody, Content, Grid, GridItem, Title } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -44,7 +44,7 @@ export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({ stat
               <Title headingLevel="h3" size="md">
                 {stat.category}
               </Title>
-              <span className="ols-obs-kpi-card__value">
+              <Title headingLevel="h4" size="2xl" className="ols-obs-kpi-card__value">
                 {stat.valueIconVariant ? (() => {
                   const Icon = VALUE_ICON_MAP[stat.valueIconVariant];
                   return Icon ? (
@@ -56,9 +56,11 @@ export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({ stat
                   ) : null;
                 })() : null}
                 {stat.value}
-              </span>
+              </Title>
               {stat.label ? (
-                <p className="ols-obs-kpi-card__label">{stat.label}</p>
+                <Content component="small" className="ols-obs-kpi-card__label">
+                  {stat.label}
+                </Content>
               ) : null}
             </CardBody>
           </Card>

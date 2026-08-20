@@ -21,21 +21,15 @@
 
 /* ─── Operational KPI ribbon ──────────────────────────────────────────────── */
 
-/* Large metric value — plain black, not clickable, matching the old ribbon pattern. */
+/* Top margin for the metric value Title, separating it from the category heading above. */
 .ols-obs-kpi-card__value {
-  display: block;
-  font-size: var(--pf-t--global--font--size--3xl);
-  font-weight: var(--pf-t--global--font--weight--heading--bold);
-  line-height: var(--pf-t--global--font--line-height--heading);
-  color: var(--pf-t--global--text--color--regular);
   margin-top: var(--pf-t--global--spacer--sm);
 }
 
-/* Secondary label below the value (e.g. "Critical alerts") */
+/* Secondary label below the value (e.g. "Critical alerts") — muted via token. */
 .ols-obs-kpi-card__label {
-  font-size: var(--pf-t--global--font--size--sm);
   color: var(--pf-t--global--text--color--subtle);
-  margin: var(--pf-t--global--spacer--xs) 0 0 0;
+  margin-top: var(--pf-t--global--spacer--xs);
 }
 
 /* PF6's default HelperTextItem text color ("regular"/near-black) is meant for form
