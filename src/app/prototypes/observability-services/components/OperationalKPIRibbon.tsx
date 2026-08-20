@@ -7,12 +7,12 @@ export interface OperationalKPIRibbonProps {
 }
 
 export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({ stats }) => (
-  <section aria-labelledby="ols-obs-kpi-heading">
+  <section aria-labelledby="ols-obs-kpi-heading" className="ols-obs-kpi-ribbon">
     <Title
       headingLevel="h2"
       size="lg"
       id="ols-obs-kpi-heading"
-      className="pf-v6-u-mb-md"
+      className="ols-obs-services-section-title"
     >
       Observability at a glance
     </Title>

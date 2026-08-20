@@ -66,14 +66,26 @@
   color: var(--pf-t--global--text--color--subtle);
 }
 
+/*
+ * Consistent section-heading bottom margin used by both the KPI ribbon heading
+ * and the capability section headings ("Installed operators", "Recommended operators").
+ * Replaces the former hardcoded 16px and the scattered pf-v6-u-mb-md utility class.
+ */
 .ols-obs-services-section-title {
-  margin-bottom: 16px;
+  margin-bottom: var(--pf-t--global--spacer--md);
 }
 
-/* Doubles the default Stack gutter below each capability card grid, so the
-   "Installed" and "Recommended" sections read as clearly separated groups. */
+/*
+ * Adds extra breathing room after the KPI ribbon so it reads as a distinct
+ * summary band, clearly separated from the capability card sections below.
+ */
+.ols-obs-kpi-ribbon {
+  margin-bottom: var(--pf-t--global--spacer--xl);
+}
+
+/* Space between the "Installed" and "Recommended" card grids. */
 .ols-obs-services-section-cards {
-  margin-bottom: var(--pf-t--global--spacer--gutter--default);
+  margin-bottom: var(--pf-t--global--spacer--xl);
 }
 
 .ols-obs-services-alert {
