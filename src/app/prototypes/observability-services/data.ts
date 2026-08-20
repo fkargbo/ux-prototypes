@@ -33,16 +33,18 @@ export const OPERATIONAL_KPI_STATS: OperationalKpiStat[] = [
     label: 'Needs setup',
     subtext: 'Install or finish config',
     variant: 'warning',
+    valueIconVariant: 'warning',
     scrollTargetId: 'ols-obs-recommended-heading',
   },
   {
     id: 'operator-health',
     category: 'Operator health',
     value: '1',
-    label: 'Unhealthy',
+    label: 'Degraded',
     subtext: 'Enabled but not ready',
     variant: 'danger',
     zeroVariant: 'success',
+    valueIconVariant: 'danger',
   },
 ];
 
