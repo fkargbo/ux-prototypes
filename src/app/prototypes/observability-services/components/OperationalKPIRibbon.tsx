@@ -7,7 +7,7 @@ import {
 } from '@patternfly/react-icons';
 import type { OperationalKpiStat, OperationalKpiVariant } from '../types';
 
-const VALUE_ICON_MAP: Record<OperationalKpiVariant, React.ComponentType<{ color?: string; 'aria-hidden'?: boolean; style?: React.CSSProperties }> | null> = {
+const VALUE_ICON_MAP: Record<OperationalKpiVariant, React.ComponentType<React.SVGProps<SVGSVGElement>> | null> = {
   danger: ExclamationCircleIcon,
   warning: ExclamationTriangleIcon,
   success: CheckCircleIcon,
