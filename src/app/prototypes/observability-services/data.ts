@@ -1,51 +1,47 @@
-import type { CapabilityCardData, StackSummaryStat } from './types';
+import type { CapabilityCardData, OperationalKpiStat } from './types';
 
 /**
- * Illustrative inventory for Post–Cluster Observability Operator install mode.
- * Values reflect capability surface area / configured inventory — not live health.
+ * 4-card operational KPI ribbon for the Observability services page.
+ *
+ * Values are illustrative mocks scoped to operator/dependency readiness —
+ * not raw cluster telemetry. Replace with live API calls in production.
  */
-export const STACK_SUMMARY_STATS: StackSummaryStat[] = [
+export const OPERATIONAL_KPI_STATS: OperationalKpiStat[] = [
   {
-    id: 'global-dashboards',
-    label: 'Perses Dashboards',
-    value: 12,
-    href: '/core/observe/dashboards',
-    description: 'Cluster-wide Perses dashboards available in this hub',
-  },
-  {
-    id: 'project-dashboards',
-    label: 'Perses Data Sources',
-    value: 28,
-    href: '/core/observe/dashboards',
-    description: 'Namespace-scoped dashboards available to projects',
-  },
-  {
-    id: 'alerting-rules',
-    label: 'Alerting rules',
-    value: 64,
+    id: 'alert-posture',
+    category: 'Alert posture',
+    value: '27',
+    label: 'Critical alerts',
+    subtext: 'Active firing alerts',
+    variant: 'danger',
+    zeroVariant: 'success',
     href: '/core/observe/alerting',
-    description: 'Configured alerting rules in the observability stack',
   },
   {
-    id: 'firing-alerts',
-    label: 'Firing alerts',
-    value: 7,
-    href: '/core/observe/alerting',
-    description: 'Currently firing alerts (navigate to Alerting for triage)',
+    id: 'operator-enablement',
+    category: 'Operator enablement',
+    value: '3/7',
+    label: 'Enabled',
+    subtext: '4 remaining',
+    variant: 'warning',
   },
   {
-    id: 'active-targets',
-    label: 'Targets',
-    value: 142,
-    href: '/core/observe/targets',
-    description: 'Scrape targets registered with the metrics stack',
+    id: 'setup-action',
+    category: 'Setup action',
+    value: '3',
+    label: 'Needs setup',
+    subtext: 'Install or finish config',
+    variant: 'warning',
+    scrollTargetId: 'ols-obs-recommended-heading',
   },
   {
-    id: 'unique-metrics',
-    label: 'Metrics',
-    value: 1840,
-    href: '/core/observe/metrics',
-    description: 'Unique metric names exposed by the stack',
+    id: 'operator-health',
+    category: 'Operator health',
+    value: '1',
+    label: 'Unhealthy',
+    subtext: 'Enabled but not ready',
+    variant: 'danger',
+    zeroVariant: 'success',
   },
 ];
 

@@ -53,19 +53,31 @@ export interface CapabilityCardData {
   searchTerms: string[];
 }
 
-export type StackSummaryTarget =
-  | 'global-dashboards'
-  | 'project-dashboards'
-  | 'alerting-rules'
-  | 'firing-alerts'
-  | 'active-targets'
-  | 'unique-metrics';
+/** Visual severity tint applied to an operational KPI card. */
+export type OperationalKpiVariant = 'danger' | 'success' | 'warning' | 'neutral';
 
-export interface StackSummaryStat {
-  id: StackSummaryTarget;
+export interface OperationalKpiStat {
+  id: string;
+  /** Small category label rendered above the metric (e.g. "Alert posture"). */
+  category: string;
+  /**
+   * Metric value as a display string — may be a plain integer ("27") or a
+   * fraction ("3/7"). Zero-state logic parses integers only.
+   */
+  value: string;
+  /** Short noun that follows the value (e.g. "Critical alerts"). */
   label: string;
-  /** Inventory / readiness count — not live severity */
-  value: number;
-  href: string;
-  description: string;
+  /** Secondary helper copy below the metric (e.g. "Active firing alerts"). */
+  subtext: string;
+  /** Severity tint for icon and top-border accent. */
+  variant: OperationalKpiVariant;
+  /**
+   * Variant to use when the numeric value parses to 0 (e.g. show success
+   * icon when there are zero critical alerts). Only evaluated for integer values.
+   */
+  zeroVariant?: OperationalKpiVariant;
+  /** In-app path to navigate to on click. */
+  href?: string;
+  /** DOM element ID to smooth-scroll to on click (used instead of href). */
+  scrollTargetId?: string;
 }

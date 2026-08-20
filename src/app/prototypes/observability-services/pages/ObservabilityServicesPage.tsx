@@ -7,8 +7,8 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { CAPABILITY_CARDS, STACK_SUMMARY_STATS } from '../data';
-import { StackSummaryRibbon } from '../components/StackSummaryRibbon';
+import { CAPABILITY_CARDS, OPERATIONAL_KPI_STATS } from '../data';
+import { OperationalKPIRibbon } from '../components/OperationalKPIRibbon';
 import { CapabilityLayout } from '../components/CapabilityLayout';
 import { ProjectSwitcher } from '../components/ProjectSwitcher';
 import '../observability-services.css';
@@ -61,7 +61,7 @@ export const ObservabilityServicesPage: React.FC = () => {
       >
         <Stack hasGutter>
           <StackItem>
-            <StackSummaryRibbon stats={STACK_SUMMARY_STATS} />
+            <OperationalKPIRibbon stats={OPERATIONAL_KPI_STATS} />
           </StackItem>
 
           <StackItem>

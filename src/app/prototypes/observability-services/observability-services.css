@@ -19,30 +19,60 @@
   margin: 0;
 }
 
-/* Card appearance (background, border, radius, hover/focus states) intentionally left
-   to PF6's default Card styling per https://www.patternfly.org/components/card. Since
-   the summary cards are plain (non-clickable) cards, their border already matches the
-   capability cards below without any override. */
+/* ─── Operational KPI ribbon ──────────────────────────────────────────────── */
 
-/* The KPI value is a `Button variant="link" isInline` (only the number is clickable,
-   not the whole card). Styled blue at rest to match the standard OCP console
-   status/inventory-card number pattern (e.g. the "Virtual machine statuses" card),
-   with a darker brand blue + underline on hover/focus for affordance. `!important` is
-   used because PF6's own `.pf-m-link.pf-m-inline` rule shares the same selector
-   specificity, so declaration order alone can't be relied on to win the cascade. */
-.ols-obs-services-stat-card__value {
-  font-size: var(--pf-t--global--font--size--3xl) !important;
-  font-weight: var(--pf-t--global--font--weight--heading--bold) !important;
-  line-height: var(--pf-t--global--font--line-height--heading) !important;
-  margin: var(--pf-t--global--spacer--sm) 0 0 0;
-  color: var(--pf-t--global--text--color--brand--default) !important;
-  text-decoration: none !important;
+/*
+ * Each KPI card carries a 3px top-border accent whose colour is driven by the
+ * card's variant class. PF6 Card has a uniform 1px border on all sides; we
+ * override only the top here so the coloured accent sits flush above the card
+ * content. `!important` is required because the PF6 Card border is set via a
+ * CSS custom property on `.pf-v6-c-card` that otherwise wins the specificity
+ * race at the same selector depth.
+ */
+.ols-obs-kpi-card--danger {
+  border-top: 3px solid var(--pf-t--global--color--status--danger--default) !important;
 }
 
-.ols-obs-services-stat-card__value:hover,
-.ols-obs-services-stat-card__value:focus {
-  color: var(--pf-t--global--text--color--brand--hover) !important;
-  text-decoration: underline !important;
+.ols-obs-kpi-card--warning {
+  border-top: 3px solid var(--pf-t--global--color--status--warning--default) !important;
+}
+
+.ols-obs-kpi-card--success {
+  border-top: 3px solid var(--pf-t--global--color--status--success--default) !important;
+}
+
+.ols-obs-kpi-card--neutral {
+  border-top: 3px solid var(--pf-t--global--border--color--default) !important;
+}
+
+/* Category header row: label left, icon right */
+.ols-obs-kpi-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--pf-t--global--spacer--sm);
+}
+
+.ols-obs-kpi-card__category {
+  font-size: var(--pf-t--global--font--size--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  margin: 0;
+}
+
+/* Metric value — large heading; the trailing label uses regular weight */
+.ols-obs-kpi-card__value {
+  line-height: var(--pf-t--global--font--line-height--heading);
+  margin-bottom: var(--pf-t--global--spacer--xs);
+}
+
+.ols-obs-kpi-card__value-label {
+  font-weight: var(--pf-t--global--font--weight--body--default);
+  font-size: var(--pf-t--global--font--size--xl);
+}
+
+.ols-obs-kpi-card__subtext {
+  color: var(--pf-t--global--text--color--subtle);
+  display: block;
 }
 
 /* PF6's default HelperTextItem text color ("regular"/near-black) is meant for form
