@@ -98,10 +98,9 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
         <Flex
           justifyContent={{ default: 'justifyContentSpaceBetween' }}
           alignItems={{ default: 'alignItemsFlexStart' }}
-          flexWrap={{ default: 'wrap' }}
           gap={{ default: 'gapSm' }}
         >
-          <FlexItem>
+          <FlexItem style={{ minWidth: 0 }}>
             <CardTitle
               id={`capability-title-${capability.id}`}
               component="h3"
