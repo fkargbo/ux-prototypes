@@ -9,12 +9,13 @@ import type { CapabilityCardData, OperationalKpiStat } from './types';
 export const OPERATIONAL_KPI_STATS: OperationalKpiStat[] = [
   {
     id: 'alert-posture',
-    category: 'Alert posture',
+    category: 'Alerts',
     value: '27',
     label: 'Critical alerts',
     subtext: 'Active firing alerts',
     variant: 'danger',
     zeroVariant: 'success',
+    valueIconVariant: 'danger',
     href: '/core/observe/alerting',
   },
   {

@@ -1,6 +1,25 @@
 import React from 'react';
 import { Card, CardBody, Grid, GridItem, Title } from '@patternfly/react-core';
-import type { OperationalKpiStat } from '../types';
+import {
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  ExclamationTriangleIcon,
+} from '@patternfly/react-icons';
+import type { OperationalKpiStat, OperationalKpiVariant } from '../types';
+
+const VALUE_ICON_MAP: Record<OperationalKpiVariant, React.ComponentType<{ color?: string; 'aria-hidden'?: boolean; style?: React.CSSProperties }> | null> = {
+  danger: ExclamationCircleIcon,
+  warning: ExclamationTriangleIcon,
+  success: CheckCircleIcon,
+  neutral: null,
+};
+
+const VALUE_ICON_COLOR_MAP: Record<OperationalKpiVariant, string> = {
+  danger: 'var(--pf-t--global--icon--color--status--danger--default)',
+  warning: 'var(--pf-t--global--icon--color--status--warning--default)',
+  success: 'var(--pf-t--global--icon--color--status--success--default)',
+  neutral: 'var(--pf-t--global--icon--color--subtle)',
+};
 
 export interface OperationalKPIRibbonProps {
   stats: OperationalKpiStat[];
@@ -26,6 +45,16 @@ export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({ stat
                 {stat.category}
               </Title>
               <span className="ols-obs-kpi-card__value">
+                {stat.valueIconVariant ? (() => {
+                  const Icon = VALUE_ICON_MAP[stat.valueIconVariant];
+                  return Icon ? (
+                    <Icon
+                      color={VALUE_ICON_COLOR_MAP[stat.valueIconVariant]}
+                      aria-hidden
+                      style={{ marginRight: 'var(--pf-t--global--spacer--xs)', verticalAlign: 'middle' }}
+                    />
+                  ) : null;
+                })() : null}
                 {stat.value}
               </span>
               {stat.label ? (

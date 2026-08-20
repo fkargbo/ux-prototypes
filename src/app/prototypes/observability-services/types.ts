@@ -76,6 +76,11 @@ export interface OperationalKpiStat {
    * icon when there are zero critical alerts). Only evaluated for integer values.
    */
   zeroVariant?: OperationalKpiVariant;
+  /**
+   * When set, renders a status icon immediately before the metric value using
+   * the matching severity colour (e.g. red ExclamationCircleIcon for 'danger').
+   */
+  valueIconVariant?: OperationalKpiVariant;
   /** In-app path to navigate to on click. */
   href?: string;
   /** DOM element ID to smooth-scroll to on click (used instead of href). */
