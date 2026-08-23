@@ -88,6 +88,16 @@
   margin-bottom: var(--pf-t--global--spacer--md);
 }
 
+/* Installed operators expandable section — remove default left-indent and
+   tighten the gap between the toggle header and the card grid. */
+.ols-obs-services-installed-section.pf-v6-c-expandable-section {
+  --pf-v6-c-expandable-section__content--PaddingLeft: 0;
+}
+
+.ols-obs-services-installed-section .pf-v6-c-expandable-section__content {
+  padding-top: var(--pf-t--global--spacer--md);
+}
+
 /*
  * Adds extra breathing room after the KPI ribbon so it reads as a distinct
  * summary band, clearly separated from the capability card sections below.

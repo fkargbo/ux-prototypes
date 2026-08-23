@@ -1,6 +1,7 @@
 import React from 'react';
 import { Grid, GridItem, Stack, StackItem, Title } from '@patternfly/react-core';
 import { CapabilityCard } from './CapabilityCard';
+import { InstalledOperatorsSection } from './InstalledOperatorsSection';
 import type { CapabilityCardData } from '../types';
 
 export interface CapabilityLayoutProps {
@@ -31,17 +32,9 @@ export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({ capabilities
     <Stack hasGutter>
       {installed.length > 0 ? (
         <StackItem>
-          <section aria-labelledby="ols-obs-installed-heading">
-            <Title
-              headingLevel="h2"
-              size="lg"
-              id="ols-obs-installed-heading"
-              className="ols-obs-services-section-title"
-            >
-              Installed operators and add-ons
-            </Title>
+          <InstalledOperatorsSection capabilities={installed}>
             <SectionCards items={installed} />
-          </section>
+          </InstalledOperatorsSection>
         </StackItem>
       ) : null}
 
