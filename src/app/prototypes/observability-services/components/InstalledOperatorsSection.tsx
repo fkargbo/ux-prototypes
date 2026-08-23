@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ExpandableSection, Flex, FlexItem, Label, Title } from '@patternfly/react-core';
+import { CheckCircleIcon } from '@patternfly/react-icons';
 import type { CapabilityCardData } from '../types';
 
 const STORAGE_KEY = 'ocp_obs_hub_operators_expanded';
@@ -79,8 +80,8 @@ export const InstalledOperatorsSection: React.FC<InstalledOperatorsSectionProps>
             )}
             {counts.fullyEnabled > 0 && (
               <FlexItem>
-                <Label color="green" isCompact>
-                  {counts.fullyEnabled} Fully enabled
+                <Label color="green" isCompact icon={<CheckCircleIcon aria-hidden />}>
+                  {counts.fullyEnabled} Ready
                 </Label>
               </FlexItem>
             )}

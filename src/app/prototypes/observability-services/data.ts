@@ -99,9 +99,9 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     subtitle: 'COO · MonitoringStack',
     status: {
       kind: 'fully-enabled',
-      label: 'Fully enabled',
+      label: 'Ready',
       color: 'green',
-      srText: 'Status: fully enabled',
+      srText: 'Status: ready',
     },
     summary:
       'Core metrics collection and alerting powered by Prometheus and Alertmanager. Available under Observe → Metrics and Observe → Alerting.',
@@ -131,9 +131,9 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     subtitle: 'COO · Perses',
     status: {
       kind: 'fully-enabled',
-      label: 'Fully enabled',
+      label: 'Ready',
       color: 'green',
-      srText: 'Status: fully enabled',
+      srText: 'Status: ready',
     },
     summary:
       'Create and manage customizable Perses dashboards. Available under Observe → Dashboards (Perses).',
@@ -212,9 +212,9 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     runtimeHealth: 'DEGRADED',
     status: {
       kind: 'fully-enabled',
-      label: 'Fully enabled',
+      label: 'Ready',
       color: 'green',
-      srText: 'Status: fully enabled',
+      srText: 'Status: ready',
     },
     summary:
       'Explore distributed traces and spans for microservice request analysis and latency bottleneck detection. Available under Observe → Traces.',

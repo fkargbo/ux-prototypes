@@ -14,7 +14,7 @@ export interface OperationalHealthLabelProps {
 /**
  * Micro runtime-health callout that renders ONLY when backend pods/CSVs are
  * failing (runtimeHealth === 'DEGRADED'). Operates on a separate axis from
- * the top-right macro enablement badge ('Fully enabled' / 'Partial setup').
+ * the top-right macro enablement badge ('Ready' / 'Partial setup').
  *
  * State matrix:
  *   HEALTHY  → null           (nothing rendered)
