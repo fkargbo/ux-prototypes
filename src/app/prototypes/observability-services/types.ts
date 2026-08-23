@@ -24,6 +24,12 @@ export interface CapabilityDependency {
   label: string;
   state: DependencyState;
   detail?: string;
+  /** Optional inline action rendered below the dependency label. */
+  action?: {
+    label: string;
+    href?: string;
+    isExternal?: boolean;
+  };
 }
 
 export type CapabilityActionVariant = 'primary' | 'secondary' | 'tertiary' | 'link' | 'control';

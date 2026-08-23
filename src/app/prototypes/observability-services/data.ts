@@ -226,7 +226,16 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
         state: 'ready',
       },
       { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack', state: 'ready' },
-      { id: 'otel-collector', label: 'OTEL Operator + OTELCollector', state: 'degraded', detail: 'OTELCollector not ready' },
+      {
+        id: 'otel-collector',
+        label: 'OTEL Operator + OTELCollector',
+        state: 'degraded',
+        detail: 'OTELCollector not ready',
+        action: {
+          label: 'View OTELCollector',
+          href: '/k8s/all-namespaces/opentelemetry.io~v1alpha1~OpenTelemetryCollector',
+        },
+      },
     ],
     actions: [
       {

@@ -159,6 +159,23 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
                       ({dep.detail})
                     </Content>
                   ) : null}
+                  {dep.action ? (
+                    <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          if (dep.action!.isExternal || dep.action!.href?.startsWith('http')) {
+                            window.open(dep.action!.href, '_blank', 'noopener,noreferrer');
+                          } else if (dep.action!.href) {
+                            navigate(dep.action!.href);
+                          }
+                        }}
+                      >
+                        {dep.action.label}
+                      </Button>
+                    </div>
+                  ) : null}
                 </ListItem>
               ))}
             </List>
