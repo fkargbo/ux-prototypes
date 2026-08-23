@@ -217,7 +217,7 @@ export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({ stat
         id="ols-obs-kpi-heading"
         className="ols-obs-services-section-title"
       >
-        Observability stack summary
+        Stack summary
       </Title>
       {/* 4 equal columns on lg+, 2×2 on md, single stack on sm */}
       <Grid hasGutter>
