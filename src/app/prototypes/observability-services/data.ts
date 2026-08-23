@@ -211,10 +211,10 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     subtitle: 'COO · Tempo · OpenTelemetry',
     runtimeHealth: 'DEGRADED',
     status: {
-      kind: 'degraded',
-      label: 'Degraded',
-      color: 'red',
-      srText: 'Status: degraded — OTELCollector not ready',
+      kind: 'fully-enabled',
+      label: 'Fully enabled',
+      color: 'green',
+      srText: 'Status: fully enabled',
     },
     summary:
       'Explore distributed traces and spans for microservice request analysis and latency bottleneck detection. Available under Observe → Traces.',

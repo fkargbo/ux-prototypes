@@ -1,6 +1,5 @@
 import React from 'react';
 import { Label } from '@patternfly/react-core';
-import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import type { RuntimeHealthState } from '../types';
 
 export type { RuntimeHealthState };
@@ -35,7 +34,6 @@ export const OperationalHealthLabel: React.FC<OperationalHealthLabelProps> = ({
   return (
     <Label
       color="red"
-      icon={<ExclamationCircleIcon aria-hidden />}
       isCompact
       aria-label="Operational health status: Degraded"
       className={className}
