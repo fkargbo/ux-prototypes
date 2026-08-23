@@ -144,7 +144,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ stat, navigate }) => {
     if (stat.popoverItems && stat.popoverItems.length > 0) {
       return (
         <Popover
-          position="bottom"
+          position="auto"
           enableFlip
           minWidth="320px"
           headerContent="Capabilities needing setup"
