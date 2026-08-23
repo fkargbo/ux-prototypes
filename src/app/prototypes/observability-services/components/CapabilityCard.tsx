@@ -19,6 +19,7 @@ import {
 } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
+  ExclamationCircleIcon,
   ExclamationTriangleIcon,
   ExternalLinkAltIcon,
   MinusCircleIcon,
