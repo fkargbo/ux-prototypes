@@ -16,7 +16,8 @@ export const OPERATIONAL_KPI_STATS: OperationalKpiStat[] = [
     variant: 'danger',
     zeroVariant: 'success',
     valueIconVariant: 'danger',
-    href: '/core/observe/alerting',
+    valueIsLink: true,
+    // href: '/core/observe/alerting?severity=critical' — wire up once Alerting page is ready
   },
   {
     id: 'operator-enablement',

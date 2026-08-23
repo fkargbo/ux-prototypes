@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardBody, Content, Grid, GridItem, Title } from '@patternfly/react-core';
+import { Button, Card, CardBody, Content, Grid, GridItem, Title } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -60,7 +60,17 @@ export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({ stat
                       />
                     ) : null;
                   })() : null}
-                  {stat.value}
+                  {stat.valueIsLink ? (
+                    <Button
+                      variant="link"
+                      isInline
+                      component="span"
+                      style={{ fontSize: 'inherit', fontWeight: 'inherit', lineHeight: 'inherit' }}
+                      aria-label={`${stat.value} ${stat.label} — link coming soon`}
+                    >
+                      {stat.value}
+                    </Button>
+                  ) : stat.value}
                 </span>
               </Title>
               {stat.label ? (

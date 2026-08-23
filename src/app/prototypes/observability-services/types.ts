@@ -82,6 +82,11 @@ export interface OperationalKpiStat {
    * the matching severity colour (e.g. red ExclamationCircleIcon for 'danger').
    */
   valueIconVariant?: OperationalKpiVariant;
+  /**
+   * Renders the metric value as a link-styled element (blue, underline on hover)
+   * without wiring up navigation. Use when the target page isn't ready yet.
+   */
+  valueIsLink?: boolean;
   /** In-app path to navigate to on click. */
   href?: string;
   /** DOM element ID to smooth-scroll to on click (used instead of href). */
