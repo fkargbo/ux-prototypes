@@ -311,8 +311,6 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
         label: 'Install',
         variant: 'secondary',
         href: '/k8s/ns/openshift-netobserv-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
-        helperText:
-          'You will be redirected to OperatorHub. After installation, return here and complete Step 2 to finish configuration.',
       },
       {
         id: 'network-learn-more',
