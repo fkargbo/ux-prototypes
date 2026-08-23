@@ -66,6 +66,11 @@
   margin: 0;
 }
 
+.ols-obs-services-capability-card__dep-meta {
+  line-height: var(--pf-t--global--font--line-height--body);
+  margin-top: 0;
+}
+
 .ols-obs-services-capability-card__dep-detail {
   color: var(--pf-t--global--text--color--subtle);
 }

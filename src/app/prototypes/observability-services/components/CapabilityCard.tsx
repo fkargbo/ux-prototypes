@@ -153,27 +153,31 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
                 <ListItem key={dep.id} icon={<DependencyIcon state={dep.state} />}>
                   <span className="pf-v6-u-screen-reader">{dependencyStateLabel(dep.state)}: </span>
                   {dep.label}
-                  {dep.detail ? (
-                    <Content component="small" className="ols-obs-services-capability-card__dep-detail">
-                      {' '}
-                      ({dep.detail})
-                    </Content>
-                  ) : null}
-                  {dep.action ? (
-                    <div style={{ marginTop: '2px' }}>
-                      <Button
-                        variant="link"
-                        isInline
-                        onClick={() => {
-                          if (dep.action!.isExternal || dep.action!.href?.startsWith('http')) {
-                            window.open(dep.action!.href, '_blank', 'noopener,noreferrer');
-                          } else if (dep.action!.href) {
-                            navigate(dep.action!.href);
-                          }
-                        }}
-                      >
-                        {dep.action.label}
-                      </Button>
+                  {dep.detail || dep.action ? (
+                    <div className="ols-obs-services-capability-card__dep-meta">
+                      {dep.detail ? (
+                        <small className="ols-obs-services-capability-card__dep-detail">
+                          {' '}({dep.detail})
+                        </small>
+                      ) : null}
+                      {dep.action ? (
+                        <>
+                          <br />
+                          <Button
+                            variant="link"
+                            isInline
+                            onClick={() => {
+                              if (dep.action!.isExternal || dep.action!.href?.startsWith('http')) {
+                                window.open(dep.action!.href, '_blank', 'noopener,noreferrer');
+                              } else if (dep.action!.href) {
+                                navigate(dep.action!.href);
+                              }
+                            }}
+                          >
+                            {dep.action.label}
+                          </Button>
+                        </>
+                      ) : null}
                     </div>
                   ) : null}
                 </ListItem>
