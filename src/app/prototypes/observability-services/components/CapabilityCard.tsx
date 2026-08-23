@@ -162,8 +162,8 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
                   {dep.action ? (
                     <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
                       <Button
-                        variant="secondary"
-                        size="sm"
+                        variant="link"
+                        isInline
                         onClick={() => {
                           if (dep.action!.isExternal || dep.action!.href?.startsWith('http')) {
                             window.open(dep.action!.href, '_blank', 'noopener,noreferrer');
