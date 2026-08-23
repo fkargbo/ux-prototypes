@@ -46,53 +46,45 @@ const VALUE_ICON_COLOR_MAP: Record<OperationalKpiVariant, string> = {
 
 // ─── Popover body ─────────────────────────────────────────────────────────────
 
-const SetupPopoverBody: React.FC<{
-  items: KpiPopoverItem[];
-  onNavigate: (href: string, isExternal?: boolean) => void;
-}> = ({ items, onNavigate }) => (
-  <Flex direction={{ default: 'column' }} gap={{ default: 'gapMd' }}>
-    <FlexItem>
-      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-        These capabilities require operator installation or CR configuration.
-      </Content>
-    </FlexItem>
-    <FlexItem>
-      <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
-        {items.map((item, idx) => (
-          <React.Fragment key={item.id}>
-            {idx > 0 ? <Divider /> : null}
-            <Flex
-              justifyContent={{ default: 'justifyContentSpaceBetween' }}
-              alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapMd' }}
-            >
-              <FlexItem>
-                <Content component="p" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)', margin: 0 }}>
-                  {item.title}
-                </Content>
-                <Label
-                  isCompact
-                  color="grey"
-                  style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}
-                >
-                  {item.state === 'partial-setup' ? 'Partial setup' : 'Not installed'}
-                </Label>
-              </FlexItem>
-              <FlexItem style={{ flexShrink: 0 }}>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  isDisabled={!item.href}
-                  onClick={item.href ? () => onNavigate(item.href!, item.isExternal) : undefined}
-                >
-                  {item.actionLabel}
-                </Button>
-              </FlexItem>
-            </Flex>
-          </React.Fragment>
-        ))}
-      </Flex>
-    </FlexItem>
+const SetupPopoverBody: React.FC<{ items: KpiPopoverItem[] }> = ({ items }) => (
+  <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+    {/* Column headers */}
+    <Flex
+      justifyContent={{ default: 'justifyContentSpaceBetween' }}
+      gap={{ default: 'gapMd' }}
+    >
+      <FlexItem>
+        <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
+          Operator
+        </Content>
+      </FlexItem>
+      <FlexItem style={{ flexShrink: 0 }}>
+        <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
+          Setup status
+        </Content>
+      </FlexItem>
+    </Flex>
+    <Divider />
+    {/* Data rows */}
+    {items.map((item, idx) => (
+      <React.Fragment key={item.id}>
+        {idx > 0 ? <Divider /> : null}
+        <Flex
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapMd' }}
+        >
+          <FlexItem>
+            <Content component="small">{item.title}</Content>
+          </FlexItem>
+          <FlexItem style={{ flexShrink: 0 }}>
+            <Label isCompact color="grey">
+              {item.state === 'partial-setup' ? 'Partial setup' : 'Not installed'}
+            </Label>
+          </FlexItem>
+        </Flex>
+      </React.Fragment>
+    ))}
   </Flex>
 );
 
@@ -122,22 +114,6 @@ interface KpiCardProps {
 }
 
 const KpiCard: React.FC<KpiCardProps> = ({ stat, navigate }) => {
-  const handleNavigate = (href: string, isExternal?: boolean) => {
-    if (isExternal || href.startsWith('http')) {
-      window.open(href, '_blank', 'noopener,noreferrer');
-    } else {
-      navigate(href);
-    }
-  };
-
-  const handleScrollToSection = () => {
-    if (stat.scrollTargetId) {
-      document
-        .getElementById(stat.scrollTargetId)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   // Render the numeric value — three variants:
   // 1. popoverItems present → Popover trigger button
   // 2. valueIsLink → plain link-styled button (no navigation yet)
@@ -165,16 +141,9 @@ const KpiCard: React.FC<KpiCardProps> = ({ stat, navigate }) => {
         <Popover
           position="bottom"
           enableFlip
-          minWidth="340px"
-          headerContent={`Capabilities needing setup (${stat.value})`}
-          bodyContent={
-            <SetupPopoverBody items={stat.popoverItems} onNavigate={handleNavigate} />
-          }
-          footerContent={
-            <Button variant="link" isInline onClick={handleScrollToSection}>
-              View all setup cards
-            </Button>
-          }
+          minWidth="320px"
+          headerContent="Capabilities needing setup"
+          bodyContent={<SetupPopoverBody items={stat.popoverItems} />}
         >
           <Button
             variant="link"
