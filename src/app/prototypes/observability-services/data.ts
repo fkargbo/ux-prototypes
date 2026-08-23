@@ -1,4 +1,4 @@
-import type { CapabilityCardData, OperationalKpiStat } from './types';
+import type { CapabilityCardData, KpiPopoverItem, OperationalKpiStat } from './types';
 
 /**
  * 4-card operational KPI ribbon for the Observability services page.
@@ -36,6 +36,36 @@ export const OPERATIONAL_KPI_STATS: OperationalKpiStat[] = [
     variant: 'warning',
     valueIconVariant: 'warning',
     scrollTargetId: 'ols-obs-recommended-heading',
+    popoverItems: [
+      {
+        id: 'pop-logs',
+        title: 'Logs',
+        state: 'partial-setup',
+        actionLabel: 'Enable',
+        href: '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
+      },
+      {
+        id: 'pop-signal-correlation',
+        title: 'Signal Correlation',
+        state: 'not-installed',
+        actionLabel: 'Enable',
+        href: '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
+      },
+      {
+        id: 'pop-incident-detection',
+        title: 'Incident detection',
+        state: 'not-installed',
+        actionLabel: 'Enable',
+        href: '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
+      },
+      {
+        id: 'pop-network-observability',
+        title: 'Network observability',
+        state: 'not-installed',
+        actionLabel: 'Install',
+        href: '/catalog/ns/default?keyword=network+observability',
+      },
+    ] as KpiPopoverItem[],
   },
   {
     id: 'operator-health',

@@ -57,6 +57,23 @@ export interface CapabilityCardData {
 /** Visual severity tint applied to an operational KPI card. */
 export type OperationalKpiVariant = 'danger' | 'success' | 'warning' | 'neutral';
 
+/** State of a single capability item shown inside the Setup action popover. */
+export type KpiPopoverItemState = 'partial-setup' | 'not-installed';
+
+export interface KpiPopoverItem {
+  id: string;
+  /** Card title shown in the popover row (e.g. "Logs"). */
+  title: string;
+  /** Drives the state label and helper copy in the popover row. */
+  state: KpiPopoverItemState;
+  /** Label on the action button ("Enable" or "Install"). */
+  actionLabel: string;
+  /** Target URL for the action button. Omit when the page isn't ready. */
+  href?: string;
+  /** When true the href opens in a new tab. */
+  isExternal?: boolean;
+}
+
 export interface OperationalKpiStat {
   id: string;
   /** Small category label rendered above the metric (e.g. "Alert posture"). */
@@ -87,6 +104,11 @@ export interface OperationalKpiStat {
    * without wiring up navigation. Use when the target page isn't ready yet.
    */
   valueIsLink?: boolean;
+  /**
+   * When provided, clicking the value opens a Popover listing these items.
+   * Takes precedence over `valueIsLink` for rendering the trigger.
+   */
+  popoverItems?: KpiPopoverItem[];
   /** In-app path to navigate to on click. */
   href?: string;
   /** DOM element ID to smooth-scroll to on click (used instead of href). */
