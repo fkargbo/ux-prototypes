@@ -80,18 +80,18 @@ export interface CapabilityCardData {
 /** Visual severity tint applied to an operational KPI card. */
 export type OperationalKpiVariant = 'danger' | 'success' | 'warning' | 'neutral';
 
-/** State of a single capability item shown inside the Setup action popover. */
-export type KpiPopoverItemState = 'partial-setup' | 'not-installed';
+/** State of a single capability item shown inside the Capabilities ready popover. */
+export type KpiPopoverItemState = 'ready' | 'partial-setup' | 'not-installed';
 
 export interface KpiPopoverItem {
   id: string;
-  /** Card title shown in the popover row (e.g. "Logs"). */
+  /** Capability name shown in the popover row (e.g. "Logs"). */
   title: string;
-  /** Drives the state label and helper copy in the popover row. */
+  /** Drives the status label colour in the popover row. */
   state: KpiPopoverItemState;
-  /** Label on the action button ("Enable" or "Install"). */
-  actionLabel: string;
-  /** Target URL for the action button. Omit when the page isn't ready. */
+  /** Optional action label (retained for forward-compatibility). */
+  actionLabel?: string;
+  /** Target URL for an optional action. */
   href?: string;
   /** When true the href opens in a new tab. */
   isExternal?: boolean;

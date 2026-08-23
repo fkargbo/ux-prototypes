@@ -19,6 +19,18 @@ import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
 } from '@patternfly/react-icons';
+
+const stateLabel = (state: KpiPopoverItem['state']): { text: string; color: 'green' | 'grey'; icon?: React.ReactNode } => {
+  switch (state) {
+    case 'ready':
+      return { text: 'Ready', color: 'green', icon: <CheckCircleIcon aria-hidden /> };
+    case 'partial-setup':
+      return { text: 'Partial setup', color: 'grey' };
+    case 'not-installed':
+    default:
+      return { text: 'Not installed', color: 'grey' };
+  }
+};
 import type {
   KpiPopoverItem,
   OperationalKpiStat,
@@ -46,50 +58,45 @@ const VALUE_ICON_COLOR_MAP: Record<OperationalKpiVariant, string> = {
 
 // ─── Popover body ─────────────────────────────────────────────────────────────
 
-const SetupPopoverBody: React.FC<{ items: KpiPopoverItem[] }> = ({ items }) => (
+const CapabilityStatusPopoverBody: React.FC<{ items: KpiPopoverItem[] }> = ({ items }) => (
   <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
-    <FlexItem>
-      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-        These capabilities require operator installation or CR configuration.
-      </Content>
-    </FlexItem>
     {/* Column headers */}
-    <Flex
-      justifyContent={{ default: 'justifyContentSpaceBetween' }}
-      gap={{ default: 'gapMd' }}
-    >
+    <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }} gap={{ default: 'gapMd' }}>
       <FlexItem>
         <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-          Operator
+          Capability
         </Content>
       </FlexItem>
       <FlexItem style={{ flexShrink: 0 }}>
         <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
-          Setup status
+          Status
         </Content>
       </FlexItem>
     </Flex>
     <Divider />
     {/* Data rows */}
-    {items.map((item, idx) => (
-      <React.Fragment key={item.id}>
-        {idx > 0 ? <Divider /> : null}
-        <Flex
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapMd' }}
-        >
-          <FlexItem>
-            <Content component="p" style={{ margin: 0 }}>{item.title}</Content>
-          </FlexItem>
-          <FlexItem style={{ flexShrink: 0 }}>
-            <Label isCompact color="grey">
-              {item.state === 'partial-setup' ? 'Partial setup' : 'Not installed'}
-            </Label>
-          </FlexItem>
-        </Flex>
-      </React.Fragment>
-    ))}
+    {items.map((item, idx) => {
+      const label = stateLabel(item.state);
+      return (
+        <React.Fragment key={item.id}>
+          {idx > 0 ? <Divider /> : null}
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+            gap={{ default: 'gapMd' }}
+          >
+            <FlexItem>
+              <Content component="p" style={{ margin: 0 }}>{item.title}</Content>
+            </FlexItem>
+            <FlexItem style={{ flexShrink: 0 }}>
+              <Label isCompact color={label.color} icon={label.icon}>
+                {label.text}
+              </Label>
+            </FlexItem>
+          </Flex>
+        </React.Fragment>
+      );
+    })}
   </Flex>
 );
 
@@ -148,8 +155,8 @@ const KpiCard: React.FC<KpiCardProps> = ({ stat, navigate }) => {
           enableFlip
           flipBehavior={['top', 'bottom']}
           minWidth="320px"
-          headerContent="Capabilities needing setup"
-          bodyContent={<SetupPopoverBody items={stat.popoverItems} />}
+      headerContent="Capability status"
+              bodyContent={<CapabilityStatusPopoverBody items={stat.popoverItems} />}
         >
           <Button
             variant="link"
@@ -219,10 +226,10 @@ export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({ stat
       >
         Stack summary
       </Title>
-      {/* 4 equal columns on lg+, 2×2 on md, single stack on sm */}
+      {/* 3 equal columns on lg+, stack on md/sm */}
       <Grid hasGutter>
         {stats.map((stat) => (
-          <GridItem key={stat.id} span={12} md={6} lg={3}>
+          <GridItem key={stat.id} span={12} md={6} lg={4}>
             <KpiCard stat={stat} navigate={navigate} />
           </GridItem>
         ))}
