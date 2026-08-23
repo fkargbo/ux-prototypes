@@ -1,3 +1,19 @@
+/**
+ * Derived operational state used by <OperationalHealthLabel /> to summarise
+ * the readiness of a capability's dependencies at a glance.
+ *
+ * Maps from CapabilityStatusKind:
+ *   fully-enabled        → FULLY_ENABLED
+ *   configuration-required → PARTIAL_SETUP
+ *   degraded             → DEGRADED
+ *   available-addon      → NOT_INSTALLED  (label returns null)
+ */
+export type CapabilityOperationalState =
+  | 'FULLY_ENABLED'
+  | 'PARTIAL_SETUP'
+  | 'NOT_INSTALLED'
+  | 'DEGRADED';
+
 /** Capability readiness — not live health / telemetry severity. */
 export type CapabilityStatusKind =
   | 'fully-enabled'

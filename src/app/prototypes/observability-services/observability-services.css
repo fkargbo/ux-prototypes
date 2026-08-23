@@ -66,6 +66,10 @@
   margin: 0;
 }
 
+.ols-obs-services-capability-card__ops-health-label {
+  margin-bottom: var(--pf-t--global--spacer--sm);
+}
+
 .ols-obs-services-capability-card__dep-meta {
   line-height: var(--pf-t--global--font--line-height--body);
   margin-top: 0;

@@ -24,7 +24,24 @@ import {
   ExternalLinkAltIcon,
   MinusCircleIcon,
 } from '@patternfly/react-icons';
-import type { CapabilityAction, CapabilityCardData, CapabilityDependency } from '../types';
+import type {
+  CapabilityAction,
+  CapabilityCardData,
+  CapabilityDependency,
+  CapabilityOperationalState,
+  CapabilityStatusKind,
+} from '../types';
+import { OperationalHealthLabel } from './OperationalHealthLabel';
+
+const toOperationalState = (kind: CapabilityStatusKind): CapabilityOperationalState => {
+  switch (kind) {
+    case 'fully-enabled':       return 'FULLY_ENABLED';
+    case 'configuration-required': return 'PARTIAL_SETUP';
+    case 'degraded':            return 'DEGRADED';
+    case 'available-addon':
+    default:                    return 'NOT_INSTALLED';
+  }
+};
 
 export interface CapabilityCardProps {
   capability: CapabilityCardData;
@@ -151,6 +168,10 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
             <Title headingLevel="h4" size="md" className="ols-obs-services-capability-card__deps-heading">
               Dependencies
             </Title>
+            <OperationalHealthLabel
+              state={toOperationalState(capability.status.kind)}
+              className="ols-obs-services-capability-card__ops-health-label"
+            />
             <List isPlain className="ols-obs-services-capability-card__deps">
               {capability.dependencies.map((dep) => (
                 <ListItem key={dep.id} icon={<DependencyIcon state={dep.state} />}>
