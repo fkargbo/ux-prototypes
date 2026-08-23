@@ -160,7 +160,7 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
                     </Content>
                   ) : null}
                   {dep.action ? (
-                    <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
+                    <div>
                       <Button
                         variant="link"
                         isInline
