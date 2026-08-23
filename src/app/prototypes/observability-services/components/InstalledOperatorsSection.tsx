@@ -15,16 +15,17 @@ interface StatusCounts {
   degraded: number;
 }
 
+/**
+ * Counts are dual-axis and independent — a card can appear in both
+ * fullyEnabled (macro badge) and degraded (runtime health) simultaneously,
+ * matching the state matrix where FULLY_ENABLED + DEGRADED coexist.
+ */
 const computeCounts = (capabilities: CapabilityCardData[]): StatusCounts =>
   capabilities.reduce<StatusCounts>(
     (acc, card) => {
-      if (card.runtimeHealth === 'DEGRADED') {
-        acc.degraded++;
-      } else if (card.status.kind === 'fully-enabled') {
-        acc.fullyEnabled++;
-      } else if (card.status.kind === 'configuration-required') {
-        acc.partialSetup++;
-      }
+      if (card.status.kind === 'fully-enabled') acc.fullyEnabled++;
+      if (card.status.kind === 'configuration-required') acc.partialSetup++;
+      if (card.runtimeHealth === 'DEGRADED') acc.degraded++;
       return acc;
     },
     { fullyEnabled: 0, partialSetup: 0, degraded: 0 },
