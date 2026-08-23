@@ -59,12 +59,12 @@ const SetupPopoverBody: React.FC<{ items: KpiPopoverItem[] }> = ({ items }) => (
       gap={{ default: 'gapMd' }}
     >
       <FlexItem>
-        <Content component="p" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)', margin: 0 }}>
+        <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
           Operator
         </Content>
       </FlexItem>
       <FlexItem style={{ flexShrink: 0 }}>
-        <Content component="p" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)', margin: 0 }}>
+        <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
           Setup status
         </Content>
       </FlexItem>
