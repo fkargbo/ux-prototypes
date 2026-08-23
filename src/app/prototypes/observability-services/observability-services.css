@@ -88,13 +88,10 @@
   margin-bottom: var(--pf-t--global--spacer--md);
 }
 
-/* Installed operators expandable section — remove default left-indent and
-   tighten the gap between the toggle header and the card grid. */
-.ols-obs-services-installed-section.pf-v6-c-expandable-section {
-  --pf-v6-c-expandable-section__content--PaddingLeft: 0;
-}
-
+/* Installed operators expandable section — zero out the default left indent
+   so the card grid stays flush with the rest of the page layout. */
 .ols-obs-services-installed-section .pf-v6-c-expandable-section__content {
+  padding-inline-start: 0;
   padding-top: var(--pf-t--global--spacer--md);
 }
 

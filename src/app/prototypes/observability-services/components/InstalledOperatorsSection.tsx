@@ -98,7 +98,6 @@ export const InstalledOperatorsSection: React.FC<InstalledOperatorsSectionProps>
   return (
     <section aria-labelledby="ols-obs-installed-heading">
       <ExpandableSection
-        displaySize="lg"
         isExpanded={isExpanded}
         onToggle={onToggle}
         toggleContent={toggleContent}
