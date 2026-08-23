@@ -1,4 +1,9 @@
-import type { CapabilityCardData, KpiPopoverItem, OperationalKpiStat } from './types';
+import type {
+  CapabilitiesReadyStat,
+  CapabilityCardData,
+  KpiPopoverItem,
+  OperationalKpiStat,
+} from './types';
 
 /**
  * 4-card operational KPI ribbon for the Observability services page.
@@ -20,54 +25,6 @@ export const OPERATIONAL_KPI_STATS: OperationalKpiStat[] = [
     // href: '/core/observe/alerting?severity=critical' — wire up once Alerting page is ready
   },
   {
-    id: 'operator-enablement',
-    category: 'Operator enablement',
-    value: '3/7',
-    label: 'Enabled',
-    subtext: '4 remaining',
-    variant: 'warning',
-  },
-  {
-    id: 'setup-action',
-    category: 'Setup action',
-    value: '4',
-    label: 'Needs setup',
-    subtext: 'Install or finish config',
-    variant: 'warning',
-    valueIconVariant: 'warning',
-    scrollTargetId: 'ols-obs-recommended-heading',
-    popoverItems: [
-      {
-        id: 'pop-logs',
-        title: 'Logs',
-        state: 'partial-setup',
-        actionLabel: 'Enable',
-        href: '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
-      },
-      {
-        id: 'pop-signal-correlation',
-        title: 'Signal Correlation',
-        state: 'not-installed',
-        actionLabel: 'Enable',
-        href: '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
-      },
-      {
-        id: 'pop-incident-detection',
-        title: 'Incident detection',
-        state: 'not-installed',
-        actionLabel: 'Enable',
-        href: '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
-      },
-      {
-        id: 'pop-network-observability',
-        title: 'Network observability',
-        state: 'not-installed',
-        actionLabel: 'Install',
-        href: '/catalog/ns/default?keyword=network+observability',
-      },
-    ] as KpiPopoverItem[],
-  },
-  {
     id: 'operator-health',
     category: 'Operator health',
     value: '1',
@@ -78,6 +35,45 @@ export const OPERATIONAL_KPI_STATS: OperationalKpiStat[] = [
     valueIconVariant: 'danger',
   },
 ];
+
+/**
+ * Consolidated "Capabilities ready" KPI card data.
+ * readyCount/totalCount reflects installed + fully-ready vs all tracked capabilities.
+ * pendingItems drives the popover listing capabilities needing setup.
+ */
+export const CAPABILITIES_READY_STAT: CapabilitiesReadyStat = {
+  readyCount: 3,
+  totalCount: 7,
+  pendingItems: [
+    {
+      id: 'pending-logs',
+      title: 'Logs',
+      state: 'PARTIAL_SETUP',
+      targetUrl:
+        '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
+    },
+    {
+      id: 'pending-signal-correlation',
+      title: 'Signal Correlation',
+      state: 'NOT_INSTALLED',
+      targetUrl:
+        '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
+    },
+    {
+      id: 'pending-incident-detection',
+      title: 'Incident detection',
+      state: 'NOT_INSTALLED',
+      targetUrl:
+        '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
+    },
+    {
+      id: 'pending-network-observability',
+      title: 'Network observability',
+      state: 'NOT_INSTALLED',
+      targetUrl: '/catalog/ns/default?keyword=network+observability',
+    },
+  ],
+};
 
 /**
  * Capability cards — one card per COO-managed capability.

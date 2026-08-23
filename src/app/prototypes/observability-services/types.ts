@@ -80,6 +80,27 @@ export interface CapabilityCardData {
 /** Visual severity tint applied to an operational KPI card. */
 export type OperationalKpiVariant = 'danger' | 'success' | 'warning' | 'neutral';
 
+/** A single capability item shown in the Capabilities ready popover. */
+export type CapabilityPendingState = 'NOT_INSTALLED' | 'PARTIAL_SETUP';
+
+export interface CapabilityPendingItem {
+  id: string;
+  /** Display name shown in the popover row (e.g. "Logs"). */
+  title: string;
+  state: CapabilityPendingState;
+  /** Target URL for the action button in the popover row. */
+  targetUrl: string;
+}
+
+export interface CapabilitiesReadyStat {
+  /** Number of fully-ready capabilities. */
+  readyCount: number;
+  /** Total number of tracked capabilities. */
+  totalCount: number;
+  /** Items that need installation or configuration. */
+  pendingItems: CapabilityPendingItem[];
+}
+
 /** State of a single capability item shown inside the Setup action popover. */
 export type KpiPopoverItemState = 'partial-setup' | 'not-installed';
 

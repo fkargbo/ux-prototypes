@@ -20,10 +20,12 @@ import {
   ExclamationTriangleIcon,
 } from '@patternfly/react-icons';
 import type {
+  CapabilitiesReadyStat,
   KpiPopoverItem,
   OperationalKpiStat,
   OperationalKpiVariant,
 } from '../types';
+import { CardCapabilitiesReady } from './CardCapabilitiesReady';
 
 // ─── Icon helpers ─────────────────────────────────────────────────────────────
 
@@ -203,10 +205,15 @@ const KpiCard: React.FC<KpiCardProps> = ({ stat, navigate }) => {
 // ─── Ribbon ───────────────────────────────────────────────────────────────────
 
 export interface OperationalKPIRibbonProps {
+  /** Flanking KPI stats: expects [alert-posture] at index 0, [operator-health] at index 1. */
   stats: OperationalKpiStat[];
+  capabilitiesReady: CapabilitiesReadyStat;
 }
 
-export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({ stats }) => {
+export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({
+  stats,
+  capabilitiesReady,
+}) => {
   const navigate = useNavigate();
 
   return (
@@ -219,13 +226,25 @@ export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({ stat
       >
         Stack summary
       </Title>
-      {/* 4 equal columns on lg+, 2×2 on md, single stack on sm */}
+      {/* 3 equal columns on lg+, stack on md/sm */}
       <Grid hasGutter>
-        {stats.map((stat) => (
-          <GridItem key={stat.id} span={12} md={6} lg={3}>
-            <KpiCard stat={stat} navigate={navigate} />
-          </GridItem>
-        ))}
+        {/* Alerts */}
+        <GridItem span={12} md={6} lg={4}>
+          <KpiCard stat={stats[0]} navigate={navigate} />
+        </GridItem>
+
+        {/* Capabilities ready (consolidated) */}
+        <GridItem span={12} md={6} lg={4}>
+          <CardCapabilitiesReady
+            {...capabilitiesReady}
+            onNavigate={(url) => navigate(url)}
+          />
+        </GridItem>
+
+        {/* Operator health */}
+        <GridItem span={12} md={6} lg={4}>
+          <KpiCard stat={stats[1]} navigate={navigate} />
+        </GridItem>
       </Grid>
     </section>
   );
