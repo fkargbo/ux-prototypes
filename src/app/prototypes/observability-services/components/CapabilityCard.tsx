@@ -39,6 +39,14 @@ const DependencyIcon: React.FC<{ state: CapabilityDependency['state'] }> = ({ st
       />
     );
   }
+  if (state === 'degraded') {
+    return (
+      <ExclamationCircleIcon
+        color="var(--pf-t--global--icon--color--status--danger--default)"
+        aria-hidden
+      />
+    );
+  }
   if (state === 'attention') {
     return (
       <ExclamationTriangleIcon
@@ -60,6 +68,8 @@ const dependencyStateLabel = (state: CapabilityDependency['state']): string => {
   switch (state) {
     case 'ready':
       return 'Ready';
+    case 'degraded':
+      return 'Degraded';
     case 'attention':
       return 'Needs attention';
     case 'missing':

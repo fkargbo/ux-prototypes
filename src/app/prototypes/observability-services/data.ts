@@ -195,7 +195,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
         state: 'ready',
       },
       { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack', state: 'ready' },
-      { id: 'otel-collector', label: 'OTEL Operator + OTELCollector', state: 'attention', detail: 'OTELCollector not ready' },
+      { id: 'otel-collector', label: 'OTEL Operator + OTELCollector', state: 'degraded', detail: 'OTELCollector not ready' },
     ],
     actions: [
       {

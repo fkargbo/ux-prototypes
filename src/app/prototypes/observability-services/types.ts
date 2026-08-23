@@ -17,7 +17,7 @@ export interface CapabilityStatus {
   srText: string;
 }
 
-export type DependencyState = 'ready' | 'attention' | 'missing';
+export type DependencyState = 'ready' | 'attention' | 'degraded' | 'missing';
 
 export interface CapabilityDependency {
   id: string;
