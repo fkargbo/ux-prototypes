@@ -97,6 +97,9 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
     .filter((a): a is CapabilityAction & { helperText: string } => Boolean(a.helperText))
     .map((a) => ({ id: `${a.id}-helper-text`, text: a.helperText }));
 
+  const primaryActions = capability.actions.filter((a) => a.variant !== 'link');
+  const learnMoreActions = capability.actions.filter((a) => a.variant === 'link');
+
   const hasFooterContent = capability.actions.length > 0 || helperTextEntries.length > 0;
 
   return (
@@ -203,9 +206,9 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
               </FlexItem>
             ))}
             {capability.actions.length > 0 ? (
-              <FlexItem>
-                <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-                  {capability.actions.map((action) => (
+              <FlexItem style={{ width: '100%' }}>
+                <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }}>
+                  {primaryActions.map((action) => (
                     <FlexItem key={action.id}>
                       <Button
                         variant={action.variant}
@@ -218,6 +221,19 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
                         aria-describedby={
                           action.helperText ? `${action.id}-helper-text` : undefined
                         }
+                      >
+                        {action.label}
+                      </Button>
+                    </FlexItem>
+                  ))}
+                  {learnMoreActions.map((action) => (
+                    <FlexItem key={action.id} style={{ marginLeft: 'auto' }}>
+                      <Button
+                        variant="link"
+                        onClick={() => handleAction(action)}
+                        icon={<ExternalLinkAltIcon />}
+                        iconPosition="end"
+                        aria-label={`${action.label} (opens in a new tab)`}
                       >
                         {action.label}
                       </Button>
