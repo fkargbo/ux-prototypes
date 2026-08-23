@@ -32,7 +32,7 @@ export const ObservabilityServicesPage: React.FC = () => {
           Observability services
         </Title>
         <Content component="p">
-          Manage and monitor your metrics, logs, and traces from a single, unified hub.
+          Manage observability capabilities and access cluster tools for metrics, logs, and traces.
         </Content>
         {isScopeAlertVisible ? (
           <Alert
