@@ -179,10 +179,10 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     title: 'Distributed tracing',
     subtitle: 'COO · Tempo · OpenTelemetry',
     status: {
-      kind: 'fully-enabled',
-      label: 'Fully enabled',
-      color: 'green',
-      srText: 'Status: fully enabled',
+      kind: 'degraded',
+      label: 'Degraded',
+      color: 'orange',
+      srText: 'Status: degraded — OTELCollector not ready',
     },
     summary:
       'Explore distributed traces and spans for microservice request analysis and latency bottleneck detection. Available under Observe → Traces.',
@@ -195,9 +195,8 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
         state: 'ready',
       },
       { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack', state: 'ready' },
-      { id: 'otel-collector', label: 'OTEL Operator + OTELCollector', state: 'ready' },
+      { id: 'otel-collector', label: 'OTEL Operator + OTELCollector', state: 'attention', detail: 'OTELCollector not ready' },
     ],
-    // All dependencies ready, status fully enabled — no install action.
     actions: [
       {
         id: 'tracing-learn-more',
@@ -297,9 +296,9 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     title: 'Network observability',
     status: {
       kind: 'available-addon',
-      label: 'Not Installed',
+      label: 'Not installed',
       color: 'grey',
-      srText: 'Status: available add-on — not installed',
+      srText: 'Status: not installed',
     },
     summary:
       'eBPF-based network flow collection, cross-namespace traffic mapping, and egress analysis.',

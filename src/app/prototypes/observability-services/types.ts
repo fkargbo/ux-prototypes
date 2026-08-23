@@ -2,6 +2,7 @@
 export type CapabilityStatusKind =
   | 'fully-enabled'
   | 'configuration-required'
+  | 'degraded'
   | 'available-addon';
 
 export type LabelColor = 'green' | 'yellow' | 'grey' | 'blue' | 'orange' | 'teal' | 'purple';
