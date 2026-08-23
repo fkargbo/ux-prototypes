@@ -1,77 +1,46 @@
 import React from 'react';
 import { Label } from '@patternfly/react-core';
-import { CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
-import type { CapabilityOperationalState, LabelColor } from '../types';
+import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import type { RuntimeHealthState } from '../types';
+
+export type { RuntimeHealthState };
 
 export interface OperationalHealthLabelProps {
-  state: CapabilityOperationalState;
-  /** Override the degraded label copy for a specific failure context. */
+  runtimeHealth: RuntimeHealthState;
+  /** Optional override for the degraded copy (e.g. "OTELCollector not responding"). */
   customDegradedText?: string;
   className?: string;
 }
 
-interface LabelConfig {
-  color: LabelColor;
-  icon?: React.ReactNode;
-  text: string;
-  ariaLabel: string;
-}
-
-const resolveConfig = (
-  state: CapabilityOperationalState,
-  customDegradedText?: string,
-): LabelConfig | null => {
-  switch (state) {
-    case 'FULLY_ENABLED':
-      return {
-        color: 'green',
-        icon: <CheckCircleIcon aria-hidden />,
-        text: 'Operational health: Healthy',
-        ariaLabel: 'Operational health status: Healthy',
-      };
-    case 'PARTIAL_SETUP':
-      return {
-        color: 'grey',
-        text: 'Operational health: Incomplete setup',
-        ariaLabel: 'Operational health status: Incomplete setup',
-      };
-    case 'DEGRADED':
-      return {
-        color: 'red',
-        icon: <ExclamationCircleIcon aria-hidden />,
-        text: customDegradedText ?? 'Operational health: Degraded',
-        ariaLabel: 'Operational health status: Degraded',
-      };
-    case 'NOT_INSTALLED':
-    default:
-      return null;
-  }
-};
-
 /**
- * Compact status label summarising the operational health of a capability's
- * dependencies. Renders nothing for NOT_INSTALLED (recommended) cards.
+ * Micro runtime-health callout that renders ONLY when backend pods/CSVs are
+ * failing (runtimeHealth === 'DEGRADED'). Operates on a separate axis from
+ * the top-right macro enablement badge ('Fully enabled' / 'Partial setup').
  *
- * Place between the "Dependencies" section heading and the dependency list
- * inside a CapabilityCard's CardBody.
+ * State matrix:
+ *   HEALTHY  → null           (nothing rendered)
+ *   DEGRADED → red compact label: "Operational health: Degraded"
+ *
+ * Place between the "Dependencies" section heading and the dependency list.
  */
 export const OperationalHealthLabel: React.FC<OperationalHealthLabelProps> = ({
-  state,
+  runtimeHealth,
   customDegradedText,
   className,
 }) => {
-  const config = resolveConfig(state, customDegradedText);
-  if (!config) return null;
+  if (runtimeHealth !== 'DEGRADED') {
+    return null;
+  }
 
   return (
     <Label
-      color={config.color}
-      icon={config.icon}
+      color="red"
+      icon={<ExclamationCircleIcon aria-hidden />}
       isCompact
-      aria-label={config.ariaLabel}
+      aria-label="Operational health status: Degraded"
       className={className}
     >
-      {config.text}
+      {customDegradedText ?? 'Operational health: Degraded'}
     </Label>
   );
 };

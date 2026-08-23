@@ -209,6 +209,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     id: 'distributed-tracing',
     title: 'Distributed tracing',
     subtitle: 'COO · Tempo · OpenTelemetry',
+    runtimeHealth: 'DEGRADED',
     status: {
       kind: 'degraded',
       label: 'Degraded',

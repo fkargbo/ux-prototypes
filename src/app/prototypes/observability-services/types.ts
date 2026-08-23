@@ -1,18 +1,13 @@
 /**
- * Derived operational state used by <OperationalHealthLabel /> to summarise
- * the readiness of a capability's dependencies at a glance.
+ * Runtime health of the backend pods/CSVs for an installed capability.
+ * Drives <OperationalHealthLabel /> independently of the macro enablement badge.
  *
- * Maps from CapabilityStatusKind:
- *   fully-enabled        → FULLY_ENABLED
- *   configuration-required → PARTIAL_SETUP
- *   degraded             → DEGRADED
- *   available-addon      → NOT_INSTALLED  (label returns null)
+ *   HEALTHY  → label is suppressed (null)
+ *   DEGRADED → red "Operational health: Degraded" label renders below Dependencies heading
+ *
+ * Recommended (not-installed) cards omit this field entirely.
  */
-export type CapabilityOperationalState =
-  | 'FULLY_ENABLED'
-  | 'PARTIAL_SETUP'
-  | 'NOT_INSTALLED'
-  | 'DEGRADED';
+export type RuntimeHealthState = 'HEALTHY' | 'DEGRADED';
 
 /** Capability readiness — not live health / telemetry severity. */
 export type CapabilityStatusKind =
@@ -74,6 +69,12 @@ export interface CapabilityCardData {
   category: CapabilityCategory;
   /** Free-text tokens for search */
   searchTerms: string[];
+  /**
+   * Runtime health of backend pods/CSVs for this capability.
+   * Omit (or default HEALTHY) for recommended cards — the label won't render.
+   * Set DEGRADED when backend resources are failing independently of enablement.
+   */
+  runtimeHealth?: RuntimeHealthState;
 }
 
 /** Visual severity tint applied to an operational KPI card. */
