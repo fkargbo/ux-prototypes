@@ -160,7 +160,7 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
                     </Content>
                   ) : null}
                   {dep.action ? (
-                    <div>
+                    <div style={{ marginTop: '2px' }}>
                       <Button
                         variant="link"
                         isInline
