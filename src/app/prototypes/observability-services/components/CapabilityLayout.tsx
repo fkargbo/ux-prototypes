@@ -2,6 +2,7 @@ import React from 'react';
 import { Grid, GridItem, Stack, StackItem, Title } from '@patternfly/react-core';
 import { CapabilityCard } from './CapabilityCard';
 import { InstalledOperatorsSection } from './InstalledOperatorsSection';
+import { RecommendedOperatorsSection } from './RecommendedOperatorsSection';
 import type { CapabilityCardData } from '../types';
 
 export interface CapabilityLayoutProps {
@@ -40,17 +41,9 @@ export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({ capabilities
 
       {recommended.length > 0 ? (
         <StackItem>
-          <section aria-labelledby="ols-obs-recommended-heading">
-            <Title
-              headingLevel="h2"
-              size="lg"
-              id="ols-obs-recommended-heading"
-              className="ols-obs-services-section-title"
-            >
-              Recommended operators (not installed)
-            </Title>
+          <RecommendedOperatorsSection capabilities={recommended}>
             <SectionCards items={recommended} />
-          </section>
+          </RecommendedOperatorsSection>
         </StackItem>
       ) : null}
     </Stack>
