@@ -157,7 +157,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     actions: [
       {
         id: 'enable-logging-plugin',
-        label: 'Install',
+        label: 'Enable',
         variant: 'secondary',
         href: '/core/observe/observability-services#enable-logging-plugin',
         helperText:
@@ -234,7 +234,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     actions: [
       {
         id: 'enable-signal-correlation',
-        label: 'Install',
+        label: 'Enable',
         variant: 'secondary',
         href: '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
         helperText:
@@ -275,7 +275,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     actions: [
       {
         id: 'enable-health-analyzer',
-        label: 'Install',
+        label: 'Enable',
         variant: 'secondary',
         href: '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
         helperText:
