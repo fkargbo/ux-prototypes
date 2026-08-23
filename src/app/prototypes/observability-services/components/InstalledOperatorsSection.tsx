@@ -67,31 +67,33 @@ export const InstalledOperatorsSection: React.FC<InstalledOperatorsSectionProps>
         </Title>
       </FlexItem>
 
-      <FlexItem>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          {counts.degraded > 0 && (
-            <FlexItem>
-              <Label color="red" isCompact>
-                {counts.degraded} Degraded
-              </Label>
-            </FlexItem>
-          )}
-          {counts.fullyEnabled > 0 && (
-            <FlexItem>
-              <Label color="green" isCompact>
-                {counts.fullyEnabled} Fully enabled
-              </Label>
-            </FlexItem>
-          )}
-          {counts.partialSetup > 0 && (
-            <FlexItem>
-              <Label color="grey" isCompact>
-                {counts.partialSetup} Partial setup
-              </Label>
-            </FlexItem>
-          )}
-        </Flex>
-      </FlexItem>
+      {!isExpanded && (
+        <FlexItem>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+            {counts.degraded > 0 && (
+              <FlexItem>
+                <Label color="red" isCompact>
+                  {counts.degraded} Degraded
+                </Label>
+              </FlexItem>
+            )}
+            {counts.fullyEnabled > 0 && (
+              <FlexItem>
+                <Label color="green" isCompact>
+                  {counts.fullyEnabled} Fully enabled
+                </Label>
+              </FlexItem>
+            )}
+            {counts.partialSetup > 0 && (
+              <FlexItem>
+                <Label color="grey" isCompact>
+                  {counts.partialSetup} Partial setup
+                </Label>
+              </FlexItem>
+            )}
+          </Flex>
+        </FlexItem>
+      )}
     </Flex>
   );
 
