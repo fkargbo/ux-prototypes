@@ -30,7 +30,7 @@ export const OPERATIONAL_KPI_STATS: OperationalKpiStat[] = [
   {
     id: 'setup-action',
     category: 'Setup action',
-    value: '3',
+    value: '4',
     label: 'Needs setup',
     subtext: 'Install or finish config',
     variant: 'warning',
