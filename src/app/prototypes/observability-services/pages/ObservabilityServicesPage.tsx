@@ -39,7 +39,7 @@ export const ObservabilityServicesPage: React.FC = () => {
             className="ols-obs-services-alert"
             variant="info"
             isInline
-            title="Cluster-wide observability scope"
+            title="Cluster-wide scope"
             actionClose={
               <AlertActionCloseButton
                 title="Close scope information"
@@ -47,9 +47,7 @@ export const ObservabilityServicesPage: React.FC = () => {
               />
             }
           >
-            This hub reflects observability capabilities configured on the current cluster. Status
-            labels indicate operator enablement and configuration readiness, rather than live
-            telemetry severity.
+            Status labels show configuration readiness across the cluster, not live telemetry severity.
           </Alert>
         ) : null}
       </div>
