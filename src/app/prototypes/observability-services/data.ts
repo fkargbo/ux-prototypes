@@ -181,7 +181,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     status: {
       kind: 'degraded',
       label: 'Degraded',
-      color: 'orange',
+      color: 'red',
       srText: 'Status: degraded — OTELCollector not ready',
     },
     summary:

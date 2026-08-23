@@ -5,7 +5,7 @@ export type CapabilityStatusKind =
   | 'degraded'
   | 'available-addon';
 
-export type LabelColor = 'green' | 'yellow' | 'grey' | 'blue' | 'orange' | 'teal' | 'purple';
+export type LabelColor = 'green' | 'yellow' | 'grey' | 'blue' | 'orange' | 'red' | 'teal' | 'purple';
 
 export interface CapabilityStatus {
   kind: CapabilityStatusKind;

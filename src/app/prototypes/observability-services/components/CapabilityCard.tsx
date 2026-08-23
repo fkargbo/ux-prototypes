@@ -117,6 +117,8 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
               icon={
                 capability.status.kind === 'fully-enabled' ? (
                   <CheckCircleIcon />
+                ) : capability.status.kind === 'degraded' ? (
+                  <ExclamationCircleIcon />
                 ) : undefined
               }
             >
