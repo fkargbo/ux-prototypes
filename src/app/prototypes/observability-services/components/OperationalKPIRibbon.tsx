@@ -59,12 +59,12 @@ const SetupPopoverBody: React.FC<{ items: KpiPopoverItem[] }> = ({ items }) => (
       gap={{ default: 'gapMd' }}
     >
       <FlexItem>
-        <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
+        <Content component="p" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)', margin: 0 }}>
           Operator
         </Content>
       </FlexItem>
       <FlexItem style={{ flexShrink: 0 }}>
-        <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
+        <Content component="p" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)', margin: 0 }}>
           Setup status
         </Content>
       </FlexItem>
@@ -80,7 +80,7 @@ const SetupPopoverBody: React.FC<{ items: KpiPopoverItem[] }> = ({ items }) => (
           gap={{ default: 'gapMd' }}
         >
           <FlexItem>
-            <Content component="small">{item.title}</Content>
+            <Content component="p" style={{ margin: 0 }}>{item.title}</Content>
           </FlexItem>
           <FlexItem style={{ flexShrink: 0 }}>
             <Label isCompact color="grey">
