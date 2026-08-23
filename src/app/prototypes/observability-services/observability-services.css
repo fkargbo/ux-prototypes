@@ -88,8 +88,14 @@
   margin-bottom: var(--pf-t--global--spacer--md);
 }
 
-/* Installed operators expandable section — zero out the default left indent
-   so the card grid stays flush with the rest of the page layout. */
+/* Collapsible sections (installed + recommended) — flush left, and gap from
+   toggle title to card grid matches the KPI ribbon's section-title margin-bottom (md).
+   We zero the link button's block-end padding so the only gap is the content's
+   padding-top: md, giving the same visual spacing as the static section titles. */
+.ols-obs-services-installed-section .pf-v6-c-expandable-section__toggle {
+  --pf-v6-c-button--PaddingBlockEnd: 0;
+}
+
 .ols-obs-services-installed-section .pf-v6-c-expandable-section__content {
   padding-inline-start: 0;
   padding-top: var(--pf-t--global--spacer--md);
