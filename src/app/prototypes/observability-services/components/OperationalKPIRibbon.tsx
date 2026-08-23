@@ -48,6 +48,11 @@ const VALUE_ICON_COLOR_MAP: Record<OperationalKpiVariant, string> = {
 
 const SetupPopoverBody: React.FC<{ items: KpiPopoverItem[] }> = ({ items }) => (
   <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
+    <FlexItem>
+      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+        These capabilities require operator installation or CR configuration.
+      </Content>
+    </FlexItem>
     {/* Column headers */}
     <Flex
       justifyContent={{ default: 'justifyContentSpaceBetween' }}
