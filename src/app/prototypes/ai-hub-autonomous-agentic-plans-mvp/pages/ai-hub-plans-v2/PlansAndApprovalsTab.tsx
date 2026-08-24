@@ -3070,7 +3070,7 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   }
 
   if (status === 'Plan aborted') {
-    return (
+  return (
       <Tooltip
         content={`Execution stopped at ${terminatedAt ?? '—'}. Cluster may be in a partial state — verify manually.`}
         position="top"
@@ -3402,7 +3402,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
                   />
                 </FlexItem>
                 <FlexItem>
-                  <time dateTime={row.createdAt}>{formatPlanCreatedAt(row.createdAt)}</time>
+              <time dateTime={row.createdAt}>{formatPlanCreatedAt(row.createdAt)}</time>
                 </FlexItem>
               </Flex>
             ) : (
@@ -3421,7 +3421,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
       ))}
     </Tbody>
   </Table>
-  );
+);
 };
 
 // ─── Plans table (pagination + filters + expand state) ───────────────────────
@@ -4675,38 +4675,38 @@ const RemediationOptionCard: React.FC<{
       style={{ width: '100%' }}
     >
       <FlexItem>
-        <Flex
-          direction={{ default: 'column' }}
-          alignItems={{ default: 'alignItemsFlexStart' }}
-          gap={{ default: 'gapXs' }}
-          id={`${cardId}-title`}
-        >
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-            <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-              Option {index + 1}
-            </span>
-            <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
-              {isOptionLocked && isFirst && (
+    <Flex
+      direction={{ default: 'column' }}
+      alignItems={{ default: 'alignItemsFlexStart' }}
+      gap={{ default: 'gapXs' }}
+      id={`${cardId}-title`}
+    >
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+        <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+          Option {index + 1}
+        </span>
+        <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
+          {isOptionLocked && isFirst && (
                 <Label color="orange" isCompact>
-                  Approved option
-                </Label>
-              )}
-              <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
-                {formatReversibilityLabel(option.reversible)}
-              </Label>
-            </Flex>
-          </Flex>
-          <span
-            style={{
-              fontWeight: 600,
-              fontSize: '14px',
-              lineHeight: 1.4,
-              whiteSpace: 'normal',
-              wordBreak: 'break-word',
-            }}
-          >
-            {option.title}
-          </span>
+              Approved option
+            </Label>
+          )}
+          <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
+            {formatReversibilityLabel(option.reversible)}
+          </Label>
+        </Flex>
+      </Flex>
+      <span
+        style={{
+          fontWeight: 600,
+          fontSize: '14px',
+          lineHeight: 1.4,
+          whiteSpace: 'normal',
+          wordBreak: 'break-word',
+        }}
+      >
+        {option.title}
+      </span>
         </Flex>
       </FlexItem>
       {executionStatusLabel && <FlexItem>{executionStatusLabel}</FlexItem>}
@@ -4765,13 +4765,13 @@ const RemediationOptionCard: React.FC<{
           )}
 
           {!isExecuting && !isTerminal && (
-            <Content
-              component="p"
-              className="ols-aio-text-subtle-sm"
+          <Content
+            component="p"
+            className="ols-aio-text-subtle-sm"
               style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-            >
-              {option.description}
-            </Content>
+          >
+            {option.description}
+          </Content>
           )}
 
           {/* ── B. Root cause analysis (per-option; backend: options[].diagnosis) — OLS-3724 ── */}
@@ -4836,19 +4836,19 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── D. Proposed / executed commands ── */}
           <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-            <Content
-              component="small"
-              style={{
-                display: 'block',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                color: 'var(--pf-t--global--text--color--subtle)',
+              <Content
+                component="small"
+                style={{
+                  display: 'block',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
                 marginBottom: 'var(--pf-t--global--spacer--sm)',
-              }}
-            >
+                }}
+              >
               {isExecuting || isTerminal ? 'Executed commands' : 'Proposed agent commands'}
-            </Content>
+              </Content>
             {option.commands && option.commands.length > 0 ? (
               <Stack hasGutter>
                 {option.commands.map((cmd, cmdIdx) => (
@@ -4862,12 +4862,12 @@ const RemediationOptionCard: React.FC<{
                         <Label isCompact color="grey">{cmd.label}</Label>
                       </FlexItem>
                       <FlexItem>
-                        <Content
-                          component="small"
+              <Content
+                component="small"
                           style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
                         >
                           {cmd.description}
-                        </Content>
+              </Content>
                       </FlexItem>
                     </Flex>
                     <ExpandableCodeBlock
@@ -4887,34 +4887,34 @@ const RemediationOptionCard: React.FC<{
             )}
             {/* Execute remediation — visible only in Proposed state via onExecute prop */}
             {onExecute && (
-              <Flex
-                gap={{ default: 'gapSm' }}
-                flexWrap={{ default: 'wrap' }}
-                style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
-              >
-                <FlexItem>
-                  <Button
-                    variant="primary"
-                    isDisabled={!isAgenticAutomationEnabled}
-                    onClick={onExecute}
-                  >
-                    Execute remediation
-                  </Button>
-                </FlexItem>
+                <Flex
+                  gap={{ default: 'gapSm' }}
+                  flexWrap={{ default: 'wrap' }}
+                  style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
+                >
+                    <FlexItem>
+                      <Button
+                        variant="primary"
+                        isDisabled={!isAgenticAutomationEnabled}
+                        onClick={onExecute}
+                      >
+                        Execute remediation
+                      </Button>
+                    </FlexItem>
                 {rootCause && (
-                  <FlexItem>
-                    <Button
-                      variant="link"
+                    <FlexItem>
+                      <Button
+                        variant="link"
                       icon={<RhUiDownloadIcon />}
-                      onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
-                    >
-                      Download plan
-                    </Button>
-                  </FlexItem>
-                )}
-              </Flex>
-            )}
-          </div>
+                        onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
+                      >
+                        Download plan
+                      </Button>
+                    </FlexItem>
+                  )}
+                </Flex>
+              )}
+            </div>
 
           {/* ── E. Rollback plan — shown after execution ── */}
           {showEvidenceTrail && (() => {
@@ -4935,16 +4935,16 @@ const RemediationOptionCard: React.FC<{
                   }}
                 >
                   Rollback plan
-                </Content>
-                <Content
-                  component="p"
+      </Content>
+    <Content
+      component="p"
                   style={{
                     fontSize: '0.875rem',
                     marginBottom: rollback.command ? 'var(--pf-t--global--spacer--sm)' : 0,
                   }}
                 >
                   {rollback.description}
-                </Content>
+    </Content>
                 {rollback.command && (
                   <ExpandableCodeBlock
                     id={`rollback-${option.id}`}
@@ -4952,20 +4952,20 @@ const RemediationOptionCard: React.FC<{
                     codeStyle={{ fontSize: '12px' }}
                   />
                 )}
-              </div>
-            );
+  </div>
+);
           })()}
 
           {/* ── F. Verification steps — shown after execution ── */}
           {showEvidenceTrail && option.verificationSteps && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
               <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
-              <Content
-                component="small"
-                style={{
-                  display: 'block',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
+      <Content
+        component="small"
+        style={{
+          display: 'block',
+          fontWeight: 600,
+          textTransform: 'uppercase',
                   letterSpacing: '0.04em',
                   color: 'var(--pf-t--global--text--color--subtle)',
                   marginBottom: 'var(--pf-t--global--spacer--sm)',
@@ -4988,12 +4988,12 @@ const RemediationOptionCard: React.FC<{
                         display: 'block',
                         fontWeight: 600,
                         fontFamily: 'var(--pf-t--global--font--family--mono)',
-                        color: 'var(--pf-t--global--text--color--subtle)',
-                        marginBottom: 'var(--pf-t--global--spacer--xs)',
-                      }}
-                    >
+          color: 'var(--pf-t--global--text--color--subtle)',
+          marginBottom: 'var(--pf-t--global--spacer--xs)',
+        }}
+      >
                       {step.id}
-                    </Content>
+      </Content>
                     <ExpandableCodeBlock
                       id={`verify-${option.id}-${stepIdx}`}
                       code={step.command}
@@ -5019,13 +5019,13 @@ const RemediationOptionCard: React.FC<{
           {/* ── F. Card footer — Download plan (post-execution only) ── */}
           {showEvidenceTrail && rootCause && (
             <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)', borderTop: '1px solid var(--pf-t--global--border--color--default)', paddingTop: 'var(--pf-t--global--spacer--md)' }}>
-              <Button
-                variant="link"
+                <Button
+                  variant="link"
                 icon={<RhUiDownloadIcon />}
                 onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
-              >
+                >
                 Download plan
-              </Button>
+                </Button>
             </div>
           )}
         </CardBody>
@@ -5053,11 +5053,11 @@ const RcaLockedPlaceholder: React.FC<{ isSuspended?: boolean; isPendingApproval?
   isPendingApproval = false,
 }) => (
   <div style={LOCKED_BOX_STYLE}>
-    <Flex
-      alignItems={{ default: 'alignItemsCenter' }}
-      gap={{ default: 'gapSm' }}
-      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-    >
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
       {isSuspended ? (
         <RhUiWarningFillIcon
           style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)', flexShrink: 0 }}
@@ -5078,11 +5078,11 @@ const RcaLockedPlaceholder: React.FC<{ isSuspended?: boolean; isPendingApproval?
           ? 'Awaiting analysis approval.'
           : 'Analyzing infrastructure topology to isolate root cause…'}
       </Content>
-    </Flex>
+                  </Flex>
     <Skeleton width="85%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
     <Skeleton width="65%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
     <Skeleton width="75%" style={isSuspended ? SKELETON_SUSPENDED_STYLE : undefined} />
-  </div>
+                </div>
 );
 
 const HubLockedPlaceholder: React.FC<{ isSuspended?: boolean; awaitingAnalysis?: boolean }> = ({
@@ -5100,12 +5100,12 @@ const HubLockedPlaceholder: React.FC<{ isSuspended?: boolean; awaitingAnalysis?:
         : awaitingAnalysis
         ? 'Awaiting root cause analysis.'
         : 'Remediation options will be synthesized following root cause confirmation.'}
-    </Content>
+            </Content>
     <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
     <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
     <Skeleton width="55%" style={isSuspended ? SKELETON_SUSPENDED_STYLE : undefined} />
-  </div>
-);
+    </div>
+  );
 
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
@@ -5405,9 +5405,9 @@ export const RemediationBlueprintPanel: React.FC<{
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
   const options = enrichRemediationOptionsWithDiagnosis(
     enrichRemediationOptionsWithConfidence(
-      plan.id,
-      applyScRemediationPatches(PLAN_REMEDIATION_OPTIONS[plan.id] ?? [], plan.id, isSingleCluster),
-      drawer?.confidence,
+    plan.id,
+    applyScRemediationPatches(PLAN_REMEDIATION_OPTIONS[plan.id] ?? [], plan.id, isSingleCluster),
+    drawer?.confidence,
     ),
     drawer,
   );
@@ -5571,30 +5571,30 @@ export const RemediationBlueprintPanel: React.FC<{
   // Rendered when the analysis phase was manually canceled before execution began.
   if (isRunAborted) {
     const abortedAnalysisLog = generateAbortedAnalysisLogs(plan.id);
-    return (
-      <Stack style={{ gap: '24px' }}>
+  return (
+    <Stack style={{ gap: '24px' }}>
         {/* Page heading + AI disclaimer */}
-        <StackItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-            <AiExperienceIcon size={20} />
-            <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
-              Agentic run details
-            </Title>
-          </Flex>
-          <Content component="p" className="ols-ai-hub-page-disclaimer">
-            <InfoCircleIcon
-              style={{
-                color: 'var(--pf-t--global--icon--color--status--info--default)',
-                marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
-                verticalAlign: 'middle',
-                flexShrink: 0,
-              }}
-              aria-hidden
-            />
+      <StackItem>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+          <AiExperienceIcon size={20} />
+          <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
+            Agentic run details
+          </Title>
+        </Flex>
+        <Content component="p" className="ols-ai-hub-page-disclaimer">
+          <InfoCircleIcon
+            style={{
+              color: 'var(--pf-t--global--icon--color--status--info--default)',
+              marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
+              verticalAlign: 'middle',
+              flexShrink: 0,
+            }}
+            aria-hidden
+          />
             The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
             review AI-generated content prior to use.
-          </Content>
-        </StackItem>
+        </Content>
+      </StackItem>
 
         {/* A. Analysis Request Card — preserved with partial log access */}
         <StackItem>
@@ -5693,24 +5693,24 @@ export const RemediationBlueprintPanel: React.FC<{
 
   // Cluster-update domain: RCA + handoff to Administration → Cluster Update (shared for all these runs).
   if (isClusterUpdatePlan) {
-    return (
+        return (
       <Stack style={{ gap: '24px' }}>
-        <StackItem>
+          <StackItem>
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
             <AiExperienceIcon size={20} />
             <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
               Agentic run details
-            </Title>
-          </Flex>
+                  </Title>
+                </Flex>
           <Content component="p" className="ols-ai-hub-page-disclaimer">
-            <InfoCircleIcon
+                          <InfoCircleIcon
               style={{
                 color: 'var(--pf-t--global--icon--color--status--info--default)',
                 marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
                 verticalAlign: 'middle',
                 flexShrink: 0,
               }}
-              aria-hidden
+                            aria-hidden
             />
             The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
             review AI-generated content prior to use.
@@ -5772,7 +5772,7 @@ export const RemediationBlueprintPanel: React.FC<{
                 flexWrap={{ default: 'nowrap' }}
                 style={{ width: '100%' }}
               >
-                <FlexItem>
+                        <FlexItem>
                   <Flex
                     direction={{ default: 'column' }}
                     alignItems={{ default: 'alignItemsFlexStart' }}
@@ -5781,7 +5781,7 @@ export const RemediationBlueprintPanel: React.FC<{
                     <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
                       Remediation
                     </span>
-                    <span
+                          <span
                       style={{
                         fontWeight: 600,
                         fontSize: '14px',
@@ -5791,7 +5791,7 @@ export const RemediationBlueprintPanel: React.FC<{
                       }}
                     >
                       {plan.synopsis}
-                    </span>
+                          </span>
                   </Flex>
                 </FlexItem>
                 <FlexItem>
@@ -5808,8 +5808,8 @@ export const RemediationBlueprintPanel: React.FC<{
                   ) : isEmergencyStopped ? (
                     <Label color="orange" icon={<RhUiWarningFillIcon />}>Emergency stopped</Label>
                   ) : null}
-                </FlexItem>
-              </Flex>
+                        </FlexItem>
+                      </Flex>
             </CardHeader>
             <CardBody className="ols-remediation-option-card__body">
               {onRemediateInClusterUpdates ? (
@@ -5881,11 +5881,11 @@ export const RemediationBlueprintPanel: React.FC<{
           <AiExperienceIcon size={20} />
           <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
             Agentic run details
-          </Title>
+                      </Title>
         </Flex>
         <Content component="p" className="ols-ai-hub-page-disclaimer">
           <InfoCircleIcon
-            style={{
+                          style={{
               color: 'var(--pf-t--global--icon--color--status--info--default)',
               marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
               verticalAlign: 'middle',
@@ -5895,7 +5895,7 @@ export const RemediationBlueprintPanel: React.FC<{
           />
           The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
           review AI-generated content prior to use.
-        </Content>
+                        </Content>
       </StackItem>
 
       <StackItem>
@@ -5933,7 +5933,7 @@ export const RemediationBlueprintPanel: React.FC<{
           >
             Stop analysis
           </Button>
-        </StackItem>
+          </StackItem>
       )}
 
       {/* ── Status alerts (below heading) ────────────────────────────── */}
@@ -6155,13 +6155,13 @@ export const RemediationBlueprintPanel: React.FC<{
                 />
                 <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
                   <Button variant="link" icon={<RhUiDownloadIcon />} iconPosition="start"
-                    onClick={() => downloadAnalysisReportMarkdown(plan, {
-                      aggregatedFinding: drawer?.aggregatedFinding ?? '',
-                      rootCauseNarrative: drawer?.rootCauseNarrative ?? '',
-                    })}
-                  >
-                    Download plan
-                  </Button>
+                  onClick={() => downloadAnalysisReportMarkdown(plan, {
+                    aggregatedFinding: drawer?.aggregatedFinding ?? '',
+                    rootCauseNarrative: drawer?.rootCauseNarrative ?? '',
+                  })}
+                >
+                  Download plan
+                </Button>
                 </div>
               </div>
             </>
@@ -6571,32 +6571,32 @@ export const RemediationBlueprintPanel: React.FC<{
     </Stack>
 
     {/* Stop analysis modal — rendered as a portal; lives outside Stack to avoid adding a gap slot */}
-    <Modal
-      variant={ModalVariant.small}
-      isOpen={isStopAnalysisModalOpen}
-      onClose={() => setIsStopAnalysisModalOpen(false)}
-      aria-labelledby="stop-plan-analysis-title"
-    >
-      <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
-      <ModalBody>
-        This halts root cause investigation for this run. Partial findings are preserved but no
-        remediation options will be synthesized.
-      </ModalBody>
-      <ModalFooter>
-        <Button
-          variant="danger"
-          onClick={() => {
+          <Modal
+            variant={ModalVariant.small}
+            isOpen={isStopAnalysisModalOpen}
+            onClose={() => setIsStopAnalysisModalOpen(false)}
+            aria-labelledby="stop-plan-analysis-title"
+          >
+            <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
+            <ModalBody>
+              This halts root cause investigation for this run. Partial findings are preserved but no
+              remediation options will be synthesized.
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                variant="danger"
+                onClick={() => {
             registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()), 'analysis');
-            setIsStopAnalysisModalOpen(false);
-          }}
-        >
-          Yes, stop analysis
-        </Button>
-        <Button variant="link" onClick={() => setIsStopAnalysisModalOpen(false)}>
-          Cancel
-        </Button>
-      </ModalFooter>
-    </Modal>
+                  setIsStopAnalysisModalOpen(false);
+                }}
+              >
+                Yes, stop analysis
+              </Button>
+              <Button variant="link" onClick={() => setIsStopAnalysisModalOpen(false)}>
+                Cancel
+              </Button>
+            </ModalFooter>
+          </Modal>
     </>
   );
 };
