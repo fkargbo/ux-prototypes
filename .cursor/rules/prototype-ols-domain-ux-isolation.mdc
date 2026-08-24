@@ -1,0 +1,24 @@
+---
+description: Hard isolation fence for the ols-domain-ux prototype. ALL edits must stay inside src/app/prototypes/ols-domain-ux/.
+globs: src/app/prototypes/ols-domain-ux/**
+alwaysApply: false
+---
+
+# Prototype: ols-domain-ux — Isolation Fence
+
+## HARD RULE
+Every file read, edit, or creation in this session MUST be inside:
+```
+src/app/prototypes/ols-domain-ux/
+```
+
+## STRICTLY FORBIDDEN
+- ❌ Any edit to other prototype directories (including `ai-hub-autonomous-agentic-plans-mvp`, `observability-agentic-troubleshooting-ai`)
+- ❌ Any edit to shared components, global CSS, or infrastructure outside this prototype's directory
+- ❌ Runtime imports from other prototype directories (`@app/prototypes/<other-id>/...`)
+
+## REQUIRED: Confirm target before every edit
+Before writing or editing **any** file, confirm its path starts with:
+`src/app/prototypes/ols-domain-ux/`
+
+If the target path is outside this prefix → **STOP and ask the user** which prototype they intended.

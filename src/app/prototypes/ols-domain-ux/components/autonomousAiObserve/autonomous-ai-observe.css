@@ -1,0 +1,845 @@
+/* Autonomous analysis — token-based helpers (pulse ring, timeline, widget chevron). */
+
+/*
+ * Typography (PatternFly design foundations):
+ * — Red Hat Text (`--pf-t--global--font--family--body`): UI labels, descriptions, metrics in cards.
+ * — Red Hat Mono (`--pf-t--global--font--family--mono`): code blocks, commands, log output only.
+ * Prefer proportional lining figures on large KPI numerals: Red Hat Text `tabular-nums` has historically
+ *   used slashed-zero tabular glyphs (see RedHatOfficial/RedHatFont#53), which is easy to misread.
+ *   Use `tabular-nums` only where alignment matters and slashed zero is acceptable (e.g. dense tables).
+ */
+.ols-aio-text-subtle-sm {
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ols-aio-text-overline {
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ols-aio-stat-figure {
+  margin-top: var(--pf-t--global--spacer--sm);
+}
+
+/*
+ * Card KPI numerals: 24px bold (proportional lining figures — no tabular-nums; avoids slashed zero in RH Text).
+ */
+span.ols-aio-card-stat-number {
+  display: inline-block;
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/* Fleet Summary KPIs: same numeral weight as drill links, without link color or pointer. */
+.ols-autonomous-ai-observe-widget span.ols-aio-card-stat-number--readonly {
+  display: inline-block;
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--regular);
+}
+
+/*
+ * PF semantic link text tokens (v6): `--pf-t--global--text--color--link--*`
+ * (not `--pf-t--global--link--color--*`, which is invalid and leaves inherited body color).
+ */
+.ols-autonomous-ai-observe-widget button.ols-aio-card-stat-number--drill.pf-m-link {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  height: auto;
+  min-height: 0;
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--link--default);
+  text-decoration: none;
+  text-underline-offset: 0.125rem;
+  vertical-align: baseline;
+}
+
+.ols-autonomous-ai-observe-widget button.ols-aio-card-stat-number--drill.pf-m-link .pf-v6-c-button__text {
+  color: var(--pf-t--global--text--color--link--default);
+}
+
+.ols-autonomous-ai-observe-widget button.ols-aio-card-stat-number--drill.pf-m-link:hover,
+.ols-autonomous-ai-observe-widget button.ols-aio-card-stat-number--drill.pf-m-link:focus {
+  color: var(--pf-t--global--text--color--link--hover, var(--pf-t--global--text--color--link--default));
+  text-decoration: underline;
+}
+
+.ols-autonomous-ai-observe-widget button.ols-aio-card-stat-number--drill.pf-m-link:hover .pf-v6-c-button__text,
+.ols-autonomous-ai-observe-widget button.ols-aio-card-stat-number--drill.pf-m-link:focus .pf-v6-c-button__text {
+  color: var(--pf-t--global--text--color--link--hover, var(--pf-t--global--text--color--link--default));
+}
+
+/* Fleet summary & cluster health KPI rows: status icon before the 24px link-styled value. */
+.ols-aio-metric-kpi-stat-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.ols-aio-metric-kpi-stat-icon svg {
+  vertical-align: middle;
+}
+
+/*
+ * Fleet Clusters gallery: `Card isClickable` alone removes the card `::before` border (PF expects
+ * selectable-actions + clickable-action). Use a default bordered `Card` inside a focusable wrapper and
+ * apply the same border CSS variables PF uses for selectable hover / clicked current state.
+ */
+.ols-autonomous-ai-observe-widget .ols-aio-cluster-gallery-tile {
+  cursor: pointer;
+  border-radius: var(--pf-t--global--border--radius--medium);
+  outline: none;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-cluster-gallery-tile:focus-visible {
+  outline: 2px solid var(--pf-t--global--color--focus--default);
+  outline-offset: 2px;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-cluster-gallery-tile:hover > .pf-v6-c-card {
+  --pf-v6-c-card--BorderColor: var(--pf-v6-c-card--m-selectable--hover--BorderColor);
+  --pf-v6-c-card--BorderWidth: var(--pf-v6-c-card--m-selectable--hover--BorderWidth);
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-cluster-gallery-tile--current > .pf-v6-c-card {
+  --pf-v6-c-card--BorderColor: var(--pf-v6-c-card--m-clickable--m-current--BorderColor);
+  --pf-v6-c-card--BorderWidth: var(--pf-v6-c-card--m-clickable--m-current--BorderWidth);
+}
+
+/* Context selector row: default MenuToggle (outlined) + tighter radius — not secondary “pill” chips. */
+.ols-aio-context-selectors .pf-v6-c-menu-toggle {
+  border-radius: var(--pf-t--global--border--radius--small);
+}
+
+/*
+ * Autonomous analysis chrome (AI Hub): section titles + actions live outside an outer Card (`.ols-aio-widget-head`).
+ *
+ * Expand / collapse carets on nested sections:
+ * PF Card uses `.pf-v6-c-card.pf-m-expanded .pf-v6-c-card__header-toggle-icon` (any descendant), so
+ * nested collapsed cards need `.ols-aio-subcard` rotation scoped per card.
+ * ExpandableSection icons get the same explicit open/closed transform inside this widget.
+ */
+.ols-autonomous-ai-observe-widget .ols-aio-widget-head {
+  margin-bottom: var(--pf-t--global--spacer--md);
+}
+
+/* Widget title row: layout without PatternFly `Flex` (avoids `pf-v6-l-flex` + modifier classes in DOM). */
+.ols-aio-widget-head__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--pf-t--global--spacer--sm);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ols-aio-widget-head__actions {
+  flex-shrink: 0;
+}
+
+.ols-aio-widget-head__actions-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pf-t--global--spacer--md);
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-subcard.pf-m-expanded > .pf-v6-c-card__header .pf-v6-c-card__header-toggle-icon {
+  transform: rotate(90deg) !important;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-subcard:not(.pf-m-expanded) > .pf-v6-c-card__header .pf-v6-c-card__header-toggle-icon {
+  transform: rotate(0deg) !important;
+}
+
+/* Fleet overview: 24px spacing between main cards (Stack) and between While away / Top firing columns (Grid). */
+.ols-autonomous-ai-observe-widget .ols-aio-stack-gutter-24.pf-v6-l-stack.pf-m-gutter {
+  gap: 24px;
+}
+
+/* PatternFly Grid / Gallery `hasGutter` — force 24px gaps between nested cards (Fleet Summary KPIs, Clusters gallery, fleet pair row). */
+.ols-autonomous-ai-observe-widget .ols-aio-gutter-24.pf-v6-l-grid.pf-m-gutter,
+.ols-autonomous-ai-observe-widget .ols-aio-gutter-24.pf-v6-l-gallery.pf-m-gutter {
+  gap: 24px;
+  column-gap: 24px;
+  row-gap: 24px;
+}
+
+/* Fleet overview row: match column heights; scroll long bodies (While you were away / Top firing alerts). */
+.ols-autonomous-ai-observe-widget .ols-aio-fleet-pair-grid {
+  align-items: stretch;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-fleet-pair-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Fleet Summary + Clusters row: side-by-side cards stretch to row height. */
+.ols-autonomous-ai-observe-widget .ols-aio-fleet-summary-clusters-grid {
+  align-items: stretch;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-fleet-summary-clusters-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-fleet-summary-clusters-item > .pf-v6-c-card {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+/* Top firing alerts (ai-hub): align link row with AI insight text (skip icon column); left-justify links. */
+.ols-autonomous-ai-observe-widget .ols-aio-top-alerts-ai-hub-actions {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  justify-content: flex-start;
+  padding-inline-start: calc(16px + var(--pf-t--global--spacer--xs));
+}
+
+/* Section titles — Fleet overview expandable cards (18px). */
+.ols-autonomous-ai-observe-widget .ols-aio-fleet-subcard-title {
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-fleet-pair-card.pf-v6-c-card {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  height: 378px;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-fleet-pair-card > .pf-v6-c-card__expandable-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-fleet-pair-card > .pf-v6-c-card__expandable-content .pf-v6-c-card__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  block-size: calc(100% - 2px);
+  overflow-y: auto;
+}
+
+.ols-autonomous-ai-observe-widget .pf-v6-c-expandable-section:not(.pf-m-expanded) .pf-v6-c-expandable-section__toggle-icon {
+  transform: rotate(0deg) !important;
+}
+
+.ols-autonomous-ai-observe-widget .pf-v6-c-expandable-section.pf-m-expanded .pf-v6-c-expandable-section__toggle-icon {
+  transform: rotate(90deg) !important;
+}
+
+.ols-autonomous-ai-observe-widget .pf-v6-c-card__header-toggle-icon,
+.ols-autonomous-ai-observe-widget .pf-v6-c-expandable-section__toggle-icon {
+  transform-origin: center;
+}
+
+/* "While you were away" alerts: expandable by default-collapsed, neutral background, no colored borders. */
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline {
+  --pf-v6-c-alert--PaddingBlockStart: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-alert--PaddingBlockEnd: var(--pf-t--global--spacer--sm);
+  --pf-v6-c-alert__description--PaddingBlockStart: 0;
+  --pf-v6-c-alert__toggle--MarginBlockStart: 0;
+  --pf-v6-c-alert__toggle--MarginBlockEnd: 0;
+  --pf-v6-c-alert__action--MarginBlockStart: 0;
+  --pf-v6-c-alert__action--MarginBlockEnd: 0;
+  --pf-v6-c-alert__action--MarginInlineEnd: 0;
+  --pf-v6-c-alert__icon--MarginBlockStart: 0;
+  border: 0;
+  border-inline-start: 0;
+  box-shadow: none;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline .pf-v6-c-alert__toggle,
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline .pf-v6-c-alert__icon,
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline .pf-v6-c-alert__title,
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline .pf-v6-c-alert__action {
+  align-self: center;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
+  white-space: nowrap;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert-time {
+  font-family: var(--pf-t--global--font--family--body);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-away-alert-severity-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* While-you-were-away: inner scroll mask region (mirrors top firing containment behavior). */
+.ols-autonomous-ai-observe-widget .ols-aio-away-card-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-away-scroll-region {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 2px;
+}
+
+.ols-autonomous-ai-observe-widget .ols-aio-away-card-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  background-color: var(--pf-t--global--background--color--primary--default);
+  box-shadow: 0 -1px 0 var(--pf-t--global--border--color--default);
+}
+
+/*
+ * v2 fleet hub cards (While you were away / Top firing alerts / Fleet summary): inner blocks that resolve to
+ * opaque primary (typically white in light theme) clash with a translucent card — transparent so one layer reads through.
+ */
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .pf-v6-c-card__expandable-content,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .pf-v6-c-card__body,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .ols-aio-away-card-body,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .ols-aio-away-scroll-region,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .ols-aio-away-card-footer,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .pf-v6-c-empty-state,
+.ols-autonomous-ai-observe-widget
+  :is(
+    .ols-autonomous-ai-observe-widget-v2-away,
+    .ols-autonomous-ai-observe-widget-v2-top-firing,
+    .ols-autonomous-ai-observe-widget-v2-fleet-summary
+  )
+  .pf-v6-c-empty-state__body {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-away .ols-aio-away-card-footer {
+  box-shadow: none;
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+}
+
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-away .ols-aio-away-alert.pf-v6-c-alert.pf-m-inline {
+  --pf-v6-c-alert--BackgroundColor: transparent;
+  --pf-v6-c-alert--m-inline--BackgroundColor: transparent;
+  background-color: transparent !important;
+}
+
+/*
+ * Top firing alerts: `TopAlertsSection` applies INSIGHTS_LIST_WRAPPER / INSIGHTS_LIST_ITEM inline backgrounds
+ * (primary + secondary from fleetInsightsConfig). `!important` wins over inline for translucent card parity.
+ */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-top-firing .ols-aio-top-firing-translucent-scope > div {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-top-firing .ols-aio-top-firing-translucent-scope > div > div {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/*
+ * Fleet summary: remove stacked *static* white (table chrome + app.css #fff rows) over the translucent card.
+ * Keep PatternFly interaction surfaces: clickable row hover, selected row, sort :hover/:focus, pagination controls.
+ * app.css uses `.pf-v6-c-table thead tr|th`, `tbody tr`, `tbody tr:hover` with #fff / #f8f9fa !important — beat
+ * those only for default/rest; restore PF vars for row hover / selection and do not strip button/pagination hovers.
+ */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table {
+  --pf-v6-c-table--BackgroundColor: transparent;
+  --pf-v6-c-table__tr--m-ghost-row--BackgroundColor: transparent;
+  /* At-rest sort control fill only — hover uses table.css defaults via --pf-v6-c-table__button--hover--BackgroundColor */
+  --pf-v6-c-table__button--BackgroundColor: transparent;
+  background-color: transparent !important;
+}
+
+/*
+ * AI Hub glass (`ai-hub-page.css`) sets every `.ols-ai-hub-page .pf-v6-c-table` to
+ * `background-color: var(--ols-ai-hub-glass-surface-tint)` (50% white) plus `backdrop-filter`.
+ * That stacks a second frosted sheet on the already-glass Card and reads as a faint white slab.
+ * Higher specificity + same longhands so this wins over that page rule regardless of import order.
+ */
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+}
+
+/* Header + body cells at rest (beats app.css #fff on thead tr/th and tbody tr) */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table thead,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__thead,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table thead tr,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__tbody,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table th,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__th,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table td,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table .pf-v6-c-table__td {
+  background-color: transparent !important;
+}
+
+/* Data rows at rest — beats app.css #fff on tbody tr */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody tr,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody .pf-v6-c-table__tr {
+  background-color: transparent !important;
+}
+
+/* Non-clickable tbody row hover (if any): stay transparent so app.css #f8f9fa does not stack */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody tr:not(.pf-m-clickable):hover,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody .pf-v6-c-table__tr:not(.pf-m-clickable):hover {
+  background-color: transparent !important;
+}
+
+/* Selected row (Tr isRowSelected → pf-m-selected, see @patternfly/react-table Tr.js) */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody tr.pf-m-selected,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody .pf-v6-c-table__tr.pf-m-selected {
+  background-color: var(--pf-v6-c-table__tr--m-selected--BackgroundColor) !important;
+}
+
+/* Clickable row hover after selected so pointer feedback still applies on selected rows */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody tr.pf-m-clickable:hover,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-table tbody .pf-v6-c-table__tr.pf-m-clickable:hover {
+  background-color: var(--pf-v6-c-table__tr--m-clickable--hover--BackgroundColor) !important;
+}
+
+/* Pagination bar: transparent at rest (stacked white); do not strip control hovers — no !important on menu-toggle / input */
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-pagination,
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-pagination.pf-m-bottom {
+  --pf-v6-c-pagination--m-bottom--BackgroundColor: transparent;
+  --pf-v6-c-pagination--m-sticky--BackgroundColor: transparent;
+  background-color: transparent !important;
+}
+
+.ols-autonomous-ai-observe-widget .ols-autonomous-ai-observe-widget-v2-fleet-summary .pf-v6-c-card__body > .pf-v6-l-flex {
+  background-color: transparent !important;
+}
+
+/* OpenShift-style alert summary: icon in gutter; name, date, and message share one text column. */
+.ols-aio-alert-summary {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: var(--pf-t--global--spacer--sm);
+  row-gap: var(--pf-t--global--spacer--xs);
+  align-items: start;
+  min-width: 0;
+}
+
+.ols-aio-alert-summary__icon {
+  grid-column: 1;
+  grid-row: 1;
+  line-height: 1;
+  /* Vertically center with the title in row 1 (icon + title share one horizontal band). */
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ols-aio-alert-summary__icon svg {
+  display: block;
+}
+
+.ols-aio-alert-summary__fired {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+  font-size: var(--pf-t--global--font--size--body--default);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ols-aio-alert-summary__title {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+}
+
+.ols-aio-alert-summary__message {
+  grid-column: 2;
+  grid-row: 3;
+  margin: 0;
+}
+
+/* 14px tier: global --font--size--sm (0.875rem). Content `small` uses body--sm, which is 12px (0.75rem) in PF v6. */
+.ols-aio-alert-summary .ols-aio-alert-summary__message.pf-v6-c-content--p {
+  font-size: var(--pf-t--global--font--size--sm);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+/* Same tier as message paragraph when body uses `AiInsightLede` (icon + AI insight + message). */
+.ols-aio-alert-summary .ols-aio-alert-summary__message--ai-insight {
+  font-size: var(--pf-t--global--font--size--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  min-width: 0;
+}
+
+/**
+ * AI insight row icon: RH AI experience artwork (black fill in SVG).
+ */
+.ols-aio-ai-insight-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* KPI drill targets: PatternFly Tooltip body — concise breakdown lists */
+.ols-aio-kpi-tooltip {
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(600px, 92vw);
+  text-align: left;
+}
+
+/*
+ * `Content` forces regular page text color; tooltip shell uses inverse colors.
+ * Without this, heading / empty-state lines are effectively invisible (dark on dark).
+ */
+.ols-aio-kpi-tooltip [class*='pf-v6-c-content'] {
+  color: inherit;
+}
+
+.ols-aio-kpi-tooltip__list {
+  margin: 0;
+  padding-left: var(--pf-t--global--spacer--md);
+}
+
+/* Fleet incident: clusters + lede share one grid cell (do not use __message on nested nodes — it sets grid placement). */
+.ols-aio-alert-summary__fleet-meta {
+  grid-column: 2;
+  grid-row: 3;
+  min-width: 0;
+}
+
+/* Fleet AI narrative: matches Alerting “AI insight” row (icon + label + italic body). */
+.ols-aio-alert-summary .ols-aio-alert-summary__fleet-meta .ols-aio-fleet-ai-narrative-block {
+  margin-top: var(--pf-t--global--spacer--sm);
+  min-width: 0;
+  width: 100%;
+}
+
+/* Agent status chips: 28px min height; label text uses PF body typography (not mono). */
+.ols-aio-agent-pulse-label.pf-v6-c-label {
+  min-height: 28px;
+  box-sizing: border-box;
+  font-family: var(--pf-t--global--font--family--body);
+}
+
+.ols-aio-agent-pulse-label.pf-v6-c-label .pf-v6-c-label__content {
+  min-height: 28px;
+  box-sizing: border-box;
+}
+
+.ols-aio-agent-pulse-label.pf-v6-c-label .pf-v6-c-label__text {
+  font-family: var(--pf-t--global--font--family--body);
+}
+
+.ols-aio-agent-pulse {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pf-t--global--spacer--xs);
+}
+
+.ols-aio-agent-pulse__dot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--pf-t--global--border--radius--pill, 999px);
+  background-color: var(--pf-t--global--icon--color--subtle);
+}
+
+.ols-aio-agent-pulse__ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--pf-t--global--border--radius--pill, 999px);
+  border: 1px solid var(--pf-t--global--icon--color--subtle);
+  animation: ols-aio-pulse-ring 1.6s ease-out infinite;
+  pointer-events: none;
+}
+
+.ols-aio-agent-pulse--info .ols-aio-agent-pulse__dot {
+  background-color: var(--pf-t--global--color--status--info--default);
+}
+.ols-aio-agent-pulse--info .ols-aio-agent-pulse__ring {
+  border-color: var(--pf-t--global--color--status--info--default);
+}
+
+.ols-aio-agent-pulse--warning .ols-aio-agent-pulse__dot {
+  background-color: var(--pf-t--global--color--status--warning--default);
+}
+.ols-aio-agent-pulse--warning .ols-aio-agent-pulse__ring {
+  border-color: var(--pf-t--global--color--status--warning--default);
+}
+
+.ols-aio-agent-pulse--danger .ols-aio-agent-pulse__dot {
+  background-color: var(--pf-t--global--color--status--danger--default);
+}
+.ols-aio-agent-pulse--danger .ols-aio-agent-pulse__ring {
+  border-color: var(--pf-t--global--color--status--danger--default);
+}
+
+.ols-aio-agent-pulse--muted .ols-aio-agent-pulse__dot {
+  background-color: var(--pf-t--global--icon--color--subtle);
+}
+.ols-aio-agent-pulse--muted .ols-aio-agent-pulse__ring {
+  display: none;
+}
+
+/* Compact token usage chip in the Autonomous analysis card header actions. */
+.ols-aio-token-counter {
+  width: 200px;
+  box-sizing: border-box;
+}
+
+.ols-aio-token-counter__row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: var(--pf-t--global--spacer--md);
+  width: 100%;
+}
+
+.ols-aio-token-counter__label {
+  font-size: var(--pf-t--global--font--size--body--sm);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--subtle);
+  letter-spacing: 0.02em;
+}
+
+.ols-aio-token-counter__value {
+  justify-self: end;
+  text-align: right;
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  white-space: nowrap;
+}
+
+.ols-aio-token-counter__value strong {
+  color: var(--pf-t--global--text--color--link--default);
+}
+
+.ols-aio-token-counter .pf-v6-c-progress {
+  margin-top: 0;
+}
+
+.ols-aio-token-counter__progress-wrap {
+  display: block;
+  width: 100%;
+  margin-top: var(--pf-t--global--spacer--xs);
+}
+
+.ols-aio-token-counter__progress-wrap .pf-v6-c-progress {
+  width: 100%;
+}
+
+.ols-aio-token-counter__progress.pf-v6-c-progress {
+  grid-template-columns: 1fr;
+  grid-gap: 0;
+}
+
+@keyframes ols-aio-pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+.ols-aio-reasoning-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  padding-inline-start: var(--pf-t--global--spacer--2xl);
+}
+
+.ols-aio-reasoning-timeline::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 12px;
+  inset-block-start: 0;
+  inset-block-end: 0;
+  width: 2px;
+  background-color: var(--pf-t--global--border--color--default);
+}
+
+.ols-aio-reasoning-timeline__item {
+  position: relative;
+  padding-block-end: var(--pf-t--global--spacer--md);
+}
+
+.ols-aio-reasoning-timeline__node {
+  position: absolute;
+  inset-inline-start: -28px;
+  inset-block-start: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--pf-t--global--border--radius--pill, 999px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  border: 1px solid var(--pf-t--global--border--color--default);
+}
+
+/* Detected Root Cause / remediation surfaces — PF tokens (dark + glass safe). */
+.ols-ai-hub-page /*
+ * Fitted-line variant for the Reasoning chain section (v2 detail panel).
+ * Suppresses the full-height OL::before line and replaces it with per-item
+ * connectors that run only between adjacent node centers — the line no longer
+ * overshoots above the first circle or below the last circle.
+ *
+ * Geometry (node: inset-block-start 2px, height 24px):
+ *   connector start = 2px + 24px = 26px  (bottom edge of node)
+ *   connector end   = 0               (bottom of item = top of next item)
+ *   horizontal      = -17px           (center of 24px node at -28px: -28 + 12 = -16px center; 2px line left edge -17px)
+ */
+.ols-aio-reasoning-timeline--fitted::before {
+  display: none;
+}
+
+.ols-aio-reasoning-timeline--fitted .ols-aio-reasoning-timeline__item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: -17px;
+  inset-block-start: 26px;
+  inset-block-end: 0;
+  width: 2px;
+  background-color: var(--pf-t--global--border--color--default);
+}
+
+.ols-aio-rca-box {
+  border-radius: 16px;
+  overflow: hidden;
+  padding: var(--pf-t--global--spacer--md);
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.ols-ai-hub-page .ols-aio-rca-box--critical,
+.ols-ai-hub-page .ols-aio-rca-box--warning,
+.ols-ai-hub-page .ols-aio-rca-box--info {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-aio-rca-box,
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-aio-rca-box--critical,
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-aio-rca-box--warning,
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-aio-rca-box--info {
+  background-color: var(--ols-ai-hub-glass-surface-tint, rgb(255 255 255 / 50%)) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+  border: 1px solid var(
+    --ols-ai-hub-glass-chrome-border-color,
+    var(--pf-t--global--border--color--default)
+  );
+}
+
+.ols-ai-hub-page .ols-aio-code-block {
+  margin: 0;
+  padding: var(--pf-t--global--spacer--sm);
+  border: 1px solid var(--pf-t--global--border--color--default);
+  border-radius: var(--pf-t--global--border--radius--small);
+  background-color: var(--pf-t--global--background--color--secondary--default);
+  font-family: var(--pf-t--global--font--family--mono);
+  font-size: var(--pf-t--global--font--size--body--sm);
+  overflow: auto;
+  white-space: pre-wrap;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+.ols-ai-hub-page .ols-aio-remediation-box {
+  border-radius: var(--pf-t--global--border--radius--small);
+  padding: var(--pf-t--global--spacer--md);
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+  color: var(--pf-t--global--text--color--regular);
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page .ols-aio-remediation-box {
+  background-color: var(--ols-ai-hub-glass-surface-tint, rgb(255 255 255 / 50%)) !important;
+  backdrop-filter: var(--pf-t--global--background--filter--glass--blur--primary);
+  border: 1px solid var(
+    --ols-ai-hub-glass-chrome-border-color,
+    var(--pf-t--global--border--color--default)
+  );
+}
+
+/* Neutralise the extra block padding PF adds inside sort-Th buttons so that
+   sortable and non-sortable column headers sit on the same baseline. */
+.ols-plans-table thead .pf-v6-c-table__sort .pf-v6-c-table__button {
+  padding-block-start: 0;
+  padding-block-end: 0;
+  margin-block-end: 0;
+}
+
