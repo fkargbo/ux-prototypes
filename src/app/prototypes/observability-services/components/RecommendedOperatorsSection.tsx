@@ -48,7 +48,7 @@ export const RecommendedOperatorsSection: React.FC<RecommendedOperatorsSectionPr
       {!isExpanded && notInstalledCount > 0 && (
         <FlexItem>
           <Label color="grey" isCompact>
-            {notInstalledCount} Not installed
+            {notInstalledCount} Available
           </Label>
         </FlexItem>
       )}

@@ -225,9 +225,9 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     subtitle: 'COO · Korrel8r',
     status: {
       kind: 'available-addon',
-      label: 'Not installed',
+      label: 'Available',
       color: 'grey',
-      srText: 'Status: not installed',
+      srText: 'Status: available',
     },
     summary:
       'Execute correlation queries between observability signals — metrics, logs, traces, and alerts. Accessible via the OCP web console header actions once enabled.',
@@ -266,9 +266,9 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     subtitle: 'COO · Health Analyzer',
     status: {
       kind: 'available-addon',
-      label: 'Not installed',
+      label: 'Available',
       color: 'grey',
-      srText: 'Status: not installed',
+      srText: 'Status: available',
     },
     summary:
       'Group alerts into incidents to reduce alert noise and integrate with AIOps platforms. When enabled, adds an Incidents tab under Observe → Alerts.',
@@ -306,9 +306,9 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     title: 'Network observability',
     status: {
       kind: 'available-addon',
-      label: 'Not installed',
+      label: 'Available',
       color: 'grey',
-      srText: 'Status: not installed',
+      srText: 'Status: available',
     },
     summary:
       'eBPF-based network flow collection, cross-namespace traffic mapping, and egress analysis.',

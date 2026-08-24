@@ -28,7 +28,7 @@ const stateLabel = (state: KpiPopoverItem['state']): { text: string; color: 'gre
       return { text: 'Partial setup', color: 'grey' };
     case 'not-installed':
     default:
-      return { text: 'Not installed', color: 'grey' };
+      return { text: 'Available', color: 'grey' };
   }
 };
 import type {

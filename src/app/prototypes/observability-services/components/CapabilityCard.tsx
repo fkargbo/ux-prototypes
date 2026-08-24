@@ -75,9 +75,9 @@ const dependencyStateLabel = (state: CapabilityDependency['state']): string => {
     case 'attention':
       return 'Needs attention';
     case 'missing':
-      return 'Not installed';
+      return 'Available';
     default:
-      return 'Not installed';
+      return 'Available';
   }
 };
 
