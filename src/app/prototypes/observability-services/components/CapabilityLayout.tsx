@@ -7,6 +7,8 @@ import type { CapabilityCardData } from '../types';
 
 export interface CapabilityLayoutProps {
   capabilities: CapabilityCardData[];
+  /** When false the installed section renders as a plain heading without collapse. Default: true. */
+  collapsible?: boolean;
 }
 
 const SectionCards: React.FC<{ items: CapabilityCardData[] }> = ({ items }) => {
@@ -25,7 +27,10 @@ const SectionCards: React.FC<{ items: CapabilityCardData[] }> = ({ items }) => {
   );
 };
 
-export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({ capabilities }) => {
+export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({
+  capabilities,
+  collapsible = true,
+}) => {
   const installed = capabilities.filter((c) => c.category === 'installed');
   const recommended = capabilities.filter((c) => c.category === 'recommended');
 
@@ -33,17 +38,45 @@ export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({ capabilities
     <Stack hasGutter>
       {installed.length > 0 ? (
         <StackItem>
-          <InstalledOperatorsSection capabilities={installed}>
-            <SectionCards items={installed} />
-          </InstalledOperatorsSection>
+          {collapsible ? (
+            <InstalledOperatorsSection capabilities={installed}>
+              <SectionCards items={installed} />
+            </InstalledOperatorsSection>
+          ) : (
+            <section aria-labelledby="ols-obs-installed-heading">
+              <Title
+                headingLevel="h2"
+                size="lg"
+                id="ols-obs-installed-heading"
+                className="ols-obs-services-section-title"
+              >
+                Installed operators and add-ons
+              </Title>
+              <SectionCards items={installed} />
+            </section>
+          )}
         </StackItem>
       ) : null}
 
       {recommended.length > 0 ? (
         <StackItem>
-          <RecommendedOperatorsSection capabilities={recommended}>
-            <SectionCards items={recommended} />
-          </RecommendedOperatorsSection>
+          {collapsible ? (
+            <RecommendedOperatorsSection capabilities={recommended}>
+              <SectionCards items={recommended} />
+            </RecommendedOperatorsSection>
+          ) : (
+            <section aria-labelledby="ols-obs-recommended-heading">
+              <Title
+                headingLevel="h2"
+                size="lg"
+                id="ols-obs-recommended-heading"
+                className="ols-obs-services-section-title"
+              >
+                Recommended operators (not installed)
+              </Title>
+              <SectionCards items={recommended} />
+            </section>
+          )}
         </StackItem>
       ) : null}
     </Stack>

@@ -226,10 +226,10 @@ export const OperationalKPIRibbon: React.FC<OperationalKPIRibbonProps> = ({ stat
       >
         Stack summary
       </Title>
-      {/* 3 equal columns on lg+, stack on md/sm */}
+      {/* Equal columns on lg+, derived from stat count: 3 stats → lg=4, 4 stats → lg=3 */}
       <Grid hasGutter>
         {stats.map((stat) => (
-          <GridItem key={stat.id} span={12} md={6} lg={4}>
+          <GridItem key={stat.id} span={12} md={6} lg={Math.floor(12 / stats.length) as 3 | 4 | 6}>
             <KpiCard stat={stat} navigate={navigate} />
           </GridItem>
         ))}
