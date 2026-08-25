@@ -3,8 +3,6 @@ import {
   Alert,
   AlertActionCloseButton,
   Content,
-  Flex,
-  FlexItem,
   Stack,
   StackItem,
   Title,
@@ -15,19 +13,24 @@ import { OperationalKPIRibbon } from '../components/OperationalKPIRibbon';
 import { CapabilityLayout } from '../components/CapabilityLayout';
 import { ProjectSwitcher } from '../components/ProjectSwitcher';
 import { VersionSelector, usePrototypeVersion } from '../components/VersionSelector';
+import { useInjectBannerActions } from '@app/core/BannerActionsContext';
 import '../observability-services.css';
 
 /**
  * Observe → Observability services
  * Post–Cluster Observability Operator installation hub.
  *
- * Versioning via URL search param:
+ * Versioning via URL search param (controls surfaced in the prototype banner):
  *   ?version=v1  →  v1.0.0 legacy baseline (frozen)
  *   (no param)   →  v2.0.0 current iteration (default)
  */
 export const ObservabilityServicesPage: React.FC = () => {
   const [isScopeAlertVisible, setIsScopeAlertVisible] = useState(true);
   const version = usePrototypeVersion();
+
+  // Inject the VersionSelector into the prototype banner bar (next to Share).
+  // Clears automatically on unmount — no cleanup needed here.
+  useInjectBannerActions(<VersionSelector />);
 
   const isV1 = version === 'v1';
   const kpiStats = isV1 ? OPERATIONAL_KPI_STATS_V1 : OPERATIONAL_KPI_STATS;
@@ -36,18 +39,7 @@ export const ObservabilityServicesPage: React.FC = () => {
   return (
     <div className="ols-obs-services-page">
       <div className="template-page-breadcrumb">
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          flexWrap={{ default: 'nowrap' }}
-        >
-          <FlexItem>
-            <ProjectSwitcher />
-          </FlexItem>
-          <FlexItem>
-            <VersionSelector />
-          </FlexItem>
-        </Flex>
+        <ProjectSwitcher />
       </div>
 
       <div className="template-page-heading">

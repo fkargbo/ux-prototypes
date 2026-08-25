@@ -29,6 +29,7 @@ import { usePrototype } from './PrototypeContext';
 import { prototypeRegistry } from './PrototypeRegistry';
 import { getGithubPagesBasenameNoSlash } from './githubPagesBase';
 import { findPrototypeIdForPath } from './deepLinkUtils';
+import { BannerActionsProvider, useBannerActions } from './BannerActionsContext';
 import {
   BANNER_VERSION_CHANGE_EVENT,
   getBannerVersionStorageKey,
@@ -40,7 +41,8 @@ interface PrototypeLayoutProps {
   prototype: PrototypeModule;
 }
 
-export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) => {
+const PrototypeLayoutInner: React.FC<PrototypeLayoutProps> = ({ prototype }) => {
+  const { bannerActions } = useBannerActions();
   const { unloadPrototype, loadPrototype } = usePrototype();
   const navigate = useNavigate();
   const location = useLocation();
@@ -56,7 +58,9 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
     // link stays consistent regardless of which sub-page the user is currently viewing.
     const canonicalPath = prototype.config.shareUrl ?? null;
     const activePath = canonicalPath ?? location.pathname;
-    const activeSearch = canonicalPath ? '' : location.search;
+    // Always include search params so versioned URLs (e.g. ?version=v1) round-trip
+    // through the Share link correctly.
+    const activeSearch = location.search;
     const activeHash = canonicalPath ? '' : location.hash;
     const u = new URL(`${base}${activePath}${activeSearch}${activeHash}`, window.location.origin);
     // Only add ?prototype= when the path alone is ambiguous (e.g. "/" matches no prototype).
@@ -281,6 +285,9 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
               </Select>
             </FlexItem>
           )}
+          {/* Generic slot: prototype pages can inject controls here via useInjectBannerActions() */}
+          {bannerActions ? <FlexItem>{bannerActions}</FlexItem> : null}
+
           <FlexItem>
             <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
               <Dropdown
@@ -423,4 +430,10 @@ export const PrototypeLayout: React.FC<PrototypeLayoutProps> = ({ prototype }) =
     </QuotasProvider>
   );
 };
+
+export const PrototypeLayout: React.FC<PrototypeLayoutProps> = (props) => (
+  <BannerActionsProvider>
+    <PrototypeLayoutInner {...props} />
+  </BannerActionsProvider>
+);
 
