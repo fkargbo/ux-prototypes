@@ -9,9 +9,14 @@ export interface CapabilityLayoutProps {
   capabilities: CapabilityCardData[];
   /** When false the installed section renders as a plain heading without collapse. Default: true. */
   collapsible?: boolean;
+  /** Forwarded to each CapabilityCard. Called with the dep ID when an inline dep action is clicked. */
+  onDepAction?: (depId: string) => void;
 }
 
-const SectionCards: React.FC<{ items: CapabilityCardData[] }> = ({ items }) => {
+const SectionCards: React.FC<{ items: CapabilityCardData[]; onDepAction?: (depId: string) => void }> = ({
+  items,
+  onDepAction,
+}) => {
   if (items.length === 0) {
     return null;
   }
@@ -20,7 +25,7 @@ const SectionCards: React.FC<{ items: CapabilityCardData[] }> = ({ items }) => {
     <Grid hasGutter className="ols-obs-services-section-cards">
       {items.map((cap) => (
         <GridItem key={cap.id} span={12} md={6} lg={3}>
-          <CapabilityCard capability={cap} />
+          <CapabilityCard capability={cap} onDepAction={onDepAction} />
         </GridItem>
       ))}
     </Grid>
@@ -30,6 +35,7 @@ const SectionCards: React.FC<{ items: CapabilityCardData[] }> = ({ items }) => {
 export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({
   capabilities,
   collapsible = true,
+  onDepAction,
 }) => {
   const installed = capabilities.filter((c) => c.category === 'installed');
   const recommended = capabilities.filter((c) => c.category === 'recommended');
@@ -40,7 +46,7 @@ export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({
         <StackItem>
           {collapsible ? (
             <InstalledOperatorsSection capabilities={installed}>
-              <SectionCards items={installed} />
+              <SectionCards items={installed} onDepAction={onDepAction} />
             </InstalledOperatorsSection>
           ) : (
             <section aria-labelledby="ols-obs-installed-heading">
@@ -52,7 +58,7 @@ export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({
               >
                 Installed operators and add-ons
               </Title>
-              <SectionCards items={installed} />
+              <SectionCards items={installed} onDepAction={onDepAction} />
             </section>
           )}
         </StackItem>
@@ -62,7 +68,7 @@ export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({
         <StackItem>
           {collapsible ? (
             <RecommendedOperatorsSection capabilities={recommended}>
-              <SectionCards items={recommended} />
+              <SectionCards items={recommended} onDepAction={onDepAction} />
             </RecommendedOperatorsSection>
           ) : (
             <section aria-labelledby="ols-obs-recommended-heading">
@@ -74,7 +80,7 @@ export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({
               >
                 Recommended operators (not installed)
               </Title>
-              <SectionCards items={recommended} />
+              <SectionCards items={recommended} onDepAction={onDepAction} />
             </section>
           )}
         </StackItem>

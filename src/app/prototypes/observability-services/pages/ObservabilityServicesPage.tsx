@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Alert,
   AlertActionCloseButton,
@@ -7,13 +7,20 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { CAPABILITY_CARDS_V2, OPERATIONAL_KPI_STATS } from '../data';
+import {
+  CAPABILITY_CARDS_V2_DAY0,
+  CAPABILITY_CARDS_V2_DAY1,
+  OPERATIONAL_KPI_STATS,
+} from '../data';
 import { CAPABILITY_CARDS_V1, OPERATIONAL_KPI_STATS_V1 } from '../data.v1';
 import { OperationalKPIRibbon } from '../components/OperationalKPIRibbon';
 import { CapabilityLayout } from '../components/CapabilityLayout';
-import { CapabilityLayoutDayZero } from '../components/CapabilityLayoutDayZero';
 import { ProjectSwitcher } from '../components/ProjectSwitcher';
 import { VersionSelector, usePrototypeVersion } from '../components/VersionSelector';
+import {
+  SimulationStepBanner,
+  type SimulationStep,
+} from '../components/SimulationStepBanner';
 import { useInjectBannerActions } from '@app/core/BannerActionsContext';
 import '../observability-services.css';
 
@@ -23,18 +30,37 @@ import '../observability-services.css';
  *
  * Versioning via URL search param (controls surfaced in the prototype banner):
  *   ?version=v1  →  v1.0.0 legacy baseline (frozen)
- *   (no param)   →  v2.0.0 current iteration (default)
+ *   (no param)   →  v2.0.0 Day 0 / Day 1 simulation (default)
+ *
+ * v2 simulation:
+ *   Day 0 — COO installed, MonitoringStack CR not configured.
+ *   Day 1 — MonitoringStack configured; Metrics & Alerting becomes active.
+ *   Transition triggered by the SimulationStepBanner button OR by clicking
+ *   the "Configure" dep-action on the MonitoringStack CR dep row.
  */
 export const ObservabilityServicesPage: React.FC = () => {
   const [isScopeAlertVisible, setIsScopeAlertVisible] = useState(true);
-  const version = usePrototypeVersion();
+  const [simulationStep, setSimulationStep] = useState<SimulationStep>('day0');
 
-  // Inject the VersionSelector into the prototype banner bar (next to Share).
-  // Clears automatically on unmount — no cleanup needed here.
+  const version = usePrototypeVersion();
   useInjectBannerActions(<VersionSelector />);
 
   const isV1 = version === 'v1';
   const kpiStats = isV1 ? OPERATIONAL_KPI_STATS_V1 : OPERATIONAL_KPI_STATS;
+
+  const v2Cards =
+    simulationStep === 'day0' ? CAPABILITY_CARDS_V2_DAY0 : CAPABILITY_CARDS_V2_DAY1;
+
+  // Called by CapabilityCard when an inline dep-action button is clicked.
+  // "monitoring-stack-cr" is the Day 0 dep that drives the simulation transition.
+  const handleDepAction = useCallback(
+    (depId: string) => {
+      if (depId === 'monitoring-stack-cr' && simulationStep === 'day0') {
+        setSimulationStep('day1');
+      }
+    },
+    [simulationStep],
+  );
 
   return (
     <div className="ols-obs-services-page">
@@ -81,7 +107,18 @@ export const ObservabilityServicesPage: React.FC = () => {
             {isV1 ? (
               <CapabilityLayout capabilities={CAPABILITY_CARDS_V1} collapsible={false} />
             ) : (
-              <CapabilityLayoutDayZero cards={CAPABILITY_CARDS_V2} />
+              <>
+                <SimulationStepBanner
+                  step={simulationStep}
+                  onAdvance={() => setSimulationStep('day1')}
+                  onReset={() => setSimulationStep('day0')}
+                />
+                <CapabilityLayout
+                  capabilities={v2Cards}
+                  collapsible={false}
+                  onDepAction={handleDepAction}
+                />
+              </>
             )}
           </StackItem>
         </Stack>

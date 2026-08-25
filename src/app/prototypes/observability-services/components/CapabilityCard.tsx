@@ -30,6 +30,12 @@ import { OperationalHealthLabel } from './OperationalHealthLabel';
 
 export interface CapabilityCardProps {
   capability: CapabilityCardData;
+  /**
+   * Optional callback fired when a dependency inline-action button is clicked.
+   * Receives the dep ID. Used by the v2 simulation to advance the scenario step
+   * when the user triggers a specific action (e.g. "Configure MonitoringStack CR").
+   */
+  onDepAction?: (depId: string) => void;
 }
 
 const DependencyIcon: React.FC<{ state: CapabilityDependency['state'] }> = ({ state }) => {
@@ -81,7 +87,7 @@ const dependencyStateLabel = (state: CapabilityDependency['state']): string => {
   }
 };
 
-export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) => {
+export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onDepAction }) => {
   const navigate = useNavigate();
 
   const handleAction = (action: CapabilityAction) => {
@@ -175,7 +181,14 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
                           <Button
                             variant="link"
                             isInline
+                            icon={
+                              dep.action.isExternal ? (
+                                <ExternalLinkAltIcon style={{ verticalAlign: 'middle' }} />
+                              ) : undefined
+                            }
+                            iconPosition="end"
                             onClick={() => {
+                              onDepAction?.(dep.id);
                               if (dep.action!.isExternal || dep.action!.href?.startsWith('http')) {
                                 window.open(dep.action!.href, '_blank', 'noopener,noreferrer');
                               } else if (dep.action!.href) {

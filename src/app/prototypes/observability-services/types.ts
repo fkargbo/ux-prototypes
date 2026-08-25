@@ -77,45 +77,6 @@ export interface CapabilityCardData {
   runtimeHealth?: RuntimeHealthState;
 }
 
-// ─── v2.0.0 Day-0 Dependency Lifecycle ───────────────────────────────────────
-
-/**
- * Four-state lifecycle for each dependency row in a Day-0 capability card.
- *
- *  blocked          → COO core stack absent; action disabled, "Prerequisite required" label
- *  missing-operator → COO present, Operator absent; "Install" → external OperatorHub URL
- *  disabled-cr      → Operator present, UI Plugin CR absent; "Enable" → mock CR creation
- *  ready            → Operator + CR active; green "Installed / Enabled / Running" label
- */
-export type DependencyLifecycleState = 'blocked' | 'missing-operator' | 'disabled-cr' | 'ready';
-
-export interface V2DependencyItem {
-  id: string;
-  /** Row label shown in the name column (e.g. "Loki Operator"). */
-  label: string;
-  state: DependencyLifecycleState;
-  /** Shown in the right column when state === 'ready'. Default: 'Installed'. */
-  readyLabel?: string;
-  /** External OperatorHub URL (required when state === 'missing-operator'). */
-  operatorHubUrl?: string;
-  /** Button label for 'missing-operator' state. Default: 'Install'. */
-  installLabel?: string;
-  /** Button label for 'disabled-cr' state. Default: 'Enable'. */
-  crActionLabel?: string;
-}
-
-export interface V2CapabilityCard {
-  id: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  category: 'installed' | 'recommended';
-  dependencies: V2DependencyItem[];
-  learnMoreHref?: string;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
 /** Visual severity tint applied to an operational KPI card. */
 export type OperationalKpiVariant = 'danger' | 'success' | 'warning' | 'neutral';
 
