@@ -244,13 +244,13 @@ const PrototypeLayoutInner: React.FC<PrototypeLayoutProps> = ({ prototype }) => 
                 </SelectList>
               </Select>
             </FlexItem>
-          ) : (
+          ) : !bannerActions ? (
             <FlexItem>
               <span style={{ color: 'var(--pf-v5-global--Color--200)' }}>
                 Version: {prototype.config.version}
               </span>
             </FlexItem>
-          )}
+          ) : null}
           
           {/* Use Case Selector (if has siblings) */}
           {hasUseCases && (
