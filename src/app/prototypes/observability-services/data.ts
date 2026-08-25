@@ -8,18 +8,6 @@ import type { CapabilityCardData, KpiPopoverItem, OperationalKpiStat } from './t
  */
 export const OPERATIONAL_KPI_STATS: OperationalKpiStat[] = [
   {
-    id: 'alert-posture',
-    category: 'Alerts',
-    value: '27',
-    label: 'Critical alerts',
-    subtext: 'Active firing alerts',
-    variant: 'danger',
-    zeroVariant: 'success',
-    valueIconVariant: 'danger',
-    valueIsLink: true,
-    // href: '/core/observe/alerting?severity=critical' — wire up once Alerting page is ready
-  },
-  {
     id: 'capabilities-ready',
     category: 'Capabilities ready',
     value: '3/7',

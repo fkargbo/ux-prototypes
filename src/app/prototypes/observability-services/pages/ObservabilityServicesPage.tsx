@@ -80,7 +80,7 @@ export const ObservabilityServicesPage: React.FC = () => {
           <StackItem>
             <CapabilityLayout
               capabilities={capabilityCards}
-              collapsible={!isV1}
+              collapsible={false}
             />
           </StackItem>
         </Stack>
