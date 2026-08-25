@@ -7,10 +7,11 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { CAPABILITY_CARDS, OPERATIONAL_KPI_STATS } from '../data';
+import { CAPABILITY_CARDS_V2, OPERATIONAL_KPI_STATS } from '../data';
 import { CAPABILITY_CARDS_V1, OPERATIONAL_KPI_STATS_V1 } from '../data.v1';
 import { OperationalKPIRibbon } from '../components/OperationalKPIRibbon';
 import { CapabilityLayout } from '../components/CapabilityLayout';
+import { CapabilityLayoutDayZero } from '../components/CapabilityLayoutDayZero';
 import { ProjectSwitcher } from '../components/ProjectSwitcher';
 import { VersionSelector, usePrototypeVersion } from '../components/VersionSelector';
 import { useInjectBannerActions } from '@app/core/BannerActionsContext';
@@ -34,7 +35,6 @@ export const ObservabilityServicesPage: React.FC = () => {
 
   const isV1 = version === 'v1';
   const kpiStats = isV1 ? OPERATIONAL_KPI_STATS_V1 : OPERATIONAL_KPI_STATS;
-  const capabilityCards = isV1 ? CAPABILITY_CARDS_V1 : CAPABILITY_CARDS;
 
   return (
     <div className="ols-obs-services-page">
@@ -78,10 +78,11 @@ export const ObservabilityServicesPage: React.FC = () => {
           </StackItem>
 
           <StackItem>
-            <CapabilityLayout
-              capabilities={capabilityCards}
-              collapsible={false}
-            />
+            {isV1 ? (
+              <CapabilityLayout capabilities={CAPABILITY_CARDS_V1} collapsible={false} />
+            ) : (
+              <CapabilityLayoutDayZero cards={CAPABILITY_CARDS_V2} />
+            )}
           </StackItem>
         </Stack>
       </div>
