@@ -29,7 +29,7 @@ export const MVP_ALERT_NAME_TO_EXISTING_PLAN_ID: Record<string, string> = {
   CertExpiring: 'op2',
   DiskPressure: 'op3',
   HighCPUUsage: 'op1',
-  QuotaWarning: 'cp3',
+  QuotaWarning: 'cp4',
   ServiceUnavailable: 'op1',
   // Observe dataset
   PaymentsAPI5xxSurge: 'op1',
@@ -63,27 +63,9 @@ export type AlertInvestigationPayload = {
  * Alerts that already have an active remediation plan in Observe troubleshooting plans.
  * Keys match alerting table `alertName` values (kuklas mock + Observe `ALERTS` titles).
  */
+/** Alert → MVP catalog plan ids (must exist in `plansMvpConstants.MVP_PLAN_IDS`). */
 export const ALERT_NAME_TO_EXISTING_PLAN_ID: Record<string, string> = {
-  // Observe dataset
-  PaymentsAPI5xxSurge: 'tp1',
-  EtcdDiskPressureOnMaster2: 'tp5',
-  CheckoutSvcCPUThrottling: 'tp3',
-  IngressTLSCertExpiresIn36h: 'ap3',
-  RegionalIngressFailure: 'tp1',
-  ImageRegistryPersistentVolumeFull: 'tp4',
-  APIIngressLatencySpike: 'tp1',
-  ControlPlaneNodeNotReadyFlap: 'ap5',
-  NodeFilesystemAlmostFull: 'tp4',
-  // Kuklas fleet alerting mock
-  PodCrashLoopBackOff: 'tp3',
-  HighMemoryUsage: 'tp3',
-  ETCDHighLatency: 'tp5',
-  NetworkLatency: 'ap4',
-  CertExpiring: 'ap3',
-  DiskPressure: 'tp4',
-  HighCPUUsage: 'ap1',
-  QuotaWarning: 'ap6',
-  ServiceUnavailable: 'tp1',
+  ...MVP_ALERT_NAME_TO_EXISTING_PLAN_ID,
 };
 
 export type InvestigationPlanDraft = {

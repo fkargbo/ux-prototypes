@@ -35,7 +35,7 @@ function planFromAlertPayload(payload: AlertInvestigationPayload, planId?: strin
     score: draft.score,
     synopsis: draft.synopsis,
     consolidationScope: `Triggered by alert: ${payload.alertName}`,
-    triggerDomain: 'Observability',
+    triggerDomain: 'Prometheus',
     drawerTargets: draft.drawerTargets,
     expandedReasons: draft.expandedReasons.map((reason) => ({
       icon: reason.icon,

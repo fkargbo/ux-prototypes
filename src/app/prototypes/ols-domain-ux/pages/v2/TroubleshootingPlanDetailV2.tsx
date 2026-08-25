@@ -29,6 +29,7 @@ import {
   writePlanRemediationDrillSession,
 } from '../v2PlanRemediationDrillSession';
 import { resolvePlanDomainAnnotations } from '../ai-hub-plans-v2/domainPlanNavigation';
+import { readTroubleshootingPlanDrillSession } from '../alertInvestigationRegistry';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { RECOMMENDATION_HUB_LIST_PATH } from '../../domainInvestigationHandoff';
@@ -84,6 +85,8 @@ export const TroubleshootingPlanDetailV2: React.FC<{ listContext?: PlanDetailLis
     );
     if (catalogPlan) return catalogPlan;
     if (navigationState?.plan?.id === decoded) return navigationState.plan;
+    const sessionPlan = readTroubleshootingPlanDrillSession();
+    if (sessionPlan?.id === decoded) return sessionPlan;
     return null;
   }, [isSingleCluster, navigationState?.plan, planExecutionRuntime, planId]);
 
