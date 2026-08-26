@@ -27,7 +27,7 @@ export const OPERATIONAL_KPI_STATS_V2_DAY0: OperationalKpiStat[] = [
   },
   {
     id: 'operator-health',
-    category: 'Operator health',
+    category: 'Component health',
     value: '0',
     label: 'Degraded',
     subtext: 'No operators running',
@@ -58,7 +58,7 @@ export const OPERATIONAL_KPI_STATS: OperationalKpiStat[] = [
   },
   {
     id: 'operator-health',
-    category: 'Operator health',
+    category: 'Component health',
     value: '1',
     label: 'Degraded',
     subtext: '1 degraded — OTELCollector',

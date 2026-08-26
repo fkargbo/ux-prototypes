@@ -70,7 +70,7 @@ export const OPERATIONAL_KPI_STATS_V1: OperationalKpiStat[] = [
   },
   {
     id: 'operator-health',
-    category: 'Operator health',
+    category: 'Component health',
     value: '1',
     label: 'Degraded',
     subtext: 'Enabled but not ready',
