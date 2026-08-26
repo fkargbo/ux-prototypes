@@ -112,22 +112,24 @@ export const ObservabilityServicesPage: React.FC = () => {
             {isV1 ? (
               <CapabilityLayout capabilities={CAPABILITY_CARDS_V1} collapsible={false} />
             ) : (
-              <>
-                <SimulationStepBanner
-                  step={simulationStep}
-                  onAdvance={() => setSimulationStep('day1')}
-                  onReset={() => setSimulationStep('day0')}
-                />
-                <CapabilityLayout
-                  capabilities={v2Cards}
-                  collapsible={false}
-                  onDepAction={handleDepAction}
-                />
-              </>
+              <CapabilityLayout
+                capabilities={v2Cards}
+                collapsible={false}
+                onDepAction={handleDepAction}
+              />
             )}
           </StackItem>
         </Stack>
       </div>
+
+      {/* Floating prototype control — fixed bottom-left, outside the page design */}
+      {!isV1 ? (
+        <SimulationStepBanner
+          step={simulationStep}
+          onAdvance={() => setSimulationStep('day1')}
+          onReset={() => setSimulationStep('day0')}
+        />
+      ) : null}
     </div>
   );
 };
