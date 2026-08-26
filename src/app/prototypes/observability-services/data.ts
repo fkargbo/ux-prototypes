@@ -559,7 +559,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     dependencies: [
       { id: 'tracing-ui-cr',    label: 'COO Distributed Tracing UI Plugin CR', state: 'ready' },
       { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack',          state: 'ready' },
-      { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'degraded', detail: 'OTELCollector not ready', action: { label: 'View OTELCollector', href: COO_CR_PATH } },
+      { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'degraded', detail: 'OTELCollector: Container CrashLoopBackOff', action: { label: 'View OTELCollector', href: COO_CR_PATH } },
     ],
     actions: [
       { id: 'tracing-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/distributed-tracing-ui-plugin', isExternal: true },
