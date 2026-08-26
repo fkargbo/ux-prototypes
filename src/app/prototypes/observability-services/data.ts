@@ -16,9 +16,9 @@ export const OPERATIONAL_KPI_STATS_V2_DAY0: OperationalKpiStat[] = [
     subtext: 'Install COO to get started',
     variant: 'warning',
     popoverItems: [
-      { id: 'pop-metrics-alerting',      title: 'Metrics & Alerting',    state: 'not-installed' },
+      { id: 'pop-metrics-alerting',      title: 'Monitoring',            state: 'not-installed' },
       { id: 'pop-dashboards',            title: 'Dashboards',            state: 'not-installed' },
-      { id: 'pop-logs',                  title: 'Logs',                  state: 'not-installed' },
+      { id: 'pop-logs',                  title: 'Logging',               state: 'not-installed' },
       { id: 'pop-distributed-tracing',   title: 'Distributed tracing',   state: 'not-installed' },
       { id: 'pop-signal-correlation',    title: 'Signal Correlation',    state: 'not-installed' },
       { id: 'pop-incident-detection',    title: 'Incident detection',    state: 'not-installed' },
@@ -47,9 +47,9 @@ export const OPERATIONAL_KPI_STATS: OperationalKpiStat[] = [
     subtext: '6 pending setup',
     variant: 'warning',
     popoverItems: [
-      { id: 'pop-metrics-alerting',      title: 'Metrics & Alerting',   state: 'ready' },
+      { id: 'pop-metrics-alerting',      title: 'Monitoring',           state: 'ready' },
       { id: 'pop-dashboards',            title: 'Dashboards',           state: 'partial-setup' },
-      { id: 'pop-logs',                  title: 'Logs',                 state: 'partial-setup' },
+      { id: 'pop-logs',                  title: 'Logging',              state: 'partial-setup' },
       { id: 'pop-distributed-tracing',   title: 'Distributed tracing',  state: 'partial-setup' },
       { id: 'pop-signal-correlation',    title: 'Signal Correlation',   state: 'not-installed' },
       { id: 'pop-incident-detection',    title: 'Incident detection',   state: 'not-installed' },
@@ -385,7 +385,6 @@ const COO_DEP = {
   id: 'coo-operator',
   label: 'Cluster Observability Operator',
   state: 'missing' as const,
-  detail: 'Not installed',
   action: { label: 'Install', href: COO_OPERATORHUB_URL, isExternal: true },
 };
 
@@ -393,7 +392,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
   // ── Installed ────────────────────────────────────────────────────────────────
   {
     id: 'metrics-alerting',
-    title: 'Metrics & Alerting',
+    title: 'Monitoring',
     subtitle: 'COO · MonitoringStack',
     status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
     summary: 'Core metrics collection and alerting powered by Prometheus and Alertmanager. Available under Observe → Metrics and Observe → Alerting.',
@@ -429,7 +428,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
   },
   {
     id: 'logs',
-    title: 'Logs',
+    title: 'Logging',
     subtitle: 'COO · Loki · CLO',
     status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
     summary: 'Execute log-based queries for application, infrastructure, and audit logs. Available under Observe → Logs once all dependencies are configured.',
@@ -504,7 +503,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     category: 'recommended',
     searchTerms: ['network', 'ebpf', 'flows', 'netobserv'],
     dependencies: [
-      { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', detail: 'Not installed', action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability', isExternal: true } },
+      { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability', isExternal: true } },
     ],
     actions: [
       { id: 'network-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/index', isExternal: true },
@@ -518,7 +517,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
 export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
   {
     id: 'metrics-alerting',
-    title: 'Metrics & Alerting',
+    title: 'Monitoring',
     subtitle: 'COO · MonitoringStack',
     status: { kind: 'fully-enabled', label: 'Ready', color: 'green', srText: 'Status: ready' },
     summary: 'Core metrics collection and alerting powered by Prometheus and Alertmanager. Available under Observe → Metrics and Observe → Alerting.',
@@ -553,7 +552,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
   },
   {
     id: 'logs',
-    title: 'Logs',
+    title: 'Logging',
     subtitle: 'COO · Loki · CLO',
     status: { kind: 'configuration-required', label: 'Partial setup', color: 'grey', srText: 'Status: partial setup — Logging UI Plugin disabled' },
     summary: 'Execute log-based queries for application, infrastructure, and audit logs. Available under Observe → Logs once the UI plugin is enabled.',

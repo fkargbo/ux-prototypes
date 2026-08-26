@@ -44,7 +44,7 @@ export const OPERATIONAL_KPI_STATS_V1: OperationalKpiStat[] = [
     popoverItems: [
       {
         id: 'pop-logs',
-        title: 'Logs',
+        title: 'Logging',
         state: 'partial-setup',
         href: '/k8s/ns/openshift-cluster-observability-operator/operators.coreos.com~v1alpha1~ClusterServiceVersion',
       },
@@ -83,7 +83,7 @@ export const OPERATIONAL_KPI_STATS_V1: OperationalKpiStat[] = [
 export const CAPABILITY_CARDS_V1: CapabilityCardData[] = [
   {
     id: 'metrics-alerting',
-    title: 'Metrics & Alerting',
+    title: 'Monitoring',
     subtitle: 'COO · MonitoringStack',
     status: {
       kind: 'fully-enabled',
@@ -141,7 +141,7 @@ export const CAPABILITY_CARDS_V1: CapabilityCardData[] = [
   },
   {
     id: 'logs',
-    title: 'Logs',
+    title: 'Logging',
     subtitle: 'COO · Loki · CLO',
     status: {
       kind: 'configuration-required',

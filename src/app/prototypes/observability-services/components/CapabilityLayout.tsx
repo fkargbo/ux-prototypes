@@ -56,7 +56,7 @@ export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({
                 id="ols-obs-installed-heading"
                 className="ols-obs-services-section-title"
               >
-                Installed operators and add-ons
+                Core capabilities
               </Title>
               <SectionCards items={installed} onDepAction={onDepAction} />
             </section>
@@ -78,7 +78,7 @@ export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({
                 id="ols-obs-recommended-heading"
                 className="ols-obs-services-section-title"
               >
-                Recommended operators (not installed)
+                Additional capabilities
               </Title>
               <SectionCards items={recommended} onDepAction={onDepAction} />
             </section>

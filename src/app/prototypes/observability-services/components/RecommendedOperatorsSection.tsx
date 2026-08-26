@@ -41,7 +41,7 @@ export const RecommendedOperatorsSection: React.FC<RecommendedOperatorsSectionPr
     >
       <FlexItem>
         <Title headingLevel="h2" size="lg" id="ols-obs-recommended-heading">
-          Recommended operators (not installed)
+          Additional capabilities
         </Title>
       </FlexItem>
 

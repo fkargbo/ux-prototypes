@@ -16,6 +16,7 @@ import {
   ListItem,
   Content,
   Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
@@ -65,10 +66,12 @@ const DependencyIcon: React.FC<{ state: CapabilityDependency['state'] }> = ({ st
   }
   // 'missing' — component not yet installed or configured
   return (
-    <MinusCircleIcon
-      color="var(--pf-t--global--icon--color--subtle)"
-      aria-hidden
-    />
+    <Tooltip content="Not installed" position="right">
+      <MinusCircleIcon
+        color="var(--pf-t--global--icon--color--subtle)"
+        aria-label="Not installed"
+      />
+    </Tooltip>
   );
 };
 
