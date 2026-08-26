@@ -1,12 +1,10 @@
 /**
  * SimulationStepBanner
  *
- * Floating prototype control anchored to the bottom-left of the PAGE CONTENT
- * COLUMN (i.e. to the right of the sidebar navigation). Uses
- * `--pf-v6-c-page__sidebar--Width` — the CSS variable PF sets on the Page
- * root — to offset `position:fixed` past the sidebar so the panel never
- * overlaps the nav. Intentionally separated from the page design so it does
- * not interfere with stakeholder reviews.
+ * Floating prototype control fixed to the bottom-left corner of the device
+ * viewport, sitting above the page content layer (including the sidebar nav).
+ * Lets the presenter toggle the Day 0 ↔ Day 1 scenario without the control
+ * being mistaken for part of the design.
  */
 
 import React from 'react';
@@ -36,7 +34,7 @@ const STEP_META: Record<
     labelColor: 'blue',
     description:
       'COO not yet installed — no capabilities are active. Use the "Install" action on any card or the button below to simulate installing COO.',
-    actionLabel: 'Advance to Day 1',
+    actionLabel: 'Advance to Day 1 →',
     isAdvance: true,
   },
   day1: {
@@ -64,63 +62,36 @@ export const SimulationStepBanner: React.FC<SimulationStepBannerProps> = ({
       style={{
         position: 'fixed',
         bottom: '24px',
-        /* Offset past the PF sidebar so the panel sits at the left edge of the
-           content column, not over the navigation. Falls back to 185 px when
-           the PF variable isn't found (e.g. in a local build variant). */
-        left: 'calc(var(--pf-v6-c-page__sidebar--Width, 185px) + 16px)',
+        left: '24px',
         zIndex: 9999,
-        width: '260px',
+        width: '300px',
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
         border: '1px solid var(--pf-t--global--border--color--default)',
         borderRadius: 'var(--pf-t--global--border--radius--small)',
-        boxShadow:
-          '0 4px 12px rgba(0,0,0,0.15), 0 1px 4px rgba(0,0,0,0.08)',
-        padding: 'var(--pf-t--global--spacer--md)',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08)',
+        padding: '20px 20px 20px 20px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 'var(--pf-t--global--spacer--sm)',
+        gap: '16px',
       }}
     >
-      {/* Header row: "Prototype control" eyebrow + scenario label */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <span
-          style={{
-            fontSize: 'var(--pf-t--global--font--size--body--xs)',
-            fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-            color: 'var(--pf-t--global--text--color--subtle)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em',
-          }}
-        >
-          Prototype control
-        </span>
-        <Label color={meta.labelColor} isCompact>
-          Scenario: {meta.label}
-        </Label>
-      </div>
+      <Label color={meta.labelColor} isCompact style={{ alignSelf: 'flex-start' }}>
+        Scenario: {meta.label}
+      </Label>
 
-      {/* Description */}
       <p
         style={{
           margin: 0,
-          fontSize: 'var(--pf-t--global--font--size--body--sm)',
-          color: 'var(--pf-t--global--text--color--subtle)',
+          fontSize: 'var(--pf-t--global--font--size--body--default)',
+          color: 'var(--pf-t--global--text--color--regular)',
           lineHeight: 'var(--pf-t--global--font--line-height--body)',
         }}
       >
         {meta.description}
       </p>
 
-      {/* Action button */}
       <Button
         variant="secondary"
-        size="sm"
         icon={meta.isAdvance ? <ArrowRightIcon /> : <UndoIcon />}
         iconPosition="end"
         onClick={meta.isAdvance ? onAdvance : onReset}
