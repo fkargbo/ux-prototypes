@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Button, Label } from '@patternfly/react-core';
 import { ArrowRightIcon, UndoIcon } from '@patternfly/react-icons';
 
@@ -54,7 +55,7 @@ export const SimulationStepBanner: React.FC<SimulationStepBannerProps> = ({
 }) => {
   const meta = STEP_META[step];
 
-  return (
+  const panel = (
     <div
       role="status"
       aria-live="polite"
@@ -65,14 +66,15 @@ export const SimulationStepBanner: React.FC<SimulationStepBannerProps> = ({
         left: '24px',
         zIndex: 9999,
         width: '300px',
-        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-        border: '1px solid var(--pf-t--global--border--color--default)',
-        borderRadius: 'var(--pf-t--global--border--radius--small)',
+        backgroundColor: '#ffffff',
+        border: '1px solid #d2d2d2',
+        borderRadius: '4px',
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08)',
-        padding: '20px 20px 20px 20px',
+        padding: '20px',
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
+        fontFamily: 'RedHatDisplay, RedHatText, Overpass, overpass, helvetica, arial, sans-serif',
       }}
     >
       <Label color={meta.labelColor} isCompact style={{ alignSelf: 'flex-start' }}>
@@ -82,9 +84,9 @@ export const SimulationStepBanner: React.FC<SimulationStepBannerProps> = ({
       <p
         style={{
           margin: 0,
-          fontSize: 'var(--pf-t--global--font--size--body--default)',
-          color: 'var(--pf-t--global--text--color--regular)',
-          lineHeight: 'var(--pf-t--global--font--line-height--body)',
+          fontSize: '14px',
+          color: '#151515',
+          lineHeight: '1.5',
         }}
       >
         {meta.description}
@@ -101,4 +103,8 @@ export const SimulationStepBanner: React.FC<SimulationStepBannerProps> = ({
       </Button>
     </div>
   );
+
+  // Portal into document.body so position:fixed is always relative to the
+  // viewport — unaffected by any transform / isolation on PF ancestor elements.
+  return createPortal(panel, document.body);
 };
