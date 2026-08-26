@@ -72,15 +72,6 @@
   margin-bottom: var(--pf-t--global--spacer--sm);
 }
 
-.ols-obs-services-capability-card__dep-meta {
-  line-height: var(--pf-t--global--font--line-height--body);
-  margin-top: 0;
-}
-
-.ols-obs-services-capability-card__dep-detail {
-  color: var(--pf-t--global--text--color--subtle);
-}
-
 /*
  * Consistent section-heading bottom margin used by both the KPI ribbon heading
  * and the capability section headings ("Installed operators", "Recommended operators").

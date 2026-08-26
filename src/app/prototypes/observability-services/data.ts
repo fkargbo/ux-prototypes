@@ -512,23 +512,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
 // Other capabilities retain their partial / available state with richer dep actions.
 
 export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
-  {
-    id: 'metrics-alerting',
-    title: 'Monitoring',
-    subtitle: 'COO · MonitoringStack',
-    status: { kind: 'fully-enabled', label: 'Ready', color: 'green', srText: 'Status: ready' },
-    summary: 'Core metrics collection and alerting powered by Prometheus and Alertmanager. Available under Observe → Metrics and Observe → Alerting.',
-    category: 'installed',
-    searchTerms: ['prometheus', 'alertmanager', 'metrics', 'alerting', 'monitoringstack'],
-    dependencies: [
-      { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'ready' },
-      { id: 'prometheus',          label: 'Prometheus',             state: 'ready' },
-      { id: 'alertmanager',        label: 'Alertmanager',           state: 'ready' },
-    ],
-    actions: [
-      { id: 'metrics-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin', isExternal: true },
-    ],
-  },
+  // ── Installed: Partial setup first (action needed), then Ready ────────────────
   {
     id: 'customizable-dashboards',
     title: 'Dashboards',
@@ -543,7 +527,6 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
       { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'ready' },
     ],
     actions: [
-      { id: 'enable-dashboards', label: 'Enable', variant: 'secondary', href: COO_CR_PATH, helperText: 'Enables the Perses feature in the COO Monitoring UI Plugin CR.' },
       { id: 'dashboards-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/perses-dashboard', isExternal: true },
     ],
   },
@@ -561,7 +544,6 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
       { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'ready' },
     ],
     actions: [
-      { id: 'enable-logging-plugin', label: 'Enable', variant: 'secondary', href: COO_CR_PATH, helperText: 'Enables the Logging UI Plugin CR in COO. After enabling, complete Step 2 in the COO configuration to finish setup.' },
       { id: 'logs-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/logging-ui-plugin', isExternal: true },
     ],
   },
@@ -584,6 +566,24 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     ],
   },
   {
+    id: 'metrics-alerting',
+    title: 'Monitoring',
+    subtitle: 'COO · MonitoringStack',
+    status: { kind: 'fully-enabled', label: 'Ready', color: 'green', srText: 'Status: ready' },
+    summary: 'Core metrics collection and alerting powered by Prometheus and Alertmanager. Available under Observe → Metrics and Observe → Alerting.',
+    category: 'installed',
+    searchTerms: ['prometheus', 'alertmanager', 'metrics', 'alerting', 'monitoringstack'],
+    dependencies: [
+      { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'ready' },
+      { id: 'prometheus',          label: 'Prometheus',             state: 'ready' },
+      { id: 'alertmanager',        label: 'Alertmanager',           state: 'ready' },
+    ],
+    actions: [
+      { id: 'metrics-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin', isExternal: true },
+    ],
+  },
+  // ── Additional capabilities ───────────────────────────────────────────────────
+  {
     id: 'signal-correlation',
     title: 'Signal Correlation',
     subtitle: 'COO · Korrel8r',
@@ -595,7 +595,6 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
       { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'missing', action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
-      { id: 'enable-signal-correlation', label: 'Enable', variant: 'secondary', href: COO_CR_PATH, helperText: 'Creates the Troubleshooting Panel UI Plugin CR in COO.' },
       { id: 'signal-correlation-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/troubleshooting-ui-plugin', isExternal: true },
     ],
   },
@@ -611,7 +610,6 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
       { id: 'monitoring-ui-health-feature', label: 'COO Monitoring UI Plugin CR (Health Analyzer feature)', state: 'missing', action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
-      { id: 'enable-health-analyzer', label: 'Enable', variant: 'secondary', href: COO_CR_PATH, helperText: 'Enables the Health Analyzer feature in the COO Monitoring UI Plugin CR.' },
       { id: 'health-analyzer-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin#coo-incident-detection-overview_monitoring-ui-plugin', isExternal: true },
     ],
   },
@@ -626,7 +624,6 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
       { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability' } },
     ],
     actions: [
-      { id: 'install-network', label: 'Install', variant: 'secondary', href: '/catalog/ns/default?keyword=network-observability' },
       { id: 'network-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/index', isExternal: true },
     ],
   },

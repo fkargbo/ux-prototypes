@@ -38,38 +38,22 @@ export interface CapabilityCardProps {
   onDepAction?: (depId: string) => void;
 }
 
-const DependencyIcon: React.FC<{ state: CapabilityDependency['state'] }> = ({ state }) => {
+const DependencyIcon: React.FC<{ state: CapabilityDependency['state']; detail?: string }> = ({ state, detail }) => {
   if (state === 'ready') {
-    return (
-      <CheckCircleIcon
-        color="var(--pf-t--global--icon--color--status--success--default)"
-        aria-hidden
-      />
-    );
+    return <CheckCircleIcon color="var(--pf-t--global--icon--color--status--success--default)" aria-hidden />;
   }
   if (state === 'degraded') {
-    return (
-      <ExclamationCircleIcon
-        color="var(--pf-t--global--icon--color--status--danger--default)"
-        aria-hidden
-      />
-    );
+    const icon = <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" aria-hidden />;
+    return detail ? <Tooltip content={detail} position="right">{icon}</Tooltip> : icon;
   }
   if (state === 'attention') {
-    return (
-      <ExclamationTriangleIcon
-        color="var(--pf-t--global--icon--color--status--warning--default)"
-        aria-hidden
-      />
-    );
+    const icon = <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--status--warning--default)" aria-hidden />;
+    return detail ? <Tooltip content={detail} position="right">{icon}</Tooltip> : icon;
   }
   // 'missing' — component not yet installed or configured
   return (
     <Tooltip content="Not installed" position="right">
-      <MinusCircleIcon
-        color="var(--pf-t--global--icon--color--subtle)"
-        aria-label="Not installed"
-      />
+      <MinusCircleIcon color="var(--pf-t--global--icon--color--subtle)" aria-label="Not installed" />
     </Tooltip>
   );
 };
@@ -167,34 +151,31 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onDe
             />
             <List isPlain className="ols-obs-services-capability-card__deps">
               {capability.dependencies.map((dep) => (
-                <ListItem key={dep.id} icon={<DependencyIcon state={dep.state} />}>
+                <ListItem key={dep.id} icon={<DependencyIcon state={dep.state} detail={dep.detail} />}>
                   <span className="pf-v6-u-screen-reader">{dependencyStateLabel(dep.state)}: </span>
-                  {dep.label}
-                  {dep.detail || dep.action ? (
-                    <div className="ols-obs-services-capability-card__dep-meta">
-                      {dep.detail ? (
-                        <small className="ols-obs-services-capability-card__dep-detail">
-                          {' '}({dep.detail})
-                        </small>
-                      ) : null}
-                      {dep.action ? (
-                        <div style={{ marginTop: '4px' }}>
-                          <Button
-                            variant="link"
-                            isInline
-                            onClick={() => {
-                              onDepAction?.(dep.id);
-                              if (dep.action!.isExternal || dep.action!.href?.startsWith('http')) {
-                                window.open(dep.action!.href, '_blank', 'noopener,noreferrer');
-                              } else if (dep.action!.href) {
-                                navigate(dep.action!.href);
-                              }
-                            }}
-                          >
-                            {dep.action.label}
-                          </Button>
-                        </div>
-                      ) : null}
+                  {dep.detail ? (
+                    <Tooltip content={dep.detail} position="top">
+                      <span style={{ cursor: 'help' }}>{dep.label}</span>
+                    </Tooltip>
+                  ) : (
+                    dep.label
+                  )}
+                  {dep.action ? (
+                    <div style={{ marginTop: '4px' }}>
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={() => {
+                          onDepAction?.(dep.id);
+                          if (dep.action!.isExternal || dep.action!.href?.startsWith('http')) {
+                            window.open(dep.action!.href, '_blank', 'noopener,noreferrer');
+                          } else if (dep.action!.href) {
+                            navigate(dep.action!.href);
+                          }
+                        }}
+                      >
+                        {dep.action.label}
+                      </Button>
                     </div>
                   ) : null}
                 </ListItem>
