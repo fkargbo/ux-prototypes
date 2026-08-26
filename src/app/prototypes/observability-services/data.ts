@@ -406,24 +406,6 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     ],
   },
   {
-    id: 'customizable-dashboards',
-    title: 'Dashboards',
-    subtitle: 'COO · Perses',
-    status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
-    summary: 'Create and manage customizable Perses dashboards. Available under Observe → Dashboards (Perses) once the UI plugin is enabled.',
-    category: 'installed',
-    searchTerms: ['perses', 'dashboards', 'monitoring', 'ui plugin'],
-    dependencies: [
-      COO_DEP,
-      { id: 'monitoring-ui-plugin-cr', label: 'COO Monitoring UI Plugin CR (Perses feature)', state: 'missing' },
-      { id: 'perses-backend',          label: 'Perses backend',                               state: 'missing' },
-      { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'missing' },
-    ],
-    actions: [
-      { id: 'dashboards-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/perses-dashboard', isExternal: true },
-    ],
-  },
-  {
     id: 'logs',
     title: 'Logging',
     subtitle: 'COO · Loki · CLO',
@@ -457,6 +439,24 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     ],
     actions: [
       { id: 'tracing-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/distributed-tracing-ui-plugin', isExternal: true },
+    ],
+  },
+  {
+    id: 'customizable-dashboards',
+    title: 'Dashboards',
+    subtitle: 'COO · Perses',
+    status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
+    summary: 'Create and manage customizable Perses dashboards. Available under Observe → Dashboards (Perses) once the UI plugin is enabled.',
+    category: 'installed',
+    searchTerms: ['perses', 'dashboards', 'monitoring', 'ui plugin'],
+    dependencies: [
+      COO_DEP,
+      { id: 'monitoring-ui-plugin-cr', label: 'COO Monitoring UI Plugin CR (Perses feature)', state: 'missing' },
+      { id: 'perses-backend',          label: 'Perses backend',                               state: 'missing' },
+      { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'missing' },
+    ],
+    actions: [
+      { id: 'dashboards-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/perses-dashboard', isExternal: true },
     ],
   },
   // ── Recommended ──────────────────────────────────────────────────────────────
