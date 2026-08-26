@@ -64,7 +64,7 @@ export const InstalledOperatorsSection: React.FC<InstalledOperatorsSectionProps>
     >
       <FlexItem>
         <Title headingLevel="h2" size="lg" id="ols-obs-installed-heading">
-          Core capabilities
+          Capabilities
         </Title>
       </FlexItem>
 

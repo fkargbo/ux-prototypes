@@ -511,6 +511,13 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
 // ── Day 1: COO MonitoringStack configured — Metrics & Alerting is active ──────
 // Other capabilities retain their partial / available state with richer dep actions.
 
+// COO dep shared across all Day 1 cards that depend on it — installed and healthy.
+const COO_READY_DEP = {
+  id: 'coo-operator',
+  label: 'Cluster Observability Operator',
+  state: 'ready' as const,
+};
+
 export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
   // ── Installed: Partial setup first (action needed), then Ready ────────────────
   {
@@ -522,6 +529,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     category: 'installed',
     searchTerms: ['perses', 'dashboards', 'monitoring', 'ui plugin'],
     dependencies: [
+      COO_READY_DEP,
       { id: 'monitoring-ui-plugin-cr', label: 'COO Monitoring UI Plugin CR (Perses feature)', state: 'attention', detail: 'Disabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
       { id: 'perses-backend',          label: 'Perses backend',                               state: 'ready' },
       { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'ready' },
@@ -539,6 +547,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     category: 'installed',
     searchTerms: ['loki', 'clo', 'logs', 'logging', 'clusterlogforwarder', 'lokistack'],
     dependencies: [
+      COO_READY_DEP,
       { id: 'logging-ui-cr',  label: 'COO Logging UI Plugin CR',  state: 'attention', detail: 'Disabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
       { id: 'loki-lokistack', label: 'Loki Operator + LokiStack', state: 'ready' },
       { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'ready' },
@@ -557,6 +566,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['tempo', 'opentelemetry', 'otel', 'tracing', 'traces', 'tempostack', 'otelcollector'],
     runtimeHealth: 'DEGRADED',
     dependencies: [
+      COO_READY_DEP,
       { id: 'tracing-ui-cr',    label: 'COO Distributed Tracing UI Plugin CR', state: 'ready' },
       { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack',          state: 'ready' },
       { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'degraded', detail: 'OTELCollector: Container CrashLoopBackOff', action: { label: 'View OTELCollector', href: COO_CR_PATH } },
@@ -574,6 +584,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     category: 'installed',
     searchTerms: ['prometheus', 'alertmanager', 'metrics', 'alerting', 'monitoringstack'],
     dependencies: [
+      COO_READY_DEP,
       { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'ready' },
       { id: 'prometheus',          label: 'Prometheus',             state: 'ready' },
       { id: 'alertmanager',        label: 'Alertmanager',           state: 'ready' },
@@ -592,6 +603,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     category: 'recommended',
     searchTerms: ['korrel8r', 'correlation', 'troubleshooting', 'signals'],
     dependencies: [
+      COO_READY_DEP,
       { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'missing', action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
@@ -607,6 +619,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     category: 'recommended',
     searchTerms: ['health analyzer', 'incidents', 'alerts', 'aiops'],
     dependencies: [
+      COO_READY_DEP,
       { id: 'monitoring-ui-health-feature', label: 'COO Monitoring UI Plugin CR (Health Analyzer feature)', state: 'missing', action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
