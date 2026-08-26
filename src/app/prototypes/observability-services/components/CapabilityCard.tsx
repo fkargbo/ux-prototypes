@@ -15,7 +15,6 @@ import {
   List,
   ListItem,
   Content,
-  Title,
   Tooltip,
 } from '@patternfly/react-core';
 import {
@@ -159,9 +158,9 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onDe
         </Content>
         {capability.dependencies && capability.dependencies.length > 0 ? (
           <>
-            <Title headingLevel="h4" size="md" className="ols-obs-services-capability-card__deps-heading">
+            <h4 className="ols-obs-services-capability-card__deps-heading">
               Required components
-            </Title>
+            </h4>
             <OperationalHealthLabel
               runtimeHealth={capability.runtimeHealth ?? 'HEALTHY'}
               className="ols-obs-services-capability-card__ops-health-label"
@@ -179,17 +178,10 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onDe
                         </small>
                       ) : null}
                       {dep.action ? (
-                        <>
-                          <br />
+                        <div style={{ marginTop: '4px' }}>
                           <Button
                             variant="link"
                             isInline
-                            icon={
-                              dep.action.isExternal ? (
-                                <ExternalLinkAltIcon style={{ verticalAlign: 'middle' }} />
-                              ) : undefined
-                            }
-                            iconPosition="end"
                             onClick={() => {
                               onDepAction?.(dep.id);
                               if (dep.action!.isExternal || dep.action!.href?.startsWith('http')) {
@@ -201,7 +193,7 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onDe
                           >
                             {dep.action.label}
                           </Button>
-                        </>
+                        </div>
                       ) : null}
                     </div>
                   ) : null}

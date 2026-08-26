@@ -375,9 +375,6 @@ const COO_CR_PATH =
 // ── Day 0: COO installed, no CRs configured ───────────────────────────────────
 
 // ── Shared OperatorHub URL for COO ────────────────────────────────────────────
-const COO_OPERATORHUB_URL =
-  'https://operatorhub.io/operator/cluster-observability-operator';
-
 // COO dep shared across all cards that require it.
 // Clicking "Install" in any card fires onDepAction('coo-operator') which
 // advances the simulation from Day 0 → Day 1.
@@ -385,7 +382,7 @@ const COO_DEP = {
   id: 'coo-operator',
   label: 'Cluster Observability Operator',
   state: 'missing' as const,
-  action: { label: 'Install', href: COO_OPERATORHUB_URL, isExternal: true },
+  action: { label: 'Install', href: '/catalog/ns/default?keyword=cluster-observability-operator' },
 };
 
 export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
@@ -503,7 +500,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     category: 'recommended',
     searchTerms: ['network', 'ebpf', 'flows', 'netobserv'],
     dependencies: [
-      { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability', isExternal: true } },
+      { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability' } },
     ],
     actions: [
       { id: 'network-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/index', isExternal: true },
@@ -626,7 +623,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     category: 'recommended',
     searchTerms: ['network', 'ebpf', 'flows', 'netobserv'],
     dependencies: [
-      { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability', isExternal: true } },
+      { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability' } },
     ],
     actions: [
       { id: 'install-network', label: 'Install', variant: 'secondary', href: '/catalog/ns/default?keyword=network-observability' },
