@@ -1,10 +1,12 @@
 /**
  * SimulationStepBanner
  *
- * Floating prototype control anchored to the bottom-left of the viewport.
- * Intentionally separated from the page design so it does not interfere
- * with stakeholder reviews. Provides the Day 0 ↔ Day 1 scenario toggle
- * and communicates the active simulation step.
+ * Floating prototype control anchored to the bottom-left of the PAGE CONTENT
+ * COLUMN (i.e. to the right of the sidebar navigation). Uses
+ * `--pf-v6-c-page__sidebar--Width` — the CSS variable PF sets on the Page
+ * root — to offset `position:fixed` past the sidebar so the panel never
+ * overlaps the nav. Intentionally separated from the page design so it does
+ * not interfere with stakeholder reviews.
  */
 
 import React from 'react';
@@ -62,7 +64,10 @@ export const SimulationStepBanner: React.FC<SimulationStepBannerProps> = ({
       style={{
         position: 'fixed',
         bottom: '24px',
-        left: '24px',
+        /* Offset past the PF sidebar so the panel sits at the left edge of the
+           content column, not over the navigation. Falls back to 185 px when
+           the PF variable isn't found (e.g. in a local build variant). */
+        left: 'calc(var(--pf-v6-c-page__sidebar--Width, 185px) + 16px)',
         zIndex: 9999,
         width: '260px',
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
