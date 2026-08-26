@@ -42,7 +42,7 @@ const STEP_META: Record<
     label: 'Day 1',
     labelColor: 'green',
     description:
-      'COO installed — Metrics & Alerting is now active. Other capabilities are available to configure or enable based on your operational needs.',
+      "COO installed — Metrics & Alerting is now active. Other capabilities are available to configure or enable based on the user's operational needs.",
     actionLabel: 'Reset to Day 0',
     isAdvance: false,
   },
