@@ -34,14 +34,15 @@ const STEP_META: Record<
     label: 'Day 0',
     labelColor: 'blue',
     description:
-      'COO operator installed — MonitoringStack CR not yet configured. Use the "Configure" action on Metrics & Alerting or the button below to advance.',
+      'COO not yet installed — no capabilities are active. Use the "Install" action on any card or the button below to simulate installing COO.',
     actionLabel: 'Advance to Day 1 →',
     isAdvance: true,
   },
   day1: {
     label: 'Day 1',
     labelColor: 'green',
-    description: 'COO MonitoringStack configured — Metrics & Alerting is now active. Other capabilities remain pending.',
+    description:
+      'COO installed — Metrics & Alerting is now active. Other capabilities are available to configure or enable based on your operational needs.',
     actionLabel: 'Reset to Day 0',
     isAdvance: false,
   },

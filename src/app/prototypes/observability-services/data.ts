@@ -6,6 +6,38 @@ import type { CapabilityCardData, KpiPopoverItem, OperationalKpiStat } from './t
  * Values are illustrative mocks scoped to operator/dependency readiness —
  * not raw cluster telemetry. Replace with live API calls in production.
  */
+// ── v2 Day 0 KPI stats: COO not yet installed ─────────────────────────────────
+export const OPERATIONAL_KPI_STATS_V2_DAY0: OperationalKpiStat[] = [
+  {
+    id: 'capabilities-ready',
+    category: 'Capabilities ready',
+    value: '0/7',
+    label: 'Ready',
+    subtext: 'Install COO to get started',
+    variant: 'warning',
+    popoverItems: [
+      { id: 'pop-metrics-alerting',      title: 'Metrics & Alerting',    state: 'not-installed' },
+      { id: 'pop-dashboards',            title: 'Dashboards',            state: 'not-installed' },
+      { id: 'pop-logs',                  title: 'Logs',                  state: 'not-installed' },
+      { id: 'pop-distributed-tracing',   title: 'Distributed tracing',   state: 'not-installed' },
+      { id: 'pop-signal-correlation',    title: 'Signal Correlation',    state: 'not-installed' },
+      { id: 'pop-incident-detection',    title: 'Incident detection',    state: 'not-installed' },
+      { id: 'pop-network-observability', title: 'Network observability', state: 'not-installed' },
+    ] as KpiPopoverItem[],
+  },
+  {
+    id: 'operator-health',
+    category: 'Operator health',
+    value: '0',
+    label: 'Degraded',
+    subtext: 'No operators running',
+    variant: 'danger',
+    zeroVariant: 'success',
+    valueIconVariant: 'danger',
+  },
+];
+
+// ── v2 Day 1 KPI stats: COO installed, Metrics & Alerting active ──────────────
 export const OPERATIONAL_KPI_STATS: OperationalKpiStat[] = [
   {
     id: 'capabilities-ready',
@@ -342,17 +374,34 @@ const COO_CR_PATH =
 
 // ── Day 0: COO installed, no CRs configured ───────────────────────────────────
 
+// ── Shared OperatorHub URL for COO ────────────────────────────────────────────
+const COO_OPERATORHUB_URL =
+  'https://operatorhub.io/operator/cluster-observability-operator';
+
+// COO dep shared across all cards that require it.
+// Clicking "Install" in any card fires onDepAction('coo-operator') which
+// advances the simulation from Day 0 → Day 1.
+const COO_DEP = {
+  id: 'coo-operator',
+  label: 'Cluster Observability Operator',
+  state: 'missing' as const,
+  detail: 'Not installed',
+  action: { label: 'Install', href: COO_OPERATORHUB_URL, isExternal: true },
+};
+
 export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
+  // ── Installed ────────────────────────────────────────────────────────────────
   {
     id: 'metrics-alerting',
     title: 'Metrics & Alerting',
     subtitle: 'COO · MonitoringStack',
-    status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — MonitoringStack CR not configured' },
+    status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
     summary: 'Core metrics collection and alerting powered by Prometheus and Alertmanager. Available under Observe → Metrics and Observe → Alerting.',
     category: 'installed',
     searchTerms: ['prometheus', 'alertmanager', 'metrics', 'alerting', 'monitoringstack'],
     dependencies: [
-      { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'missing', detail: 'Not configured', action: { label: 'Configure', href: COO_CR_PATH } },
+      COO_DEP,
+      { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'missing' },
       { id: 'prometheus',          label: 'Prometheus',             state: 'missing' },
       { id: 'alertmanager',        label: 'Alertmanager',           state: 'missing' },
     ],
@@ -364,12 +413,13 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     id: 'customizable-dashboards',
     title: 'Dashboards',
     subtitle: 'COO · Perses',
-    status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — Perses UI Plugin CR not enabled' },
+    status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
     summary: 'Create and manage customizable Perses dashboards. Available under Observe → Dashboards (Perses) once the UI plugin is enabled.',
     category: 'installed',
     searchTerms: ['perses', 'dashboards', 'monitoring', 'ui plugin'],
     dependencies: [
-      { id: 'monitoring-ui-plugin-cr', label: 'COO Monitoring UI Plugin CR (Perses feature)', state: 'missing', detail: 'Not enabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
+      COO_DEP,
+      { id: 'monitoring-ui-plugin-cr', label: 'COO Monitoring UI Plugin CR (Perses feature)', state: 'missing' },
       { id: 'perses-backend',          label: 'Perses backend',                               state: 'missing' },
       { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'missing' },
     ],
@@ -381,14 +431,15 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     id: 'logs',
     title: 'Logs',
     subtitle: 'COO · Loki · CLO',
-    status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — operators not installed' },
+    status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
     summary: 'Execute log-based queries for application, infrastructure, and audit logs. Available under Observe → Logs once all dependencies are configured.',
     category: 'installed',
     searchTerms: ['loki', 'clo', 'logs', 'logging', 'clusterlogforwarder', 'lokistack'],
     dependencies: [
-      { id: 'logging-ui-cr',  label: 'COO Logging UI Plugin CR',  state: 'missing', detail: 'Not enabled in COO CR',  action: { label: 'Enable',   href: COO_CR_PATH } },
-      { id: 'loki-lokistack', label: 'Loki Operator + LokiStack', state: 'missing', detail: 'Not installed',          action: { label: 'Install',  href: '/catalog/ns/default?keyword=loki-operator',    isExternal: true } },
-      { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'missing', detail: 'Not installed',          action: { label: 'Install',  href: '/catalog/ns/default?keyword=cluster-logging',   isExternal: true } },
+      COO_DEP,
+      { id: 'logging-ui-cr',  label: 'COO Logging UI Plugin CR',  state: 'missing' },
+      { id: 'loki-lokistack', label: 'Loki Operator + LokiStack', state: 'missing' },
+      { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'missing' },
     ],
     actions: [
       { id: 'logs-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/logging-ui-plugin', isExternal: true },
@@ -398,29 +449,32 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     id: 'distributed-tracing',
     title: 'Distributed tracing',
     subtitle: 'COO · Tempo · OpenTelemetry',
-    status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — operators not installed' },
+    status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
     summary: 'Explore distributed traces and spans for microservice request analysis and latency detection. Available under Observe → Traces once all dependencies are configured.',
     category: 'installed',
     searchTerms: ['tempo', 'opentelemetry', 'otel', 'tracing', 'traces', 'tempostack', 'otelcollector'],
     dependencies: [
-      { id: 'tracing-ui-cr',    label: 'COO Distributed Tracing UI Plugin CR', state: 'missing', detail: 'Not enabled in COO CR', action: { label: 'Enable',  href: COO_CR_PATH } },
-      { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack',          state: 'missing', detail: 'Not installed',         action: { label: 'Install', href: '/catalog/ns/default?keyword=tempo-operator',            isExternal: true } },
-      { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'missing', detail: 'Not installed',         action: { label: 'Install', href: '/catalog/ns/default?keyword=opentelemetry-operator',   isExternal: true } },
+      COO_DEP,
+      { id: 'tracing-ui-cr',    label: 'COO Distributed Tracing UI Plugin CR', state: 'missing' },
+      { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack',          state: 'missing' },
+      { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'missing' },
     ],
     actions: [
       { id: 'tracing-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/distributed-tracing-ui-plugin', isExternal: true },
     ],
   },
+  // ── Recommended ──────────────────────────────────────────────────────────────
   {
     id: 'signal-correlation',
     title: 'Signal Correlation',
     subtitle: 'COO · Korrel8r',
-    status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — Troubleshooting Panel CR not enabled' },
+    status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
     summary: 'Execute correlation queries across metrics, logs, traces, and alerts. Accessible from the OCP web console header once the troubleshooting panel plugin is enabled.',
     category: 'recommended',
     searchTerms: ['korrel8r', 'correlation', 'troubleshooting', 'signals'],
     dependencies: [
-      { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'missing', detail: 'Not enabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
+      COO_DEP,
+      { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'missing' },
     ],
     actions: [
       { id: 'signal-correlation-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/troubleshooting-ui-plugin', isExternal: true },
@@ -430,12 +484,13 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     id: 'health-analyzer',
     title: 'Incident detection',
     subtitle: 'COO · Health Analyzer',
-    status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — Health Analyzer feature not enabled' },
+    status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
     summary: 'Group alerts into incidents to reduce noise and integrate with AIOps platforms. Adds an Incidents tab under Observe → Alerts once enabled.',
     category: 'recommended',
     searchTerms: ['health analyzer', 'incidents', 'alerts', 'aiops'],
     dependencies: [
-      { id: 'monitoring-ui-health-feature', label: 'COO Monitoring UI Plugin CR (Health Analyzer feature)', state: 'missing', detail: 'Not enabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
+      COO_DEP,
+      { id: 'monitoring-ui-health-feature', label: 'COO Monitoring UI Plugin CR (Health Analyzer feature)', state: 'missing' },
     ],
     actions: [
       { id: 'health-analyzer-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin#coo-incident-detection-overview_monitoring-ui-plugin', isExternal: true },

@@ -11,6 +11,7 @@ import {
   CAPABILITY_CARDS_V2_DAY0,
   CAPABILITY_CARDS_V2_DAY1,
   OPERATIONAL_KPI_STATS,
+  OPERATIONAL_KPI_STATS_V2_DAY0,
 } from '../data';
 import { CAPABILITY_CARDS_V1, OPERATIONAL_KPI_STATS_V1 } from '../data.v1';
 import { OperationalKPIRibbon } from '../components/OperationalKPIRibbon';
@@ -46,16 +47,20 @@ export const ObservabilityServicesPage: React.FC = () => {
   useInjectBannerActions(<VersionSelector />);
 
   const isV1 = version === 'v1';
-  const kpiStats = isV1 ? OPERATIONAL_KPI_STATS_V1 : OPERATIONAL_KPI_STATS;
+  const kpiStats = isV1
+    ? OPERATIONAL_KPI_STATS_V1
+    : simulationStep === 'day0'
+      ? OPERATIONAL_KPI_STATS_V2_DAY0
+      : OPERATIONAL_KPI_STATS;
 
   const v2Cards =
     simulationStep === 'day0' ? CAPABILITY_CARDS_V2_DAY0 : CAPABILITY_CARDS_V2_DAY1;
 
   // Called by CapabilityCard when an inline dep-action button is clicked.
-  // "monitoring-stack-cr" is the Day 0 dep that drives the simulation transition.
+  // Clicking "Install COO" (dep id 'coo-operator') on any card advances Day 0 → Day 1.
   const handleDepAction = useCallback(
     (depId: string) => {
-      if (depId === 'monitoring-stack-cr' && simulationStep === 'day0') {
+      if (depId === 'coo-operator' && simulationStep === 'day0') {
         setSimulationStep('day1');
       }
     },
