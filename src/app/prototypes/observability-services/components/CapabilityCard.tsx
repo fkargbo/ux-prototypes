@@ -157,7 +157,7 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onDe
         {capability.dependencies && capability.dependencies.length > 0 ? (
           <>
             <Title headingLevel="h4" size="md" className="ols-obs-services-capability-card__deps-heading">
-              Dependencies
+              Required components
             </Title>
             <OperationalHealthLabel
               runtimeHealth={capability.runtimeHealth ?? 'HEALTHY'}
@@ -246,7 +246,7 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onDe
                     </FlexItem>
                   ))}
                   {learnMoreActions.map((action) => (
-                    <FlexItem key={action.id} style={{ marginLeft: 'auto' }}>
+                    <FlexItem key={action.id}>
                       <Button
                         variant="link"
                         onClick={() => handleAction(action)}
