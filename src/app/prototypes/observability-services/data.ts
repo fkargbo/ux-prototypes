@@ -625,7 +625,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['korrel8r', 'correlation', 'troubleshooting', 'signals'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'attention', category: 'CONFIGURATION' as const, action: { label: 'Enable', href: COO_CR_PATH } },
+      { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'attention', category: 'CONFIGURATION' as const, detail: 'Disabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
       { id: 'signal-correlation-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/troubleshooting-ui-plugin', isExternal: true },
@@ -641,7 +641,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['health analyzer', 'incidents', 'alerts', 'aiops'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'monitoring-ui-health-feature', label: 'COO Monitoring UI Plugin CR (Health Analyzer feature)', state: 'attention', category: 'CONFIGURATION' as const, action: { label: 'Enable', href: COO_CR_PATH } },
+      { id: 'monitoring-ui-health-feature', label: 'COO Monitoring UI Plugin CR (Health Analyzer feature)', state: 'attention', category: 'CONFIGURATION' as const, detail: 'Disabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
       { id: 'health-analyzer-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin#coo-incident-detection-overview_monitoring-ui-plugin', isExternal: true },
