@@ -416,10 +416,11 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['loki', 'clo', 'logs', 'logging', 'clusterlogforwarder', 'lokistack'],
     dependencies: [
       COO_DEP,
-      { id: 'loki-lokistack',             label: 'Loki Operator + LokiStack',              state: 'missing', category: 'OPERATOR' as const },
-      { id: 'clo-clf',                    label: 'CLO + ClusterLogForwarder',               state: 'missing', category: 'OPERATOR' as const },
+      { id: 'loki-lokistack',             label: 'Loki Operator',                           state: 'missing', category: 'OPERATOR' as const },
+      { id: 'clo-clf',                    label: 'CLO Operator',                            state: 'missing', category: 'OPERATOR' as const },
       { id: 'loki-object-storage-secret', label: 'Object storage secret (S3 / Azure / GCP)', state: 'missing', category: 'CONFIGURATION' as const },
       { id: 'lokistack-cr',               label: 'LokiStack CR',                            state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'clf-cr',                     label: 'ClusterLogForwarder CR',                  state: 'missing', category: 'CONFIGURATION' as const },
       { id: 'logging-ui-cr',              label: 'COO Logging UI Plugin CR',                state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
@@ -436,9 +437,11 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['tempo', 'opentelemetry', 'otel', 'tracing', 'traces', 'tempostack', 'otelcollector'],
     dependencies: [
       COO_DEP,
-      { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack',          state: 'missing', category: 'OPERATOR' as const },
-      { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'missing', category: 'OPERATOR' as const },
-      { id: 'tracing-ui-cr',    label: 'COO Distributed Tracing UI Plugin CR', state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'tempo-operator',  label: 'Tempo Operator',                       state: 'missing', category: 'OPERATOR' as const },
+      { id: 'otel-operator',   label: 'OTEL Operator',                        state: 'missing', category: 'OPERATOR' as const },
+      { id: 'tempostack-cr',   label: 'TempoStack CR',                        state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'otel-collector',  label: 'OTELCollector',                        state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'tracing-ui-cr',   label: 'COO Distributed Tracing UI Plugin CR', state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'tracing-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/distributed-tracing-ui-plugin', isExternal: true },
@@ -472,6 +475,8 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['korrel8r', 'correlation', 'troubleshooting', 'signals'],
     dependencies: [
       COO_DEP,
+      { id: 'korrel8r-operator',        label: 'Korrel8r Operator',                      state: 'missing', category: 'OPERATOR' as const },
+      { id: 'sc-tracing-ui-cr',         label: 'COO Distributed Tracing UI Plugin CR',   state: 'missing', category: 'CONFIGURATION' as const },
       { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
@@ -555,10 +560,11 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['loki', 'clo', 'logs', 'logging', 'clusterlogforwarder', 'lokistack'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'loki-lokistack', label: 'Loki Operator + LokiStack', state: 'ready', category: 'OPERATOR' as const },
-      { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'ready', category: 'OPERATOR' as const },
+      { id: 'loki-lokistack', label: 'Loki Operator',  state: 'ready', category: 'OPERATOR' as const },
+      { id: 'clo-clf',        label: 'CLO Operator',   state: 'ready', category: 'OPERATOR' as const },
       { id: 'loki-object-storage-secret', label: 'Object storage secret (S3 / Azure / GCP)', state: 'attention', category: 'CONFIGURATION' as const, detail: 'Secret containing object store credentials required for LokiStack',     action: { label: 'Configure', href: '/k8s/ns/openshift-logging/secrets/~new' } },
       { id: 'lokistack-cr',               label: 'LokiStack CR',                              state: 'attention', category: 'CONFIGURATION' as const, detail: 'Defines storage size, retention, and replication',                      action: { label: 'Configure', href: '/k8s/ns/openshift-logging/loki.grafana.com~v1beta1~LokiStack/~new' } },
+      { id: 'clf-cr',                     label: 'ClusterLogForwarder CR',                    state: 'ready',    category: 'CONFIGURATION' as const },
       { id: 'logging-ui-cr',              label: 'COO Logging UI Plugin CR',                  state: 'attention', category: 'CONFIGURATION' as const, detail: 'Disabled in COO CR',                                                    action: { label: 'Enable',     href: COO_CR_PATH } },
     ],
     actions: [
@@ -594,9 +600,11 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     runtimeHealth: 'DEGRADED',
     dependencies: [
       COO_READY_DEP,
-      { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack',          state: 'ready',    category: 'OPERATOR' as const },
-      { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'degraded', category: 'OPERATOR' as const, detail: 'OTELCollector: Container CrashLoopBackOff', action: { label: 'View logs', href: COO_CR_PATH } },
-      { id: 'tracing-ui-cr',    label: 'COO Distributed Tracing UI Plugin CR', state: 'ready',    category: 'CONFIGURATION' as const },
+      { id: 'tempo-operator',  label: 'Tempo Operator',                       state: 'ready',    category: 'OPERATOR' as const },
+      { id: 'otel-operator',   label: 'OTEL Operator',                        state: 'ready',    category: 'OPERATOR' as const },
+      { id: 'tempostack-cr',   label: 'TempoStack CR',                        state: 'ready',    category: 'CONFIGURATION' as const },
+      { id: 'otel-collector',  label: 'OTELCollector',                        state: 'degraded', category: 'CONFIGURATION' as const, detail: 'OTELCollector: Container CrashLoopBackOff', action: { label: 'View logs', href: COO_CR_PATH } },
+      { id: 'tracing-ui-cr',   label: 'COO Distributed Tracing UI Plugin CR', state: 'ready',    category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'tracing-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/distributed-tracing-ui-plugin', isExternal: true },
@@ -631,6 +639,8 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['korrel8r', 'correlation', 'troubleshooting', 'signals'],
     dependencies: [
       COO_READY_DEP,
+      { id: 'korrel8r-operator',        label: 'Korrel8r Operator',                      state: 'missing',   category: 'OPERATOR' as const, action: { label: 'Install', href: '/catalog/ns/default?keyword=korrel8r' } },
+      { id: 'sc-tracing-ui-cr',         label: 'COO Distributed Tracing UI Plugin CR',   state: 'ready',     category: 'CONFIGURATION' as const },
       { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'attention', category: 'CONFIGURATION' as const, detail: 'Disabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
