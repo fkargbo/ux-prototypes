@@ -398,9 +398,9 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['prometheus', 'alertmanager', 'metrics', 'alerting', 'monitoringstack'],
     dependencies: [
       COO_DEP,
-      { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'missing', category: 'CONFIGURATION' as const },
       { id: 'prometheus',          label: 'Prometheus',             state: 'missing', category: 'OPERATOR' as const },
       { id: 'alertmanager',        label: 'Alertmanager',           state: 'missing', category: 'OPERATOR' as const },
+      { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'metrics-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin', isExternal: true },
@@ -416,9 +416,11 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['loki', 'clo', 'logs', 'logging', 'clusterlogforwarder', 'lokistack'],
     dependencies: [
       COO_DEP,
-      { id: 'loki-lokistack', label: 'Loki Operator + LokiStack', state: 'missing', category: 'OPERATOR' as const },
-      { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'missing', category: 'OPERATOR' as const },
-      { id: 'logging-ui-cr',  label: 'COO Logging UI Plugin CR',  state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'loki-lokistack',             label: 'Loki Operator + LokiStack',              state: 'missing', category: 'OPERATOR' as const },
+      { id: 'clo-clf',                    label: 'CLO + ClusterLogForwarder',               state: 'missing', category: 'OPERATOR' as const },
+      { id: 'loki-object-storage-secret', label: 'Object storage secret (S3 / Azure / GCP)', state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'lokistack-cr',               label: 'LokiStack CR',                            state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'logging-ui-cr',              label: 'COO Logging UI Plugin CR',                state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'logs-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/logging-ui-plugin', isExternal: true },
@@ -495,12 +497,16 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
   {
     id: 'network-observability',
     title: 'Network observability',
-    status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — operator not installed' },
-    summary: 'eBPF-based network flow collection, cross-namespace traffic mapping, and egress analysis.',
+    subtitle: 'COO · NetObserv',
+    status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — COO and operator not installed' },
+    summary: 'eBPF-based network flow collection, cross-namespace traffic mapping, and egress bottleneck analysis. Available under Observe → Network Traffic once configured.',
     category: 'installed',
-    searchTerms: ['network', 'ebpf', 'flows', 'netobserv'],
+    searchTerms: ['network', 'ebpf', 'flows', 'netobserv', 'flowcollector'],
     dependencies: [
+      COO_DEP,
       { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', category: 'OPERATOR' as const, action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability' } },
+      { id: 'flowcollector-cr',    label: 'FlowCollector CR',                     state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'netobserv-plugin-cr', label: 'Network Observability UI Plugin CR',   state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'network-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/index', isExternal: true },
