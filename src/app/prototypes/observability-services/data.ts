@@ -398,9 +398,9 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['prometheus', 'alertmanager', 'metrics', 'alerting', 'monitoringstack'],
     dependencies: [
       COO_DEP,
-      { id: 'prometheus',          label: 'Prometheus',             state: 'missing', category: 'OPERATOR' as const },
-      { id: 'alertmanager',        label: 'Alertmanager',           state: 'missing', category: 'OPERATOR' as const },
       { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'prometheus',          label: 'Prometheus',             state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'alertmanager',        label: 'Alertmanager',           state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'metrics-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin', isExternal: true },
@@ -457,9 +457,9 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['perses', 'dashboards', 'monitoring', 'ui plugin'],
     dependencies: [
       COO_DEP,
-      { id: 'perses-backend',          label: 'Perses backend',                               state: 'missing', category: 'OPERATOR' as const },
-      { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'missing', category: 'OPERATOR' as const },
       { id: 'monitoring-ui-plugin-cr', label: 'COO Monitoring UI Plugin CR (Perses feature)', state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'perses-backend',          label: 'Perses backend',                               state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'dashboards-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/perses-dashboard', isExternal: true },
@@ -542,9 +542,9 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['perses', 'dashboards', 'monitoring', 'ui plugin'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'perses-backend',          label: 'Perses backend',                               state: 'ready',     category: 'OPERATOR' as const },
-      { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'ready',     category: 'OPERATOR' as const },
       { id: 'monitoring-ui-plugin-cr', label: 'COO Monitoring UI Plugin CR (Perses feature)', state: 'attention', category: 'CONFIGURATION' as const, detail: 'Disabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
+      { id: 'perses-backend',          label: 'Perses backend',                               state: 'ready',     category: 'CONFIGURATION' as const },
+      { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'ready',     category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'dashboards-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/perses-dashboard', isExternal: true },
@@ -620,9 +620,9 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['prometheus', 'alertmanager', 'metrics', 'alerting', 'monitoringstack'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'prometheus',          label: 'Prometheus',             state: 'ready', category: 'OPERATOR' as const },
-      { id: 'alertmanager',        label: 'Alertmanager',           state: 'ready', category: 'OPERATOR' as const },
       { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'ready', category: 'CONFIGURATION' as const },
+      { id: 'prometheus',          label: 'Prometheus',             state: 'ready', category: 'CONFIGURATION' as const },
+      { id: 'alertmanager',        label: 'Alertmanager',           state: 'ready', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'metrics-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin', isExternal: true },
