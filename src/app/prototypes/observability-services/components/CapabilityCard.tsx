@@ -38,21 +38,39 @@ export interface CapabilityCardProps {
   onDepAction?: (depId: string) => void;
 }
 
-const DependencyIcon: React.FC<{ state: CapabilityDependency['state']; detail?: string }> = ({ state, detail }) => {
+const DependencyIcon: React.FC<{
+  state: CapabilityDependency['state'];
+  category?: CapabilityDependency['category'];
+  detail?: string;
+}> = ({ state, category, detail }) => {
   if (state === 'ready') {
     return <CheckCircleIcon color="var(--pf-t--global--icon--color--status--success--default)" aria-hidden />;
   }
+
   if (state === 'degraded') {
     const icon = <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" aria-hidden />;
     return detail ? <Tooltip content={detail} position="right">{icon}</Tooltip> : icon;
   }
+
   if (state === 'attention') {
     const icon = <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--status--warning--default)" aria-hidden />;
-    return detail ? <Tooltip content={detail} position="right">{icon}</Tooltip> : icon;
+    // Day 1 CONFIGURATION deps: generic "not yet configured" hint on the icon;
+    // specific detail is surfaced via the label tooltip.
+    const tooltip = category === 'CONFIGURATION'
+      ? 'Requires storage credentials or CR definition.'
+      : (detail ?? undefined);
+    return tooltip ? <Tooltip content={tooltip} position="right">{icon}</Tooltip> : icon;
   }
-  // 'missing' — component not yet installed or configured (neutral/grey)
+
+  // 'missing' — neutral grey; tooltip varies by category (Day 0 context)
+  const missingTooltip =
+    category === 'OPERATOR'
+      ? 'Operator package is not installed on this cluster.'
+      : category === 'CONFIGURATION'
+        ? 'Requires prerequisite operator to be installed before configuration.'
+        : 'Not configured';
   return (
-    <Tooltip content="Not configured" position="right">
+    <Tooltip content={missingTooltip} position="right">
       <MinusCircleIcon color="var(--pf-t--global--icon--color--subtle)" aria-hidden />
     </Tooltip>
   );
@@ -77,7 +95,7 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onDe
   const navigate = useNavigate();
 
   const renderDepItem = (dep: CapabilityDependency) => (
-    <ListItem key={dep.id} icon={<DependencyIcon state={dep.state} detail={dep.detail} />}>
+    <ListItem key={dep.id} icon={<DependencyIcon state={dep.state} category={dep.category} detail={dep.detail} />}>
       <span className="pf-v6-u-screen-reader">{dependencyStateLabel(dep.state)}: </span>
       {dep.detail ? (
         <Tooltip content={dep.detail} position="top">
