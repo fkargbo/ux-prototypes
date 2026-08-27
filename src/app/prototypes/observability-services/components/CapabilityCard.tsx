@@ -50,10 +50,10 @@ const DependencyIcon: React.FC<{ state: CapabilityDependency['state']; detail?: 
     const icon = <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--status--warning--default)" aria-hidden />;
     return detail ? <Tooltip content={detail} position="right">{icon}</Tooltip> : icon;
   }
-  // 'missing' — component not yet installed or configured
+  // 'missing' — component not yet installed or configured (neutral/grey)
   return (
-    <Tooltip content="Not installed" position="right">
-      <MinusCircleIcon color="var(--pf-t--global--icon--color--subtle)" aria-label="Not installed" />
+    <Tooltip content="Not configured" position="right">
+      <MinusCircleIcon color="var(--pf-t--global--icon--color--subtle)" aria-hidden />
     </Tooltip>
   );
 };
@@ -67,9 +67,9 @@ const dependencyStateLabel = (state: CapabilityDependency['state']): string => {
     case 'attention':
       return 'Needs attention';
     case 'missing':
-      return 'Available';
+      return 'Not configured';
     default:
-      return 'Available';
+      return 'Unknown';
   }
 };
 

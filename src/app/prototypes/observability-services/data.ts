@@ -551,8 +551,8 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
       COO_READY_DEP,
       { id: 'loki-lokistack', label: 'Loki Operator + LokiStack', state: 'ready', category: 'OPERATOR' as const },
       { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'ready', category: 'OPERATOR' as const },
-      { id: 'loki-object-storage-secret', label: 'Object storage secret (S3 / Azure / GCP)', state: 'missing',   category: 'CONFIGURATION' as const, detail: 'Secret containing object store credentials required for LokiStack',     action: { label: 'Configure', href: '/k8s/ns/openshift-logging/secrets/~new' } },
-      { id: 'lokistack-cr',               label: 'LokiStack CR',                              state: 'missing',   category: 'CONFIGURATION' as const, detail: 'Defines storage size, retention, and replication',                      action: { label: 'Configure', href: '/k8s/ns/openshift-logging/loki.grafana.com~v1beta1~LokiStack/~new' } },
+      { id: 'loki-object-storage-secret', label: 'Object storage secret (S3 / Azure / GCP)', state: 'attention', category: 'CONFIGURATION' as const, detail: 'Secret containing object store credentials required for LokiStack',     action: { label: 'Configure', href: '/k8s/ns/openshift-logging/secrets/~new' } },
+      { id: 'lokistack-cr',               label: 'LokiStack CR',                              state: 'attention', category: 'CONFIGURATION' as const, detail: 'Defines storage size, retention, and replication',                      action: { label: 'Configure', href: '/k8s/ns/openshift-logging/loki.grafana.com~v1beta1~LokiStack/~new' } },
       { id: 'logging-ui-cr',              label: 'COO Logging UI Plugin CR',                  state: 'attention', category: 'CONFIGURATION' as const, detail: 'Disabled in COO CR',                                                    action: { label: 'Enable',     href: COO_CR_PATH } },
     ],
     actions: [
@@ -570,8 +570,8 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     dependencies: [
       COO_READY_DEP,
       { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'ready', category: 'OPERATOR' as const },
-      { id: 'flowcollector-cr',      label: 'FlowCollector CR',                        state: 'missing', category: 'CONFIGURATION' as const, detail: 'Configures eBPF sampling, Loki storage binding, and console display',   action: { label: 'Configure', href: '/k8s/cluster/flows.netobserv.io~v1beta2~FlowCollector/~new' } },
-      { id: 'netobserv-plugin-cr',   label: 'Network Observability UI Plugin CR',  state: 'missing', category: 'CONFIGURATION' as const, detail: 'Integrates flow visualization into Observe → Network Traffic',          action: { label: 'Enable',    href: COO_CR_PATH } },
+      { id: 'flowcollector-cr',    label: 'FlowCollector CR',                      state: 'attention', category: 'CONFIGURATION' as const, detail: 'Configures eBPF sampling, Loki storage binding, and console display', action: { label: 'Configure', href: '/k8s/cluster/flows.netobserv.io~v1beta2~FlowCollector/~new' } },
+      { id: 'netobserv-plugin-cr', label: 'Network Observability UI Plugin CR',    state: 'attention', category: 'CONFIGURATION' as const, detail: 'Integrates flow visualization into Observe → Network Traffic',         action: { label: 'Enable',    href: COO_CR_PATH } },
     ],
     actions: [
       { id: 'network-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/index', isExternal: true },
@@ -625,7 +625,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['korrel8r', 'correlation', 'troubleshooting', 'signals'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'missing', category: 'CONFIGURATION' as const, action: { label: 'Enable', href: COO_CR_PATH } },
+      { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'attention', category: 'CONFIGURATION' as const, action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
       { id: 'signal-correlation-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/troubleshooting-ui-plugin', isExternal: true },
@@ -641,7 +641,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['health analyzer', 'incidents', 'alerts', 'aiops'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'monitoring-ui-health-feature', label: 'COO Monitoring UI Plugin CR (Health Analyzer feature)', state: 'missing', category: 'CONFIGURATION' as const, action: { label: 'Enable', href: COO_CR_PATH } },
+      { id: 'monitoring-ui-health-feature', label: 'COO Monitoring UI Plugin CR (Health Analyzer feature)', state: 'attention', category: 'CONFIGURATION' as const, action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
       { id: 'health-analyzer-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin#coo-incident-detection-overview_monitoring-ui-plugin', isExternal: true },
