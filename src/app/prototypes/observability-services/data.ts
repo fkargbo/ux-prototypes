@@ -320,7 +320,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     ],
   },
 
-  // ─── Recommended: Network Observability ──────────────────────────────────────
+  // ─── Installed: Network Observability ───────────────────────────────────────
   {
     id: 'network-observability',
     title: 'Network observability',
@@ -332,7 +332,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
     },
     summary:
       'eBPF-based network flow collection, cross-namespace traffic mapping, and egress analysis.',
-    category: 'recommended',
+    category: 'installed',
     searchTerms: ['network', 'ebpf', 'flows', 'netobserv'],
     actions: [
       {
@@ -460,7 +460,6 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
       { id: 'dashboards-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/perses-dashboard', isExternal: true },
     ],
   },
-  // ── Recommended ──────────────────────────────────────────────────────────────
   {
     id: 'signal-correlation',
     title: 'Signal Correlation',
@@ -498,7 +497,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     title: 'Network observability',
     status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — operator not installed' },
     summary: 'eBPF-based network flow collection, cross-namespace traffic mapping, and egress analysis.',
-    category: 'recommended',
+    category: 'installed',
     searchTerms: ['network', 'ebpf', 'flows', 'netobserv'],
     dependencies: [
       { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', category: 'OPERATOR' as const, action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability' } },
@@ -633,7 +632,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     title: 'Network observability',
     status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — operator not installed' },
     summary: 'eBPF-based network flow collection, cross-namespace traffic mapping, and egress analysis.',
-    category: 'recommended',
+    category: 'installed',
     searchTerms: ['network', 'ebpf', 'flows', 'netobserv'],
     dependencies: [
       { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', category: 'OPERATOR' as const, action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability' } },

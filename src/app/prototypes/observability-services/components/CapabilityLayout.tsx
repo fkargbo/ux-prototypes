@@ -78,7 +78,7 @@ export const CapabilityLayout: React.FC<CapabilityLayoutProps> = ({
                 id="ols-obs-recommended-heading"
                 className="ols-obs-services-section-title"
               >
-                Additional capabilities
+                Advanced analytics
               </Title>
               <SectionCards items={recommended} onDepAction={onDepAction} />
             </section>
