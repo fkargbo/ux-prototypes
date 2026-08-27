@@ -393,7 +393,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     title: 'Monitoring',
     subtitle: 'COO · MonitoringStack',
     status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
-    summary: 'Core metrics collection and alerting powered by Prometheus and Alertmanager. Available under Observe → Metrics and Observe → Alerting.',
+    summary: 'Collect metrics and manage alerting across cluster workloads. Available under Observe → Metrics and Observe → Alerting once configured.',
     category: 'installed',
     searchTerms: ['prometheus', 'alertmanager', 'metrics', 'alerting', 'monitoringstack'],
     dependencies: [
@@ -411,7 +411,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     title: 'Logging',
     subtitle: 'COO · Loki · CLO',
     status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
-    summary: 'Execute log-based queries for application, infrastructure, and audit logs. Available under Observe → Logs once all dependencies are configured.',
+    summary: 'Query application, infrastructure, and audit logs. Available under Observe → Logs once configured.',
     category: 'installed',
     searchTerms: ['loki', 'clo', 'logs', 'logging', 'clusterlogforwarder', 'lokistack'],
     dependencies: [
@@ -432,7 +432,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     title: 'Distributed tracing',
     subtitle: 'COO · Tempo · OpenTelemetry',
     status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
-    summary: 'Explore distributed traces and spans for microservice request analysis and latency detection. Available under Observe → Traces once all dependencies are configured.',
+    summary: 'Analyze microservice request latency and spans using distributed traces. Available under Observe → Traces once configured.',
     category: 'installed',
     searchTerms: ['tempo', 'opentelemetry', 'otel', 'tracing', 'traces', 'tempostack', 'otelcollector'],
     dependencies: [
@@ -452,7 +452,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     title: 'Dashboards',
     subtitle: 'COO · Perses',
     status: { kind: 'configuration-required', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
-    summary: 'Create and manage customizable Perses dashboards. Available under Observe → Dashboards (Perses) once the UI plugin is enabled.',
+    summary: 'Create and manage custom Perses dashboards. Available under Observe → Dashboards once enabled.',
     category: 'installed',
     searchTerms: ['perses', 'dashboards', 'monitoring', 'ui plugin'],
     dependencies: [
@@ -470,7 +470,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     title: 'Signal Correlation',
     subtitle: 'COO · Korrel8r',
     status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
-    summary: 'Execute correlation queries across metrics, logs, traces, and alerts. Accessible from the OCP web console header once the troubleshooting panel plugin is enabled.',
+    summary: 'Correlate metrics, logs, traces, and alerts across workloads. Available from the global header once enabled.',
     category: 'recommended',
     searchTerms: ['korrel8r', 'correlation', 'troubleshooting', 'signals'],
     dependencies: [
@@ -488,7 +488,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     title: 'Incident detection',
     subtitle: 'COO · Health Analyzer',
     status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — COO not installed' },
-    summary: 'Group alerts into incidents to reduce noise and integrate with AIOps platforms. Adds an Incidents tab under Observe → Alerts once enabled.',
+    summary: 'Group alerts into actionable incidents to reduce noise. Available under Observe → Alerts → Incidents once enabled.',
     category: 'recommended',
     searchTerms: ['health analyzer', 'incidents', 'alerts', 'aiops'],
     dependencies: [
@@ -504,7 +504,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     title: 'Network observability',
     subtitle: 'COO · NetObserv',
     status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — COO and operator not installed' },
-    summary: 'eBPF-based network flow collection, cross-namespace traffic mapping, and egress bottleneck analysis. Available under Observe → Network Traffic once configured.',
+    summary: 'Map network flows, cross-namespace traffic, and egress bottlenecks using eBPF. Available under Observe → Network Traffic once configured.',
     category: 'installed',
     searchTerms: ['network', 'ebpf', 'flows', 'netobserv', 'flowcollector'],
     dependencies: [
@@ -537,7 +537,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     title: 'Dashboards',
     subtitle: 'COO · Perses',
     status: { kind: 'configuration-required', label: 'Partial setup', color: 'grey', srText: 'Status: partial setup — Perses feature not enabled' },
-    summary: 'Create and manage customizable Perses dashboards. Available under Observe → Dashboards (Perses).',
+    summary: 'Create and manage custom Perses dashboards. Available under Observe → Dashboards once enabled.',
     category: 'installed',
     searchTerms: ['perses', 'dashboards', 'monitoring', 'ui plugin'],
     dependencies: [
@@ -555,7 +555,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     title: 'Logging',
     subtitle: 'COO · Loki · CLO',
     status: { kind: 'configuration-required', label: 'Partial setup', color: 'grey', srText: 'Status: partial setup — storage and UI plugin not configured' },
-    summary: 'Execute log-based queries for application, infrastructure, and audit logs. Available under Observe → Logs once storage and the UI plugin are configured.',
+    summary: 'Query application, infrastructure, and audit logs. Available under Observe → Logs once configured.',
     category: 'installed',
     searchTerms: ['loki', 'clo', 'logs', 'logging', 'clusterlogforwarder', 'lokistack'],
     dependencies: [
@@ -576,7 +576,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     title: 'Network observability',
     subtitle: 'COO · NetObserv',
     status: { kind: 'configuration-required', label: 'Partial setup', color: 'grey', srText: 'Status: partial setup — FlowCollector and UI plugin not configured' },
-    summary: 'eBPF-based network flow collection, cross-namespace traffic mapping, and egress bottleneck analysis. Available under Observe → Network Traffic once configured.',
+    summary: 'Map network flows, cross-namespace traffic, and egress bottlenecks using eBPF. Available under Observe → Network Traffic once configured.',
     category: 'installed',
     searchTerms: ['network', 'ebpf', 'flows', 'netobserv', 'flowcollector'],
     dependencies: [
@@ -594,7 +594,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     title: 'Distributed tracing',
     subtitle: 'COO · Tempo · OpenTelemetry',
     status: { kind: 'fully-enabled', label: 'Ready', color: 'green', srText: 'Status: ready' },
-    summary: 'Explore distributed traces and spans for microservice request analysis and latency detection. Available under Observe → Traces.',
+    summary: 'Analyze microservice request latency and spans using distributed traces. Available under Observe → Traces once configured.',
     category: 'installed',
     searchTerms: ['tempo', 'opentelemetry', 'otel', 'tracing', 'traces', 'tempostack', 'otelcollector'],
     runtimeHealth: 'DEGRADED',
@@ -615,7 +615,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     title: 'Monitoring',
     subtitle: 'COO · MonitoringStack',
     status: { kind: 'fully-enabled', label: 'Ready', color: 'green', srText: 'Status: ready' },
-    summary: 'Core metrics collection and alerting powered by Prometheus and Alertmanager. Available under Observe → Metrics and Observe → Alerting.',
+    summary: 'Collect metrics and manage alerting across cluster workloads. Available under Observe → Metrics and Observe → Alerting once configured.',
     category: 'installed',
     searchTerms: ['prometheus', 'alertmanager', 'metrics', 'alerting', 'monitoringstack'],
     dependencies: [
@@ -634,7 +634,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     title: 'Signal Correlation',
     subtitle: 'COO · Korrel8r',
     status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — Troubleshooting Panel CR not enabled' },
-    summary: 'Execute correlation queries across metrics, logs, traces, and alerts. Accessible from the OCP web console header.',
+    summary: 'Correlate metrics, logs, traces, and alerts across workloads. Available from the global header once enabled.',
     category: 'recommended',
     searchTerms: ['korrel8r', 'correlation', 'troubleshooting', 'signals'],
     dependencies: [
@@ -652,7 +652,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     title: 'Incident detection',
     subtitle: 'COO · Health Analyzer',
     status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — Health Analyzer feature not enabled' },
-    summary: 'Group alerts into incidents to reduce noise and integrate with AIOps platforms.',
+    summary: 'Group alerts into actionable incidents to reduce noise. Available under Observe → Alerts → Incidents once enabled.',
     category: 'recommended',
     searchTerms: ['health analyzer', 'incidents', 'alerts', 'aiops'],
     dependencies: [
