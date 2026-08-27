@@ -76,6 +76,37 @@ const dependencyStateLabel = (state: CapabilityDependency['state']): string => {
 export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onDepAction }) => {
   const navigate = useNavigate();
 
+  const renderDepItem = (dep: CapabilityDependency) => (
+    <ListItem key={dep.id} icon={<DependencyIcon state={dep.state} detail={dep.detail} />}>
+      <span className="pf-v6-u-screen-reader">{dependencyStateLabel(dep.state)}: </span>
+      {dep.detail ? (
+        <Tooltip content={dep.detail} position="top">
+          <span style={{ cursor: 'help' }}>{dep.label}</span>
+        </Tooltip>
+      ) : (
+        dep.label
+      )}
+      {dep.action ? (
+        <div style={{ marginTop: '4px' }}>
+          <Button
+            variant="link"
+            isInline
+            onClick={() => {
+              onDepAction?.(dep.id);
+              if (dep.action!.isExternal || dep.action!.href?.startsWith('http')) {
+                window.open(dep.action!.href, '_blank', 'noopener,noreferrer');
+              } else if (dep.action!.href) {
+                navigate(dep.action!.href);
+              }
+            }}
+          >
+            {dep.action.label}
+          </Button>
+        </div>
+      ) : null}
+    </ListItem>
+  );
+
   const handleAction = (action: CapabilityAction) => {
     if (!action.href) {
       return;
@@ -140,49 +171,60 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onDe
         <Content component="p" className="ols-obs-services-capability-card__summary">
           {capability.summary}
         </Content>
-        {capability.dependencies && capability.dependencies.length > 0 ? (
-          <>
-            <h4 className="ols-obs-services-capability-card__deps-heading">
-              Required components
-            </h4>
-            <OperationalHealthLabel
-              runtimeHealth={capability.runtimeHealth ?? 'HEALTHY'}
-              className="ols-obs-services-capability-card__ops-health-label"
-            />
-            <List isPlain className="ols-obs-services-capability-card__deps">
-              {capability.dependencies.map((dep) => (
-                <ListItem key={dep.id} icon={<DependencyIcon state={dep.state} detail={dep.detail} />}>
-                  <span className="pf-v6-u-screen-reader">{dependencyStateLabel(dep.state)}: </span>
-                  {dep.detail ? (
-                    <Tooltip content={dep.detail} position="top">
-                      <span style={{ cursor: 'help' }}>{dep.label}</span>
-                    </Tooltip>
-                  ) : (
-                    dep.label
-                  )}
-                  {dep.action ? (
-                    <div style={{ marginTop: '4px' }}>
-                      <Button
-                        variant="link"
-                        isInline
-                        onClick={() => {
-                          onDepAction?.(dep.id);
-                          if (dep.action!.isExternal || dep.action!.href?.startsWith('http')) {
-                            window.open(dep.action!.href, '_blank', 'noopener,noreferrer');
-                          } else if (dep.action!.href) {
-                            navigate(dep.action!.href);
-                          }
-                        }}
-                      >
-                        {dep.action.label}
-                      </Button>
-                    </div>
-                  ) : null}
-                </ListItem>
-              ))}
-            </List>
-          </>
-        ) : null}
+        {(() => {
+          const deps = capability.dependencies ?? [];
+          if (deps.length === 0) return null;
+
+          const isCategorized = deps.some((d) => d.category);
+
+          if (isCategorized) {
+            const operatorDeps = deps.filter((d) => d.category === 'OPERATOR');
+            const configDeps = deps.filter((d) => d.category === 'CONFIGURATION');
+            return (
+              <>
+                <OperationalHealthLabel
+                  runtimeHealth={capability.runtimeHealth ?? 'HEALTHY'}
+                  className="ols-obs-services-capability-card__ops-health-label"
+                />
+                {operatorDeps.length > 0 && (
+                  <>
+                    <h4 className="ols-obs-services-capability-card__deps-heading">
+                      Required operators
+                    </h4>
+                    <List isPlain className="ols-obs-services-capability-card__deps">
+                      {operatorDeps.map(renderDepItem)}
+                    </List>
+                  </>
+                )}
+                {configDeps.length > 0 && (
+                  <>
+                    <h4 className="ols-obs-services-capability-card__deps-heading ols-obs-services-capability-card__deps-heading--spaced">
+                      Required configurations
+                    </h4>
+                    <List isPlain className="ols-obs-services-capability-card__deps">
+                      {configDeps.map(renderDepItem)}
+                    </List>
+                  </>
+                )}
+              </>
+            );
+          }
+
+          return (
+            <>
+              <h4 className="ols-obs-services-capability-card__deps-heading">
+                Required components
+              </h4>
+              <OperationalHealthLabel
+                runtimeHealth={capability.runtimeHealth ?? 'HEALTHY'}
+                className="ols-obs-services-capability-card__ops-health-label"
+              />
+              <List isPlain className="ols-obs-services-capability-card__deps">
+                {deps.map(renderDepItem)}
+              </List>
+            </>
+          );
+        })()}
       </CardBody>
       {hasFooterContent ? (
         <CardFooter>

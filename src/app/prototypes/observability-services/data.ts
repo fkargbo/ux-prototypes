@@ -382,6 +382,7 @@ const COO_DEP = {
   id: 'coo-operator',
   label: 'Cluster Observability Operator',
   state: 'missing' as const,
+  category: 'OPERATOR' as const,
   action: { label: 'Install', href: '/catalog/ns/default?keyword=cluster-observability-operator' },
 };
 
@@ -397,9 +398,9 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['prometheus', 'alertmanager', 'metrics', 'alerting', 'monitoringstack'],
     dependencies: [
       COO_DEP,
-      { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'missing' },
-      { id: 'prometheus',          label: 'Prometheus',             state: 'missing' },
-      { id: 'alertmanager',        label: 'Alertmanager',           state: 'missing' },
+      { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'missing', category: 'CONFIGURATION' as const },
+      { id: 'prometheus',          label: 'Prometheus',             state: 'missing', category: 'OPERATOR' as const },
+      { id: 'alertmanager',        label: 'Alertmanager',           state: 'missing', category: 'OPERATOR' as const },
     ],
     actions: [
       { id: 'metrics-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin', isExternal: true },
@@ -415,9 +416,9 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['loki', 'clo', 'logs', 'logging', 'clusterlogforwarder', 'lokistack'],
     dependencies: [
       COO_DEP,
-      { id: 'logging-ui-cr',  label: 'COO Logging UI Plugin CR',  state: 'missing' },
-      { id: 'loki-lokistack', label: 'Loki Operator + LokiStack', state: 'missing' },
-      { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'missing' },
+      { id: 'loki-lokistack', label: 'Loki Operator + LokiStack', state: 'missing', category: 'OPERATOR' as const },
+      { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'missing', category: 'OPERATOR' as const },
+      { id: 'logging-ui-cr',  label: 'COO Logging UI Plugin CR',  state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'logs-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/logging-ui-plugin', isExternal: true },
@@ -433,9 +434,9 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['tempo', 'opentelemetry', 'otel', 'tracing', 'traces', 'tempostack', 'otelcollector'],
     dependencies: [
       COO_DEP,
-      { id: 'tracing-ui-cr',    label: 'COO Distributed Tracing UI Plugin CR', state: 'missing' },
-      { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack',          state: 'missing' },
-      { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'missing' },
+      { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack',          state: 'missing', category: 'OPERATOR' as const },
+      { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'missing', category: 'OPERATOR' as const },
+      { id: 'tracing-ui-cr',    label: 'COO Distributed Tracing UI Plugin CR', state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'tracing-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/distributed-tracing-ui-plugin', isExternal: true },
@@ -451,9 +452,9 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['perses', 'dashboards', 'monitoring', 'ui plugin'],
     dependencies: [
       COO_DEP,
-      { id: 'monitoring-ui-plugin-cr', label: 'COO Monitoring UI Plugin CR (Perses feature)', state: 'missing' },
-      { id: 'perses-backend',          label: 'Perses backend',                               state: 'missing' },
-      { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'missing' },
+      { id: 'perses-backend',          label: 'Perses backend',                               state: 'missing', category: 'OPERATOR' as const },
+      { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'missing', category: 'OPERATOR' as const },
+      { id: 'monitoring-ui-plugin-cr', label: 'COO Monitoring UI Plugin CR (Perses feature)', state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'dashboards-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/perses-dashboard', isExternal: true },
@@ -470,7 +471,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['korrel8r', 'correlation', 'troubleshooting', 'signals'],
     dependencies: [
       COO_DEP,
-      { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'missing' },
+      { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'signal-correlation-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/troubleshooting-ui-plugin', isExternal: true },
@@ -486,7 +487,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     searchTerms: ['health analyzer', 'incidents', 'alerts', 'aiops'],
     dependencies: [
       COO_DEP,
-      { id: 'monitoring-ui-health-feature', label: 'COO Monitoring UI Plugin CR (Health Analyzer feature)', state: 'missing' },
+      { id: 'monitoring-ui-health-feature', label: 'COO Monitoring UI Plugin CR (Health Analyzer feature)', state: 'missing', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'health-analyzer-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin#coo-incident-detection-overview_monitoring-ui-plugin', isExternal: true },
@@ -500,7 +501,7 @@ export const CAPABILITY_CARDS_V2_DAY0: CapabilityCardData[] = [
     category: 'recommended',
     searchTerms: ['network', 'ebpf', 'flows', 'netobserv'],
     dependencies: [
-      { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability' } },
+      { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', category: 'OPERATOR' as const, action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability' } },
     ],
     actions: [
       { id: 'network-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/index', isExternal: true },
@@ -516,6 +517,7 @@ const COO_READY_DEP = {
   id: 'coo-operator',
   label: 'Cluster Observability Operator',
   state: 'ready' as const,
+  category: 'OPERATOR' as const,
 };
 
 export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
@@ -530,9 +532,9 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['perses', 'dashboards', 'monitoring', 'ui plugin'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'monitoring-ui-plugin-cr', label: 'COO Monitoring UI Plugin CR (Perses feature)', state: 'attention', detail: 'Disabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
-      { id: 'perses-backend',          label: 'Perses backend',                               state: 'ready' },
-      { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'ready' },
+      { id: 'perses-backend',          label: 'Perses backend',                               state: 'ready',     category: 'OPERATOR' as const },
+      { id: 'monitoring-frontend',     label: 'Monitoring frontend',                          state: 'ready',     category: 'OPERATOR' as const },
+      { id: 'monitoring-ui-plugin-cr', label: 'COO Monitoring UI Plugin CR (Perses feature)', state: 'attention', category: 'CONFIGURATION' as const, detail: 'Disabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
       { id: 'dashboards-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/perses-dashboard', isExternal: true },
@@ -548,9 +550,9 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['loki', 'clo', 'logs', 'logging', 'clusterlogforwarder', 'lokistack'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'logging-ui-cr',  label: 'COO Logging UI Plugin CR',  state: 'attention', detail: 'Disabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
-      { id: 'loki-lokistack', label: 'Loki Operator + LokiStack', state: 'ready' },
-      { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'ready' },
+      { id: 'loki-lokistack', label: 'Loki Operator + LokiStack', state: 'ready',     category: 'OPERATOR' as const },
+      { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'ready',     category: 'OPERATOR' as const },
+      { id: 'logging-ui-cr',  label: 'COO Logging UI Plugin CR',  state: 'attention', category: 'CONFIGURATION' as const, detail: 'Disabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
       { id: 'logs-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/logging-ui-plugin', isExternal: true },
@@ -567,9 +569,9 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     runtimeHealth: 'DEGRADED',
     dependencies: [
       COO_READY_DEP,
-      { id: 'tracing-ui-cr',    label: 'COO Distributed Tracing UI Plugin CR', state: 'ready' },
-      { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack',          state: 'ready' },
-      { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'degraded', detail: 'OTELCollector: Container CrashLoopBackOff', action: { label: 'View OTELCollector', href: COO_CR_PATH } },
+      { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack',          state: 'ready',    category: 'OPERATOR' as const },
+      { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'degraded', category: 'OPERATOR' as const, detail: 'OTELCollector: Container CrashLoopBackOff', action: { label: 'View OTELCollector', href: COO_CR_PATH } },
+      { id: 'tracing-ui-cr',    label: 'COO Distributed Tracing UI Plugin CR', state: 'ready',    category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'tracing-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/distributed-tracing-ui-plugin', isExternal: true },
@@ -585,9 +587,9 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['prometheus', 'alertmanager', 'metrics', 'alerting', 'monitoringstack'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'ready' },
-      { id: 'prometheus',          label: 'Prometheus',             state: 'ready' },
-      { id: 'alertmanager',        label: 'Alertmanager',           state: 'ready' },
+      { id: 'prometheus',          label: 'Prometheus',             state: 'ready', category: 'OPERATOR' as const },
+      { id: 'alertmanager',        label: 'Alertmanager',           state: 'ready', category: 'OPERATOR' as const },
+      { id: 'monitoring-stack-cr', label: 'COO MonitoringStack CR', state: 'ready', category: 'CONFIGURATION' as const },
     ],
     actions: [
       { id: 'metrics-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin', isExternal: true },
@@ -604,7 +606,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['korrel8r', 'correlation', 'troubleshooting', 'signals'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'missing', action: { label: 'Enable', href: COO_CR_PATH } },
+      { id: 'troubleshooting-panel-cr', label: 'COO Troubleshooting Panel UI Plugin CR', state: 'missing', category: 'CONFIGURATION' as const, action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
       { id: 'signal-correlation-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/troubleshooting-ui-plugin', isExternal: true },
@@ -620,7 +622,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     searchTerms: ['health analyzer', 'incidents', 'alerts', 'aiops'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'monitoring-ui-health-feature', label: 'COO Monitoring UI Plugin CR (Health Analyzer feature)', state: 'missing', action: { label: 'Enable', href: COO_CR_PATH } },
+      { id: 'monitoring-ui-health-feature', label: 'COO Monitoring UI Plugin CR (Health Analyzer feature)', state: 'missing', category: 'CONFIGURATION' as const, action: { label: 'Enable', href: COO_CR_PATH } },
     ],
     actions: [
       { id: 'health-analyzer-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin#coo-incident-detection-overview_monitoring-ui-plugin', isExternal: true },
@@ -634,7 +636,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     category: 'recommended',
     searchTerms: ['network', 'ebpf', 'flows', 'netobserv'],
     dependencies: [
-      { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability' } },
+      { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', category: 'OPERATOR' as const, action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability' } },
     ],
     actions: [
       { id: 'network-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/index', isExternal: true },

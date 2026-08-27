@@ -64,6 +64,10 @@
   color: var(--pf-t--global--text--color--subtle);
 }
 
+.ols-obs-services-capability-card__deps-heading--spaced {
+  margin-top: var(--pf-t--global--spacer--md);
+}
+
 .ols-obs-services-capability-card__deps {
   margin: 0;
 }
