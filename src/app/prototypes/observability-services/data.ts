@@ -571,7 +571,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
       COO_READY_DEP,
       { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'ready', category: 'OPERATOR' as const },
       { id: 'flowcollector-cr',      label: 'FlowCollector CR',                        state: 'missing', category: 'CONFIGURATION' as const, detail: 'Configures eBPF sampling, Loki storage binding, and console display',   action: { label: 'Configure', href: '/k8s/cluster/flows.netobserv.io~v1beta2~FlowCollector/~new' } },
-      { id: 'netobserv-plugin-cr',   label: 'COO Network Observability UI Plugin CR',  state: 'missing', category: 'CONFIGURATION' as const, detail: 'Integrates flow visualization into Observe → Network Traffic',          action: { label: 'Enable',    href: COO_CR_PATH } },
+      { id: 'netobserv-plugin-cr',   label: 'Network Observability UI Plugin CR',  state: 'missing', category: 'CONFIGURATION' as const, detail: 'Integrates flow visualization into Observe → Network Traffic',          action: { label: 'Enable',    href: COO_CR_PATH } },
     ],
     actions: [
       { id: 'network-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/index', isExternal: true },
