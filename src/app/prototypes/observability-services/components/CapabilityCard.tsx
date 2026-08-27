@@ -54,20 +54,17 @@ const DependencyIcon: React.FC<{
 
   if (state === 'attention') {
     const icon = <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--status--warning--default)" aria-hidden />;
-    // Day 1 CONFIGURATION deps: generic "not yet configured" hint on the icon;
-    // specific detail is surfaced via the label tooltip.
-    const tooltip = category === 'CONFIGURATION'
-      ? 'Requires storage credentials or CR definition.'
-      : (detail ?? undefined);
-    return tooltip ? <Tooltip content={tooltip} position="right">{icon}</Tooltip> : icon;
+    // Use the item-specific detail as the icon tooltip so each component gets
+    // accurate context rather than a generic fallback string.
+    return detail ? <Tooltip content={detail} position="right">{icon}</Tooltip> : icon;
   }
 
   // 'missing' — neutral grey; tooltip varies by category (Day 0 context)
   const missingTooltip =
     category === 'OPERATOR'
-      ? 'Operator package is not installed on this cluster.'
+      ? 'Not installed'
       : category === 'CONFIGURATION'
-        ? 'Requires prerequisite operator to be installed before configuration.'
+        ? 'Operator required'
         : 'Not configured';
   return (
     <Tooltip content={missingTooltip} position="right">
