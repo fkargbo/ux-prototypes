@@ -222,7 +222,7 @@ export const CAPABILITY_CARDS: CapabilityCardData[] = [
         state: 'degraded',
         detail: 'OTELCollector not ready',
         action: {
-          label: 'View OTELCollector',
+          label: 'View logs',
           href: '/k8s/all-namespaces/opentelemetry.io~v1alpha1~OpenTelemetryCollector',
         },
       },
@@ -589,7 +589,7 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     dependencies: [
       COO_READY_DEP,
       { id: 'tempo-tempostack', label: 'Tempo Operator + TempoStack',          state: 'ready',    category: 'OPERATOR' as const },
-      { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'degraded', category: 'OPERATOR' as const, detail: 'OTELCollector: Container CrashLoopBackOff', action: { label: 'View OTELCollector', href: COO_CR_PATH } },
+      { id: 'otel-collector',   label: 'OTEL Operator + OTELCollector',        state: 'degraded', category: 'OPERATOR' as const, detail: 'OTELCollector: Container CrashLoopBackOff', action: { label: 'View logs', href: COO_CR_PATH } },
       { id: 'tracing-ui-cr',    label: 'COO Distributed Tracing UI Plugin CR', state: 'ready',    category: 'CONFIGURATION' as const },
     ],
     actions: [
