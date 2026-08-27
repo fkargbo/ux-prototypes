@@ -543,18 +543,38 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     id: 'logs',
     title: 'Logging',
     subtitle: 'COO · Loki · CLO',
-    status: { kind: 'configuration-required', label: 'Partial setup', color: 'grey', srText: 'Status: partial setup — Logging UI Plugin disabled' },
-    summary: 'Execute log-based queries for application, infrastructure, and audit logs. Available under Observe → Logs once the UI plugin is enabled.',
+    status: { kind: 'configuration-required', label: 'Partial setup', color: 'grey', srText: 'Status: partial setup — storage and UI plugin not configured' },
+    summary: 'Execute log-based queries for application, infrastructure, and audit logs. Available under Observe → Logs once storage and the UI plugin are configured.',
     category: 'installed',
     searchTerms: ['loki', 'clo', 'logs', 'logging', 'clusterlogforwarder', 'lokistack'],
     dependencies: [
       COO_READY_DEP,
-      { id: 'loki-lokistack', label: 'Loki Operator + LokiStack', state: 'ready',     category: 'OPERATOR' as const },
-      { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'ready',     category: 'OPERATOR' as const },
-      { id: 'logging-ui-cr',  label: 'COO Logging UI Plugin CR',  state: 'attention', category: 'CONFIGURATION' as const, detail: 'Disabled in COO CR', action: { label: 'Enable', href: COO_CR_PATH } },
+      { id: 'loki-lokistack', label: 'Loki Operator + LokiStack', state: 'ready', category: 'OPERATOR' as const },
+      { id: 'clo-clf',        label: 'CLO + ClusterLogForwarder', state: 'ready', category: 'OPERATOR' as const },
+      { id: 'loki-object-storage-secret', label: 'Object storage secret (S3 / Azure / GCP)', state: 'missing',   category: 'CONFIGURATION' as const, detail: 'Secret containing object store credentials required for LokiStack',     action: { label: 'Configure', href: '/k8s/ns/openshift-logging/secrets/~new' } },
+      { id: 'lokistack-cr',               label: 'LokiStack CR',                              state: 'missing',   category: 'CONFIGURATION' as const, detail: 'Defines storage size, retention, and replication',                      action: { label: 'Configure', href: '/k8s/ns/openshift-logging/loki.grafana.com~v1beta1~LokiStack/~new' } },
+      { id: 'logging-ui-cr',              label: 'COO Logging UI Plugin CR',                  state: 'attention', category: 'CONFIGURATION' as const, detail: 'Disabled in COO CR',                                                    action: { label: 'Enable',     href: COO_CR_PATH } },
     ],
     actions: [
       { id: 'logs-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/logging-ui-plugin', isExternal: true },
+    ],
+  },
+  {
+    id: 'network-observability',
+    title: 'Network observability',
+    subtitle: 'COO · NetObserv',
+    status: { kind: 'configuration-required', label: 'Partial setup', color: 'grey', srText: 'Status: partial setup — FlowCollector and UI plugin not configured' },
+    summary: 'eBPF-based network flow collection, cross-namespace traffic mapping, and egress bottleneck analysis. Available under Observe → Network Traffic once configured.',
+    category: 'installed',
+    searchTerms: ['network', 'ebpf', 'flows', 'netobserv', 'flowcollector'],
+    dependencies: [
+      COO_READY_DEP,
+      { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'ready', category: 'OPERATOR' as const },
+      { id: 'flowcollector-cr',      label: 'FlowCollector CR',                        state: 'missing', category: 'CONFIGURATION' as const, detail: 'Configures eBPF sampling, Loki storage binding, and console display',   action: { label: 'Configure', href: '/k8s/cluster/flows.netobserv.io~v1beta2~FlowCollector/~new' } },
+      { id: 'netobserv-plugin-cr',   label: 'COO Network Observability UI Plugin CR',  state: 'missing', category: 'CONFIGURATION' as const, detail: 'Integrates flow visualization into Observe → Network Traffic',          action: { label: 'Enable',    href: COO_CR_PATH } },
+    ],
+    actions: [
+      { id: 'network-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/index', isExternal: true },
     ],
   },
   {
@@ -625,20 +645,6 @@ export const CAPABILITY_CARDS_V2_DAY1: CapabilityCardData[] = [
     ],
     actions: [
       { id: 'health-analyzer-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_cluster_observability_operator/1-latest/html/ui_plugins_for_red_hat_openshift_cluster_observability_operator/monitoring-ui-plugin#coo-incident-detection-overview_monitoring-ui-plugin', isExternal: true },
-    ],
-  },
-  {
-    id: 'network-observability',
-    title: 'Network observability',
-    status: { kind: 'available-addon', label: 'Available', color: 'grey', srText: 'Status: available — operator not installed' },
-    summary: 'eBPF-based network flow collection, cross-namespace traffic mapping, and egress analysis.',
-    category: 'installed',
-    searchTerms: ['network', 'ebpf', 'flows', 'netobserv'],
-    dependencies: [
-      { id: 'netobserv-operator', label: 'Network Observability Operator', state: 'missing', category: 'OPERATOR' as const, action: { label: 'Install', href: '/catalog/ns/default?keyword=network-observability' } },
-    ],
-    actions: [
-      { id: 'network-learn-more', label: 'Learn more', variant: 'link', href: 'https://docs.redhat.com/en/documentation/openshift_container_platform/latest/html/network_observability/index', isExternal: true },
     ],
   },
 ];
