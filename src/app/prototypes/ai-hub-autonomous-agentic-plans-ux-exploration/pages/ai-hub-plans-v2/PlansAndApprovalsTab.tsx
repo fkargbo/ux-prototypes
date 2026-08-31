@@ -3343,13 +3343,9 @@ export function usePlansColumnVisibility(storageKey?: string) {
     });
   }, []);
 
-  const selectAllDraftColumns = useCallback(() => {
-    setDraftHidden(new Set<ColumnKey>());
-  }, []);
-
   const isColumnVisible = useCallback((key: ColumnKey) => !hiddenColumns.has(key), [hiddenColumns]);
 
-  return { hiddenColumns, isColumnVisible, isModalOpen, openModal, closeModal, saveColumns, toggleDraftColumn, selectAllDraftColumns, draftHidden };
+  return { hiddenColumns, isColumnVisible, isModalOpen, openModal, closeModal, saveColumns, toggleDraftColumn, draftHidden };
 }
 
 export interface PlansColumnManagementModalProps {
@@ -3358,7 +3354,6 @@ export interface PlansColumnManagementModalProps {
   onSave: () => void;
   draftHidden: Set<ColumnKey>;
   onToggle: (key: ColumnKey) => void;
-  onSelectAll: () => void;
 }
 
 export const PlansColumnManagementModal: React.FC<PlansColumnManagementModalProps> = ({
@@ -3367,7 +3362,6 @@ export const PlansColumnManagementModal: React.FC<PlansColumnManagementModalProp
   onSave,
   draftHidden,
   onToggle,
-  onSelectAll,
 }) => (
   <Modal
     variant={ModalVariant.small}
@@ -3378,12 +3372,9 @@ export const PlansColumnManagementModal: React.FC<PlansColumnManagementModalProp
     <ModalHeader title="Manage columns" />
     <ModalBody style={{ padding: 0 }}>
       <div style={{ padding: 'var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--lg)' }}>
-        <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
+        <Content component="p" style={{ marginBottom: 0, color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
           Selected categories will be displayed in the table.
         </Content>
-        <Button variant="link" isInline onClick={onSelectAll}>
-          Select all
-        </Button>
       </div>
       <Divider />
       {MANAGEABLE_COLUMN_ORDER.map((key, index) => {
@@ -3779,7 +3770,6 @@ const PlansTable: React.FC<PlansTableProps> = ({
         onSave={colVis.saveColumns}
         draftHidden={colVis.draftHidden}
         onToggle={colVis.toggleDraftColumn}
-        onSelectAll={colVis.selectAllDraftColumns}
       />
     </>
   );
