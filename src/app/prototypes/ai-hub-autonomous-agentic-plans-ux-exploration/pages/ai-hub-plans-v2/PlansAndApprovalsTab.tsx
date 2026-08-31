@@ -3283,11 +3283,12 @@ const PlanRowActionsMenu: React.FC<{ planId: string; planName: string; onDelete:
 
 // ─── Column management ────────────────────────────────────────────────────────
 
-export type ColumnKey = 'name' | 'namespace' | 'status' | 'tokensConsumed' | 'created';
+export type ColumnKey = 'name' | 'namespace' | 'triggerDomain' | 'status' | 'tokensConsumed' | 'created';
 
 const COLUMN_LABELS: Record<ColumnKey, string> = {
   name: 'Name',
-  namespace: 'Namespace / Cluster',
+  namespace: 'Namespace',
+  triggerDomain: 'Trigger domain',
   status: 'Status',
   tokensConsumed: 'Tokens consumed',
   created: 'Created',
@@ -3296,7 +3297,7 @@ const COLUMN_LABELS: Record<ColumnKey, string> = {
 const ALWAYS_VISIBLE_COLUMN_SET = new Set<ColumnKey>(['name']);
 const DEFAULT_HIDDEN_COLUMNS: ColumnKey[] = ['tokensConsumed'];
 
-export const MANAGEABLE_COLUMN_ORDER: ColumnKey[] = ['name', 'namespace', 'status', 'tokensConsumed', 'created'];
+export const MANAGEABLE_COLUMN_ORDER: ColumnKey[] = ['name', 'namespace', 'triggerDomain', 'status', 'tokensConsumed', 'created'];
 
 export function usePlansColumnVisibility(storageKey?: string) {
   const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnKey>>(() => {
@@ -3342,9 +3343,13 @@ export function usePlansColumnVisibility(storageKey?: string) {
     });
   }, []);
 
+  const selectAllDraftColumns = useCallback(() => {
+    setDraftHidden(new Set<ColumnKey>());
+  }, []);
+
   const isColumnVisible = useCallback((key: ColumnKey) => !hiddenColumns.has(key), [hiddenColumns]);
 
-  return { hiddenColumns, isColumnVisible, isModalOpen, openModal, closeModal, saveColumns, toggleDraftColumn, draftHidden };
+  return { hiddenColumns, isColumnVisible, isModalOpen, openModal, closeModal, saveColumns, toggleDraftColumn, selectAllDraftColumns, draftHidden };
 }
 
 export interface PlansColumnManagementModalProps {
@@ -3353,6 +3358,7 @@ export interface PlansColumnManagementModalProps {
   onSave: () => void;
   draftHidden: Set<ColumnKey>;
   onToggle: (key: ColumnKey) => void;
+  onSelectAll: () => void;
 }
 
 export const PlansColumnManagementModal: React.FC<PlansColumnManagementModalProps> = ({
@@ -3361,6 +3367,7 @@ export const PlansColumnManagementModal: React.FC<PlansColumnManagementModalProp
   onSave,
   draftHidden,
   onToggle,
+  onSelectAll,
 }) => (
   <Modal
     variant={ModalVariant.small}
@@ -3369,35 +3376,33 @@ export const PlansColumnManagementModal: React.FC<PlansColumnManagementModalProp
     aria-label="Manage table columns"
   >
     <ModalHeader title="Manage columns" />
-    <ModalBody>
-      <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)', color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
-        Select the columns to display in the table. Some columns are always shown.
-      </Content>
-      <Flex direction={{ default: 'column' }} gap={{ default: 'gapSm' }}>
-        {MANAGEABLE_COLUMN_ORDER.map((key) => {
-          const isLocked = ALWAYS_VISIBLE_COLUMN_SET.has(key);
-          return (
-            <FlexItem key={key}>
+    <ModalBody style={{ padding: 0 }}>
+      <div style={{ padding: 'var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--lg)' }}>
+        <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
+          Selected categories will be displayed in the table.
+        </Content>
+        <Button variant="link" isInline onClick={onSelectAll}>
+          Select all
+        </Button>
+      </div>
+      <Divider />
+      {MANAGEABLE_COLUMN_ORDER.map((key, index) => {
+        const isLocked = ALWAYS_VISIBLE_COLUMN_SET.has(key);
+        return (
+          <React.Fragment key={key}>
+            <div style={{ padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--lg)' }}>
               <Checkbox
                 id={`col-toggle-${key}`}
-                label={
-                  <>
-                    {COLUMN_LABELS[key]}
-                    {isLocked && (
-                      <span style={{ marginInlineStart: '0.5em', fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--subtle)' }}>
-                        (always shown)
-                      </span>
-                    )}
-                  </>
-                }
+                label={COLUMN_LABELS[key]}
                 isChecked={isLocked || !draftHidden.has(key)}
                 isDisabled={isLocked}
                 onChange={() => onToggle(key)}
               />
-            </FlexItem>
-          );
-        })}
-      </Flex>
+            </div>
+            {index < MANAGEABLE_COLUMN_ORDER.length - 1 && <Divider />}
+          </React.Fragment>
+        );
+      })}
     </ModalBody>
     <ModalFooter>
       <Button variant="primary" onClick={onSave}>Save</Button>
@@ -3442,8 +3447,9 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 }) => {
   const isColHidden = (key: ColumnKey) => hiddenColumns?.has(key) ?? false;
   const tokensHidden = isColHidden('tokensConsumed');
-  const statusColIndex = showTriggerDomainColumn ? 3 : 2;
-  const createdColIndex = showTriggerDomainColumn
+  const triggerDomainVisible = showTriggerDomainColumn && !isColHidden('triggerDomain');
+  const statusColIndex = triggerDomainVisible ? 3 : 2;
+  const createdColIndex = triggerDomainVisible
     ? (tokensHidden ? 4 : 5)
     : (tokensHidden ? 3 : 4);
   const getSortProps = (colIndex: number) =>
@@ -3470,7 +3476,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
       <Tr>
         <Th style={{ width: showTriggerDomainColumn ? '22%' : '28%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(0)}>Name</Th>
         <Th style={{ width: showTriggerDomainColumn ? '14%' : '16%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(1)}>{scopeColumnLabel}</Th>
-        {showTriggerDomainColumn ? (
+        {triggerDomainVisible ? (
           <Th style={{ width: '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(2)}>Trigger domain</Th>
         ) : null}
         <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(statusColIndex)}>Status</Th>
@@ -3514,7 +3520,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             />
           </Td>
 
-          {showTriggerDomainColumn ? (
+          {triggerDomainVisible ? (
             <Td dataLabel="Trigger domain" className="ols-plans-trigger-domain-cell">
               <TriggerDomainCell domain={row.triggerDomain} mapObservabilityDomains={mapObservabilityDomains} />
             </Td>
@@ -3617,17 +3623,25 @@ const PlansTable: React.FC<PlansTableProps> = ({
   }, []);
 
   const getSortValue = useCallback((row: PlanRow, colIndex: number): string => {
-    switch (colIndex) {
-      case 0: return (row.name ?? row.id).toLowerCase();
-      case 1: return (row.scope ?? '').toLowerCase();
-      case 2: return resolveDisplayDomain(row.triggerDomain ?? '').toLowerCase();
-      case 3: return (row.status ?? '').toLowerCase();
-      // Created can be at index 4 (when Tokens consumed is hidden) or 5 (when visible)
-      case 4:
-      case 5: return row.createdAt ?? '';
-      default: return '';
+    if (colIndex === 0) return (row.name ?? row.id).toLowerCase();
+    if (colIndex === 1) return (row.scope ?? '').toLowerCase();
+
+    // Walk visible columns in order from index 2 to find which data field maps to this visual index.
+    let idx = 2;
+    const triggerHidden = colVis.hiddenColumns.has('triggerDomain');
+    const tokensHidden = colVis.hiddenColumns.has('tokensConsumed');
+
+    if (!triggerHidden) {
+      if (colIndex === idx) return resolveDisplayDomain(row.triggerDomain ?? '').toLowerCase();
+      idx++;
     }
-  }, []);
+    if (colIndex === idx) return (row.status ?? '').toLowerCase();
+    idx++;
+    if (!tokensHidden) idx++; // tokens consumed — not sortable, just advance the counter
+    if (colIndex === idx) return row.createdAt ?? '';
+
+    return '';
+  }, [colVis.hiddenColumns]);
 
   const sortedRows = useMemo(() => {
     if (activeSortIndex === undefined || activeSortDirection === undefined) return filteredRows;
@@ -3765,6 +3779,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
         onSave={colVis.saveColumns}
         draftHidden={colVis.draftHidden}
         onToggle={colVis.toggleDraftColumn}
+        onSelectAll={colVis.selectAllDraftColumns}
       />
     </>
   );

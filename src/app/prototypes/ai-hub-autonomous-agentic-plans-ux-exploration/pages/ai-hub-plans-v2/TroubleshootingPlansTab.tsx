@@ -167,6 +167,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
         onSave={colVis.saveColumns}
         draftHidden={colVis.draftHidden}
         onToggle={colVis.toggleDraftColumn}
+        onSelectAll={colVis.selectAllDraftColumns}
       />
     </Stack>
   );
