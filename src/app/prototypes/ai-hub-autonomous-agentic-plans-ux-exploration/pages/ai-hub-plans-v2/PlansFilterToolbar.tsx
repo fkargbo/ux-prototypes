@@ -212,6 +212,8 @@ export interface PlansFilterToolbarProps {
   /** Full unfiltered row set — used to compute per-option counts in the filter dropdowns. */
   rows?: PlanRow[];
   pagination?: React.ReactNode;
+  /** Optional control rendered after the search input — e.g. a column management button. */
+  columnManagementControl?: React.ReactNode;
   statusFilters: PlanRow['status'][];
   triggerDomainFilters: string[];
   filterMenuOpen: boolean;
@@ -232,6 +234,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   includeTriggerDomainFilter = false,
   triggerDomainOptions = TRIGGER_DOMAIN_FILTER_OPTIONS,
   pagination,
+  columnManagementControl,
   rows = [],
   statusFilters,
   triggerDomainFilters,
@@ -429,6 +432,9 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                 )}
               </div>
             </FlexItem>
+            {columnManagementControl && (
+              <FlexItem>{columnManagementControl}</FlexItem>
+            )}
           </Flex>
         </FlexItem>
 

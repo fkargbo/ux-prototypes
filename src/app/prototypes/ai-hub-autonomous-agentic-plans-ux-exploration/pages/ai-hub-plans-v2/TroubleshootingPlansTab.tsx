@@ -2,11 +2,14 @@ import * as React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Button,
   Content,
   Pagination,
   Stack,
   StackItem,
+  Tooltip,
 } from '@patternfly/react-core';
+import { ColumnsIcon } from '@patternfly/react-icons';
 import {
   resolveAgentCapabilitiesClusterId,
   useAgenticCapabilities,
@@ -20,8 +23,10 @@ import {
 } from '../planRemediationDrillSession';
 import { getPlanDetailHref } from './domainPlanNavigation';
 import {
+  PlansColumnManagementModal,
   PlansTableCore,
   buildPlansForPerspective,
+  usePlansColumnVisibility,
   type PlanRow,
 } from './PlansAndApprovalsTab';
 import { isNewAlertInvestigationPlanVisible } from './alertInvestigationPlans';
@@ -45,6 +50,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
   const { deletePlan, isPlanDeleted } = useDeletedPlans();
 
   const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true });
+  const colVis = usePlansColumnVisibility('ols-agentic-runs-col-visibility');
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
@@ -123,6 +129,17 @@ export const TroubleshootingPlansTab: React.FC = () => {
               style={{ margin: 0 }}
             />
           }
+          columnManagementControl={
+            <Tooltip content="Manage columns">
+              <Button
+                variant="plain"
+                aria-label="Manage columns"
+                onClick={colVis.openModal}
+              >
+                <ColumnsIcon />
+              </Button>
+            </Tooltip>
+          }
           {...plansFilter}
         />
 
@@ -139,9 +156,18 @@ export const TroubleshootingPlansTab: React.FC = () => {
             onDeletePlan={deletePlan}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
             showTriggerDomainColumn={false}
+            hiddenColumns={colVis.hiddenColumns}
           />
         )}
       </StackItem>
+
+      <PlansColumnManagementModal
+        isOpen={colVis.isModalOpen}
+        onClose={colVis.closeModal}
+        onSave={colVis.saveColumns}
+        draftHidden={colVis.draftHidden}
+        onToggle={colVis.toggleDraftColumn}
+      />
     </Stack>
   );
 };
