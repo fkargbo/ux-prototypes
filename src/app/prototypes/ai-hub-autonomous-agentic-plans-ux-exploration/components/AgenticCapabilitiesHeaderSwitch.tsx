@@ -49,9 +49,48 @@ type AgenticCapabilitiesHeaderSwitchProps = {
   confirmOnDisable?: boolean;
 };
 
-export const AgenticCapabilitiesHeaderSwitch: React.FC<AgenticCapabilitiesHeaderSwitchProps> = ({
-  confirmOnDisable = false,
-}) => {
+export const AgenticCapabilitiesHeaderSwitch: React.FC<AgenticCapabilitiesHeaderSwitchProps> = () => {
+  const location = useLocation();
+  const { activePerspective } = useActivePerspective();
+  const perspectiveKey =
+    readPerspectiveFromSearch(new URLSearchParams(location.search))
+    ?? perspectiveKeyFromShellName(activePerspective)
+    ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
+  const isSingleCluster = perspectiveKey === 'core-platforms';
+  const clusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
+
+  const labelId = `agentic-capabilities-label-${clusterId}`;
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 'var(--pf-t--global--spacer--xs)',
+      }}
+    >
+      <span id={labelId}>Agentic capabilities</span>
+      <Popover
+        headerContent="Cluster agentic capabilities"
+        bodyContent={AgenticCapabilitiesPopoverBody}
+        position="bottom-end"
+      >
+        <Button
+          variant="plain"
+          aria-label="More information about Agentic capabilities"
+          icon={<HelpIcon />}
+          style={{ padding: 0 }}
+        />
+      </Popover>
+    </span>
+  );
+};
+
+/**
+ * Standalone Enable / Disable AI action button with confirmation modal.
+ * Intended for page-heading toolbars — place after the settings (cog) icon.
+ */
+export const AgenticCapabilitiesActionButton: React.FC = () => {
   const location = useLocation();
   const { activePerspective } = useActivePerspective();
   const perspectiveKey =
@@ -61,16 +100,12 @@ export const AgenticCapabilitiesHeaderSwitch: React.FC<AgenticCapabilitiesHeader
   const isSingleCluster = perspectiveKey === 'core-platforms';
   const clusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
   const { isAgentActiveForCluster, setAgentActiveForCluster } = useAgenticCapabilities();
-  const isChecked = isAgentActiveForCluster(clusterId);
+  const isActive = isAgentActiveForCluster(clusterId);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const handleClick = () => {
-    if (isChecked) {
-      if (confirmOnDisable) {
-        setIsConfirmOpen(true);
-      } else {
-        setAgentActiveForCluster(clusterId, false);
-      }
+    if (isActive) {
+      setIsConfirmOpen(true);
     } else {
       setAgentActiveForCluster(clusterId, true);
     }
@@ -81,69 +116,35 @@ export const AgenticCapabilitiesHeaderSwitch: React.FC<AgenticCapabilitiesHeader
     setIsConfirmOpen(false);
   };
 
-  const labelId = `agentic-capabilities-label-${clusterId}`;
-
   return (
     <>
-      <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 'var(--pf-t--global--spacer--md)',
-          flexWrap: 'wrap',
-        }}
+      <Button
+        variant={isActive ? 'secondary' : 'primary'}
+        onClick={handleClick}
       >
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 'var(--pf-t--global--spacer--xs)',
-          }}
-        >
-          <span id={labelId}>Agentic capabilities</span>
-          <Popover
-            headerContent="Cluster agentic capabilities"
-            bodyContent={AgenticCapabilitiesPopoverBody}
-            position="bottom-end"
-          >
-            <Button
-              variant="plain"
-              aria-label="More information about Agentic capabilities"
-              icon={<HelpIcon />}
-              style={{ padding: 0 }}
-            />
-          </Popover>
-        </span>
-        <Button
-          variant={isChecked ? 'secondary' : 'primary'}
-          onClick={handleClick}
-        >
-          {isChecked ? 'Disable AI' : 'Enable AI'}
-        </Button>
-      </div>
+        {isActive ? 'Disable AI' : 'Enable AI'}
+      </Button>
 
-      {confirmOnDisable && (
-        <Modal
-          variant={ModalVariant.small}
-          isOpen={isConfirmOpen}
-          onClose={() => setIsConfirmOpen(false)}
-          aria-labelledby="disable-ai-title"
-        >
-          <ModalHeader title="Disable AI?" labelId="disable-ai-title" />
-          <ModalBody>
-            Stops all background analysis, active executions, and API token consumption for this cluster. You can
-            re-enable agentic capabilities at any time.
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="danger" onClick={handleConfirmDisable}>
-              Disable AI
-            </Button>
-            <Button variant="link" onClick={() => setIsConfirmOpen(false)}>
-              Cancel
-            </Button>
-          </ModalFooter>
-        </Modal>
-      )}
+      <Modal
+        variant={ModalVariant.small}
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        aria-labelledby="disable-ai-title"
+      >
+        <ModalHeader title="Disable AI?" labelId="disable-ai-title" />
+        <ModalBody>
+          Stops all background analysis, active executions, and API token consumption for this cluster. You can
+          re-enable agentic capabilities at any time.
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="danger" onClick={handleConfirmDisable}>
+            Disable AI
+          </Button>
+          <Button variant="link" onClick={() => setIsConfirmOpen(false)}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
     </>
   );
 };

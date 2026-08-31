@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Content, Flex, FlexItem, Icon, Title, Tooltip } from '@patternfly/react-core';
 import { InfoCircleIcon, OutlinedStarIcon, RhUiSettingsIcon, StarIcon } from '@patternfly/react-icons';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
+import { AgenticCapabilitiesActionButton } from '../../components/AgenticCapabilitiesHeaderSwitch';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
 import { AuditKillSwitchPanel } from '../../components/AuditKillSwitchPanel';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
@@ -57,6 +58,7 @@ export const AIHubPageV2: React.FC = () => {
               </Icon>
             </Button>
           </Tooltip>
+          <AgenticCapabilitiesActionButton />
         </div>
         <div className="ols-ai-hub-page-header-primary">
           <Hub.AiExperienceIcon size={40} />
