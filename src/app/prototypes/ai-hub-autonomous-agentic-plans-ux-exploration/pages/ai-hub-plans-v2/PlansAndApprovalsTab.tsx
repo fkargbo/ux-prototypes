@@ -41,7 +41,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { EllipsisVIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiBanIcon, RhUiCheckCircleFillIcon, RhUiDownloadIcon, RhUiErrorFillIcon, RhUiInProgressIcon, RhUiPauseCircleIcon, RhUiPendingIcon, RhUiRunningIcon, RhUiSyncIcon, RhUiWarningFillIcon, SearchIcon } from '@patternfly/react-icons';
+import { ColumnsIcon, EllipsisVIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiBanIcon, RhUiCheckCircleFillIcon, RhUiDownloadIcon, RhUiErrorFillIcon, RhUiInProgressIcon, RhUiPauseCircleIcon, RhUiPendingIcon, RhUiRunningIcon, RhUiSyncIcon, RhUiWarningFillIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
@@ -3441,8 +3441,11 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   hiddenColumns,
 }) => {
   const isColHidden = (key: ColumnKey) => hiddenColumns?.has(key) ?? false;
+  const tokensHidden = isColHidden('tokensConsumed');
   const statusColIndex = showTriggerDomainColumn ? 3 : 2;
-  const createdColIndex = showTriggerDomainColumn ? 5 : 4;
+  const createdColIndex = showTriggerDomainColumn
+    ? (tokensHidden ? 4 : 5)
+    : (tokensHidden ? 3 : 4);
   const getSortProps = (colIndex: number) =>
     !onSort
       ? {}
@@ -3579,6 +3582,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
   isAgenticAutomationEnabled,
 }) => {
   const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true, mapObservabilityDomains: true });
+  const colVis = usePlansColumnVisibility('ols-agentic-plans-col-visibility');
 
   // ── Delete confirmation modal state ──────────────────────────────────────
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
@@ -3618,6 +3622,8 @@ const PlansTable: React.FC<PlansTableProps> = ({
       case 1: return (row.scope ?? '').toLowerCase();
       case 2: return resolveDisplayDomain(row.triggerDomain ?? '').toLowerCase();
       case 3: return (row.status ?? '').toLowerCase();
+      // Created can be at index 4 (when Tokens consumed is hidden) or 5 (when visible)
+      case 4:
       case 5: return row.createdAt ?? '';
       default: return '';
     }
@@ -3693,6 +3699,13 @@ const PlansTable: React.FC<PlansTableProps> = ({
         includeTriggerDomainFilter
         rows={rows}
         pagination={<Pagination isCompact {...paginationProps} style={{ margin: 0 }} />}
+        columnManagementControl={
+          <Tooltip content="Manage columns">
+            <Button variant="plain" aria-label="Manage columns" onClick={colVis.openModal}>
+              <ColumnsIcon />
+            </Button>
+          </Tooltip>
+        }
         {...plansFilter}
       />
 
@@ -3729,6 +3742,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
             activeSortIndex={activeSortIndex}
             activeSortDirection={activeSortDirection}
             onSort={onSort}
+            hiddenColumns={colVis.hiddenColumns}
           />
           <Pagination
             {...paginationProps}
@@ -3743,6 +3757,14 @@ const PlansTable: React.FC<PlansTableProps> = ({
         runName={pendingDelete?.name ?? ''}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
+      />
+
+      <PlansColumnManagementModal
+        isOpen={colVis.isModalOpen}
+        onClose={colVis.closeModal}
+        onSave={colVis.saveColumns}
+        draftHidden={colVis.draftHidden}
+        onToggle={colVis.toggleDraftColumn}
       />
     </>
   );
