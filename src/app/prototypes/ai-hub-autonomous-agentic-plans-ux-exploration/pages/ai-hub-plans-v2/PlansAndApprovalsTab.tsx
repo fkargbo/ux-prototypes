@@ -3371,12 +3371,12 @@ export const PlansColumnManagementModal: React.FC<PlansColumnManagementModalProp
   >
     <ModalHeader title="Manage columns" />
     <ModalBody style={{ padding: 0 }}>
-      <div style={{ padding: 'var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--lg)' }}>
-        <Content component="p" style={{ marginBottom: 0, color: 'var(--pf-t--global--text--color--subtle)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
+      <div style={{ padding: 'var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md)' }}>
+        <Content component="p" style={{ marginBottom: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
           Selected categories will be displayed in the table.
         </Content>
       </div>
-      <Divider />
+      <Divider style={{ marginInline: 'var(--pf-t--global--spacer--lg)' }} />
       {MANAGEABLE_COLUMN_ORDER.map((key, index) => {
         const isLocked = ALWAYS_VISIBLE_COLUMN_SET.has(key);
         return (
@@ -3390,7 +3390,9 @@ export const PlansColumnManagementModal: React.FC<PlansColumnManagementModalProp
                 onChange={() => onToggle(key)}
               />
             </div>
-            {index < MANAGEABLE_COLUMN_ORDER.length - 1 && <Divider />}
+            {index < MANAGEABLE_COLUMN_ORDER.length - 1 && (
+              <Divider style={{ marginInline: 'var(--pf-t--global--spacer--lg)' }} />
+            )}
           </React.Fragment>
         );
       })}
