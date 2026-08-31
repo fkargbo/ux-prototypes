@@ -118,6 +118,12 @@ export const AgenticCapabilitiesActionButton: React.FC = () => {
 
   return (
     <>
+      <Button
+        variant={isActive ? 'secondary' : 'primary'}
+        onClick={handleClick}
+      >
+        {isActive ? 'Disable AI' : 'Enable AI'}
+      </Button>
       <Popover
         headerContent="Cluster agentic capabilities"
         bodyContent={AgenticCapabilitiesPopoverBody}
@@ -130,12 +136,6 @@ export const AgenticCapabilitiesActionButton: React.FC = () => {
           style={{ padding: 0 }}
         />
       </Popover>
-      <Button
-        variant={isActive ? 'secondary' : 'primary'}
-        onClick={handleClick}
-      >
-        {isActive ? 'Disable AI' : 'Enable AI'}
-      </Button>
 
       <Modal
         variant={ModalVariant.small}
