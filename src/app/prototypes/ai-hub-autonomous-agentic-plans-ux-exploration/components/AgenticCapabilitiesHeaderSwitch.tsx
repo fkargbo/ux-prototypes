@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Content, Modal, ModalBody, ModalFooter, ModalHeader, ModalVariant, Popover, Switch } from '@patternfly/react-core';
+import { Button, Content, Modal, ModalBody, ModalFooter, ModalHeader, ModalVariant, Popover } from '@patternfly/react-core';
 import { HelpIcon } from '@patternfly/react-icons';
 import { useLocation } from 'react-router-dom';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
@@ -64,12 +64,16 @@ export const AgenticCapabilitiesHeaderSwitch: React.FC<AgenticCapabilitiesHeader
   const isChecked = isAgentActiveForCluster(clusterId);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  const handleChange = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
-    if (!checked && confirmOnDisable && isChecked) {
-      setIsConfirmOpen(true);
-      return;
+  const handleClick = () => {
+    if (isChecked) {
+      if (confirmOnDisable) {
+        setIsConfirmOpen(true);
+      } else {
+        setAgentActiveForCluster(clusterId, false);
+      }
+    } else {
+      setAgentActiveForCluster(clusterId, true);
     }
-    setAgentActiveForCluster(clusterId, checked);
   };
 
   const handleConfirmDisable = () => {
@@ -110,13 +114,12 @@ export const AgenticCapabilitiesHeaderSwitch: React.FC<AgenticCapabilitiesHeader
             />
           </Popover>
         </span>
-        <Switch
-          id={`agentic-capabilities-${clusterId}`}
-          aria-labelledby={labelId}
-          isChecked={isChecked}
-          onChange={handleChange}
-          hasCheckIcon
-        />
+        <Button
+          variant={isChecked ? 'secondary' : 'primary'}
+          onClick={handleClick}
+        >
+          {isChecked ? 'Disable AI' : 'Enable AI'}
+        </Button>
       </div>
 
       {confirmOnDisable && (
