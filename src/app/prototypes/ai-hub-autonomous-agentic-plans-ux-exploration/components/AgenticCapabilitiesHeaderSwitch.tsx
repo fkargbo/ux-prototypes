@@ -118,6 +118,18 @@ export const AgenticCapabilitiesActionButton: React.FC = () => {
 
   return (
     <>
+      <Popover
+        headerContent="Cluster agentic capabilities"
+        bodyContent={AgenticCapabilitiesPopoverBody}
+        position="bottom-end"
+      >
+        <Button
+          variant="plain"
+          aria-label="More information about Agentic capabilities"
+          icon={<HelpIcon />}
+          style={{ padding: 0 }}
+        />
+      </Popover>
       <Button
         variant={isActive ? 'secondary' : 'primary'}
         onClick={handleClick}

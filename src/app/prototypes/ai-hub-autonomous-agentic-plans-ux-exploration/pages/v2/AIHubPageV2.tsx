@@ -5,7 +5,6 @@ import { InfoCircleIcon, OutlinedStarIcon, RhUiSettingsIcon, StarIcon } from '@p
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticCapabilitiesActionButton } from '../../components/AgenticCapabilitiesHeaderSwitch';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
-import { AuditKillSwitchPanel } from '../../components/AuditKillSwitchPanel';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import { AddToFavoritesModal } from '../../components/AddToFavoritesModal';
 import * as Hub from '../ai-hub-plans-v2';
@@ -102,7 +101,6 @@ export const AIHubPageV2: React.FC = () => {
         role="main"
         aria-label="Agentic runs content"
       >
-        <AuditKillSwitchPanel />
         <AgenticKillSwitchBanner />
         <Hub.PlansAndApprovalsTab />
       </div>
