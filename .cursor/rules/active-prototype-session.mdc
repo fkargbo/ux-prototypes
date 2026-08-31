@@ -33,11 +33,11 @@ This agent chat is permanently dedicated to:
 
 | Agent | Prototype ID | URL |
 |---|---|---|
-| This agent | `observability-gen-ui-dashboards` | `https://fkargbo.github.io/ux-prototypes/core/observe/dashboards-perses` |
+| This agent | `ai-hub-autonomous-agentic-plans-ux-exploration` | `src/app/prototypes/ai-hub-autonomous-agentic-plans-ux-exploration/` |
 
 ### Example
 
-If the active prototype is `observability-gen-ui-dashboards`:
-- ✅ Edit `src/app/prototypes/observability-gen-ui-dashboards/pages/...`
+If the active prototype is `ai-hub-autonomous-agentic-plans-ux-exploration`:
+- ✅ Edit `src/app/prototypes/ai-hub-autonomous-agentic-plans-ux-exploration/pages/...`
 - ❌ Edit `src/app/prototypes/observability-agentic-troubleshooting-ai/pages/...`
 - ❌ Edit `src/app/core/AppLayout.tsx`

@@ -2,7 +2,7 @@ import { PrototypeConfig } from '@app/core/types';
 
 export const config: PrototypeConfig = {
   id: 'ai-hub-autonomous-agentic-plans-ux-exploration',
-  name: 'AI Hub - Autonomous Agentic Plans (UX Exploration)',
+  name: 'AI Hub - Autonomous Agentic Plans (UX Audit Gaps)',
   description:
     'UX audit & evaluation sandbox for autonomous agentic remediation plans — isolated copy of the MVP for gap analysis and design exploration without mutating the agreed source of truth.',
   owner: {
