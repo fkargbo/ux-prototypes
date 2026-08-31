@@ -119,7 +119,7 @@ export const AgenticCapabilitiesActionButton: React.FC = () => {
   return (
     <>
       <Button
-        variant={isActive ? 'secondary' : 'primary'}
+        variant="primary"
         onClick={handleClick}
       >
         {isActive ? 'Disable AI' : 'Enable AI'}
