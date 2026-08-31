@@ -38,7 +38,7 @@ export const routes: RouteConfig[] = [
   {
     path: '/core/observe/ai-hub-ux/plans',
     element: <BridgeRedirect to="/ux-exp/ai-hub/observe/plans" />,
-    label: 'Agentic runs (UX Exp.)',
+    label: 'Agentic runs',
     title: 'Agentic runs (UX Exploration)',
     navigation: {
       group: 'Agentic Runs',
