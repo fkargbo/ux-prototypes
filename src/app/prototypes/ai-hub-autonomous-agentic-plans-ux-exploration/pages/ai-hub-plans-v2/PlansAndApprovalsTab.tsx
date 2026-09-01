@@ -5691,16 +5691,18 @@ export const RemediationBlueprintPanel: React.FC<{
   // ── Sticky action bar derived state ─────────────────────────────────────
   /**
    * Stop button phases (Position 1, conditionally rendered):
-   *   Pending (READY_FOR_ANALYSIS) → Stop analysis
-   *   Analyzing                    → Stop analysis
-   *   Executing / Plan aborted     → Stop execution
-   *   Verifying                    → Stop execution
-   *   Escalating                   → Stop execution
+   *   Analyzing                → Stop analysis
+   *   Executing / Plan aborted → Stop execution
+   *   Verifying                → Stop execution
+   *   Escalating               → Stop execution
+   *
+   * Pending (READY_FOR_ANALYSIS) is excluded — that phase renders only
+   * "Approve analysis" in the toolbar; Stop is irrelevant before dispatch.
    */
   const isStopApplicable =
-    (isPending || isAnalyzing || isExecutionPhase || isVerifying || isEscalating) && !executionKillState;
-  const stopLabel = (isPending || isAnalyzing) ? 'Stop analysis' : 'Stop execution';
-  const stopAction = (isPending || isAnalyzing)
+    (isAnalyzing || isExecutionPhase || isVerifying || isEscalating) && !executionKillState;
+  const stopLabel = isAnalyzing ? 'Stop analysis' : 'Stop execution';
+  const stopAction = isAnalyzing
     ? () => setIsStopAnalysisModalOpen(true)
     : () => setIsStopExecutionModalOpen(true);
 
@@ -6108,19 +6110,6 @@ export const RemediationBlueprintPanel: React.FC<{
           runStatus={status}
         />
       </StackItem>
-
-      {/* ── HITL analysis approval gate (manual policy only) ──────────── */}
-      {isPendingReadyForAnalysis && (
-        <StackItem>
-          <Button
-            variant="primary"
-            isDisabled={!isAgenticAutomationEnabled}
-            onClick={() => dispatchAnalysis(plan.id)}
-          >
-            Approve analysis
-          </Button>
-        </StackItem>
-      )}
 
       {/* ── Status alerts (below heading) ────────────────────────────── */}
       {isEscalating && (
@@ -6697,7 +6686,7 @@ export const RemediationBlueprintPanel: React.FC<{
 
     {/* ── Sticky action bar ─────────────────────────────────────────────────
         Phase matrix (evaluated AFTER domain override):
-          • Pending (READY_FOR_ANALYSIS) → Stop analysis ACTIVE | Execute/Deny/Download DISABLED
+          • Pending (READY_FOR_ANALYSIS) → "Approve analysis" only (Primary)
           • Analyzing          → Stop analysis ACTIVE | Execute/Deny/Download DISABLED
           • Executing          → Stop execution ACTIVE | Execute/Deny DISABLED | Download ACTIVE
           • Verifying          → Stop execution ACTIVE | Execute/Deny DISABLED | Download ACTIVE
@@ -6718,6 +6707,20 @@ export const RemediationBlueprintPanel: React.FC<{
       {/* Override ActionList's default group-to-group gap (48px) with the
           action-to-action token (16px) used by PF Toolbar for button groups. */}
       <ActionList style={{ '--pf-v6-c-action-list--ColumnGap': 'var(--pf-t--global--spacer--gap--action-to-action--default)' } as React.CSSProperties}>
+        {/* Pending (READY_FOR_ANALYSIS): single focused CTA — analysis has not been
+            dispatched yet so Stop / Execute / Deny / Download are all irrelevant. */}
+        {isPendingReadyForAnalysis ? (
+          <ActionListItem>
+            <Button
+              variant="primary"
+              isDisabled={!isAgenticAutomationEnabled}
+              onClick={() => dispatchAnalysis(plan.id)}
+            >
+              Approve analysis
+            </Button>
+          </ActionListItem>
+        ) : (
+        <>
         {/* Position 1: Stop analysis / Stop execution — Danger
             Conditionally rendered so Positions 2-4 shift left when Stop is not applicable. */}
         {isStopApplicable && (
@@ -6795,6 +6798,8 @@ export const RemediationBlueprintPanel: React.FC<{
             </Button>
           )}
         </ActionListItem>
+        </>
+        )}
       </ActionList>
     </div>
 
