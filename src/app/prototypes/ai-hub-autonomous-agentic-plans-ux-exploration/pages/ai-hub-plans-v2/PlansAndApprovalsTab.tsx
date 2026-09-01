@@ -5718,8 +5718,16 @@ export const RemediationBlueprintPanel: React.FC<{
       : 'Action unavailable: Run has reached a terminal state';
   const denyTooltip = executeTooltip;
 
-  /** Download is disabled only while Analyzing — the plan has not been generated yet. */
-  const stickyDownloadDisabled = isAnalyzing;
+  /**
+   * Download is disabled until the backend writes the complete ScopedActions payload to the CR
+   * status — this only happens when Analyzed=True (Proposed phase).
+   * Pending: CR not yet created / analysis not started.
+   * Analyzing: CR exists but ScopedActions payload is still being synthesised.
+   */
+  const stickyDownloadDisabled = isPending || isAnalyzing;
+  const stickyDownloadTooltip = isPending
+    ? 'Analysis has not started yet'
+    : 'Plan is being generated';
   const stickyRootCause = { aggregatedFinding: analysisLogFinding, rootCauseNarrative: analysisLogNarrative };
 
   if (!drawer && !isEscalating && !isPending && !isAnalyzing && !isRunAborted) return null;
@@ -6751,10 +6759,10 @@ export const RemediationBlueprintPanel: React.FC<{
         </ActionListItem>
 
         {/* Position 4: Download plan — Link
-            Disabled during Analyzing (no plan yet); active at all other phases. */}
+            Disabled while Pending (no CR yet) or Analyzing (ScopedActions payload incomplete). */}
         <ActionListItem>
           {stickyDownloadDisabled ? (
-            <Tooltip content="Plan is being generated">
+            <Tooltip content={stickyDownloadTooltip}>
               <span>
                 <Button variant="link" icon={<RhUiDownloadIcon />} isDisabled>Download plan</Button>
               </span>
