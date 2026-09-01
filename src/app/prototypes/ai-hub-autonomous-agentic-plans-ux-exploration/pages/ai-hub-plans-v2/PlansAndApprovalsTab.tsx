@@ -6099,18 +6099,6 @@ export const RemediationBlueprintPanel: React.FC<{
         />
       </StackItem>
 
-      {/* ── Analysis action buttons (below Analysis request card) ─────── */}
-      {isPendingReadyForAnalysis && (
-        <StackItem>
-          <Button
-            variant="primary"
-            isDisabled={!isAgenticAutomationEnabled}
-            onClick={() => dispatchAnalysis(plan.id)}
-          >
-            Approve analysis
-          </Button>
-        </StackItem>
-      )}
 
       {/* ── Status alerts (below heading) ────────────────────────────── */}
       {isEscalating && (
@@ -6686,9 +6674,8 @@ export const RemediationBlueprintPanel: React.FC<{
     </Stack>
 
     {/* ── Sticky action bar ─────────────────────────────────────────────────
-        Stop (Danger) always occupies Position 1; visibility is toggled via CSS
-        rather than conditional mounting so Positions 2-4 never shift.
         Phase matrix:
+          • Pending (READY_FOR_ANALYSIS) → Approve analysis ONLY (primary)
           • Analyzing          → Stop ACTIVE | Execute/Deny/Download DISABLED
           • Executing/Verifying → Stop ACTIVE | Execute/Deny DISABLED | Download ACTIVE
           • Proposed            → Stop HIDDEN | Execute/Deny/Download ACTIVE
@@ -6706,6 +6693,20 @@ export const RemediationBlueprintPanel: React.FC<{
       {/* Override ActionList's default group-to-group gap (48px) with the
           action-to-action token (16px) used by PF Toolbar for button groups. */}
       <ActionList style={{ '--pf-v6-c-action-list--ColumnGap': 'var(--pf-t--global--spacer--gap--action-to-action--default)' } as React.CSSProperties}>
+        {/* Pending (READY_FOR_ANALYSIS): show only the analysis approval gate.
+            All other toolbar actions are irrelevant until analysis has been dispatched. */}
+        {isPendingReadyForAnalysis ? (
+          <ActionListItem>
+            <Button
+              variant="primary"
+              isDisabled={!isAgenticAutomationEnabled}
+              onClick={() => dispatchAnalysis(plan.id)}
+            >
+              Approve analysis
+            </Button>
+          </ActionListItem>
+        ) : (
+        <>
         {/* Position 1: Stop analysis / Stop execution — Danger
             Conditionally rendered; other buttons shift left when not in a transient phase. */}
         {isStopApplicable && (
@@ -6783,6 +6784,8 @@ export const RemediationBlueprintPanel: React.FC<{
             </Button>
           )}
         </ActionListItem>
+        </>
+        )}
       </ActionList>
     </div>
 
