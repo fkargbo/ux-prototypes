@@ -5732,13 +5732,21 @@ export const RemediationBlueprintPanel: React.FC<{
   const summaryEscalationLog = (isEscalated || isEscalating) ? generateEscalationLogs(plan.id) : '';
 
   // ── Sticky action bar derived state ─────────────────────────────────────
-  /** True when the run is in a state where no user-initiated actions are possible. */
+  /** Engine is actively running — triage decisions are not yet applicable. */
+  const isTransientState = isAnalyzing || isExecuting || isVerifying || isEscalating;
+  /** Run has ended — no further mutations are possible. */
   const isInTerminalState =
     isTerminal || isDenied || isEmergencyStopped || isPlanAborted || isRunAborted || isEscalated;
   const stickyBarExecuteDisabled =
-    isInTerminalState || !isAgenticAutomationEnabled || !isProposed || isAnalysisOnly || !selectedOption;
+    isInTerminalState || isTransientState || !isAgenticAutomationEnabled || !isProposed || isAnalysisOnly || !selectedOption;
   const stickyBarDenyDisabled =
-    isInTerminalState || !isAgenticAutomationEnabled || !isProposed || !onRejectPlan;
+    isInTerminalState || isTransientState || !isAgenticAutomationEnabled || !isProposed || !onRejectPlan;
+  /** Tooltip text varies: processing message in transient states, terminal message otherwise. */
+  const stickyDisabledTooltip = isTransientState
+    ? 'Action unavailable: Run is currently processing'
+    : 'Action unavailable: Run has reached a terminal state';
+  /** Download is unavailable only while analysis is running and no options have been generated yet. */
+  const stickyDownloadDisabled = isAnalyzing && !options.length;
   const stickyRootCause = { aggregatedFinding: analysisLogFinding, rootCauseNarrative: analysisLogNarrative };
 
   if (!drawer && !isEscalating && !isPending && !isAnalyzing && !isRunAborted) return null;
@@ -6098,18 +6106,6 @@ export const RemediationBlueprintPanel: React.FC<{
             Approve analysis
           </Button>
         </StackItem>
-      )}
-      {isAnalyzing && (
-        <StackItem>
-          <Button
-            variant="secondary"
-            isDanger
-            isDisabled={!isAgenticAutomationEnabled}
-            onClick={() => setIsStopAnalysisModalOpen(true)}
-          >
-            Stop analysis
-          </Button>
-          </StackItem>
       )}
 
       {/* ── Status alerts (below heading) ────────────────────────────── */}
@@ -6646,44 +6642,6 @@ export const RemediationBlueprintPanel: React.FC<{
         )}
       </StackItem>
 
-      {/* ── Stop execution action (Executing state only) ──────────────── */}
-      {isExecutionPhase && !executionKillState && (
-        <StackItem>
-          <Button
-            variant="danger"
-            isDisabled={!isAgenticAutomationEnabled}
-            onClick={() => setIsStopExecutionModalOpen(true)}
-          >
-            Stop execution
-          </Button>
-          <Modal
-            variant={ModalVariant.small}
-            isOpen={isStopExecutionModalOpen}
-            onClose={() => setIsStopExecutionModalOpen(false)}
-            aria-labelledby="stop-plan-execution-title"
-          >
-            <ModalHeader title="Stop execution?" labelId="stop-plan-execution-title" />
-            <ModalBody>
-              This will halt the execution run. This may result in partial execution. You may need to manually
-              complete or undo any partial changes.
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                variant="danger"
-                onClick={() => {
-                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()), 'execution');
-                  setIsStopExecutionModalOpen(false);
-                }}
-              >
-                Yes, stop execution
-              </Button>
-              <Button variant="link" onClick={() => setIsStopExecutionModalOpen(false)}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </Modal>
-        </StackItem>
-      )}
 
       {/* ── Execution Summary Card ─────────────────────────────────────── */}
       {(isExecuting || isVerifying || isTerminal) && (
@@ -6748,8 +6706,10 @@ export const RemediationBlueprintPanel: React.FC<{
 
     {/* ── Sticky action bar ─────────────────────────────────────────────────
         Anchored to the bottom of the details view scroll container.
-        Execute and Deny are disabled (with tooltips) in terminal states;
-        Download remains enabled at all times for audit / post-mortem use. */}
+        Button states swap based on lifecycle phase:
+          • Transient  (Analyzing/Executing/Verifying) → Stop enabled, triage disabled
+          • Actionable (Proposed)                      → triage enabled, Stop hidden
+          • Terminal   (Completed/Failed/Denied/…)     → triage disabled, Download enabled */}
     <div
       style={{
         position: 'sticky',
@@ -6761,10 +6721,10 @@ export const RemediationBlueprintPanel: React.FC<{
       }}
     >
       <ActionList>
+        {/* Execute remediation — Primary */}
         <ActionListItem>
           {stickyBarExecuteDisabled ? (
-            <Tooltip content="Action unavailable: Run has reached a terminal state">
-              {/* span is required so the tooltip can fire on a fully disabled button */}
+            <Tooltip content={stickyDisabledTooltip}>
               <span>
                 <Button variant="primary" isDisabled>Execute remediation</Button>
               </span>
@@ -6783,9 +6743,11 @@ export const RemediationBlueprintPanel: React.FC<{
             </Button>
           )}
         </ActionListItem>
+
+        {/* Deny run — Secondary */}
         <ActionListItem>
           {stickyBarDenyDisabled ? (
-            <Tooltip content="Action unavailable: Run has reached a terminal state">
+            <Tooltip content={stickyDisabledTooltip}>
               <span>
                 <Button variant="secondary" isDisabled>Deny run</Button>
               </span>
@@ -6796,20 +6758,45 @@ export const RemediationBlueprintPanel: React.FC<{
             </Button>
           )}
         </ActionListItem>
+
+        {/* Stop analysis / Stop execution — Danger; only shown while engine is running */}
+        {(isAnalyzing || (isExecutionPhase && !executionKillState)) && (
+          <ActionListItem>
+            <Button
+              variant="danger"
+              isDisabled={!isAgenticAutomationEnabled}
+              onClick={isAnalyzing
+                ? () => setIsStopAnalysisModalOpen(true)
+                : () => setIsStopExecutionModalOpen(true)}
+            >
+              {isAnalyzing ? 'Stop analysis' : 'Stop execution'}
+            </Button>
+          </ActionListItem>
+        )}
+
+        {/* Download plan — Link; always shown; disabled only while analysis is in-flight */}
         <ActionListItem>
-          <Button
-            variant="link"
-            icon={<RhUiDownloadIcon />}
-            onClick={() => {
-              if (selectedOption) {
-                downloadRemediationPlanMarkdown(plan, selectedOption, stickyRootCause);
-              } else {
-                downloadAnalysisReportMarkdown(plan, stickyRootCause);
-              }
-            }}
-          >
-            Download plan
-          </Button>
+          {stickyDownloadDisabled ? (
+            <Tooltip content="Download available once analysis generates a remediation plan">
+              <span>
+                <Button variant="link" icon={<RhUiDownloadIcon />} isDisabled>Download plan</Button>
+              </span>
+            </Tooltip>
+          ) : (
+            <Button
+              variant="link"
+              icon={<RhUiDownloadIcon />}
+              onClick={() => {
+                if (selectedOption) {
+                  downloadRemediationPlanMarkdown(plan, selectedOption, stickyRootCause);
+                } else {
+                  downloadAnalysisReportMarkdown(plan, stickyRootCause);
+                }
+              }}
+            >
+              Download plan
+            </Button>
+          )}
         </ActionListItem>
       </ActionList>
     </div>
@@ -6841,6 +6828,34 @@ export const RemediationBlueprintPanel: React.FC<{
               </Button>
             </ModalFooter>
           </Modal>
+
+    {/* Stop execution modal — portal; triggered from the sticky action bar */}
+    <Modal
+      variant={ModalVariant.small}
+      isOpen={isStopExecutionModalOpen}
+      onClose={() => setIsStopExecutionModalOpen(false)}
+      aria-labelledby="stop-plan-execution-title"
+    >
+      <ModalHeader title="Stop execution?" labelId="stop-plan-execution-title" />
+      <ModalBody>
+        This will halt the execution run. This may result in partial execution. You may need to manually
+        complete or undo any partial changes.
+      </ModalBody>
+      <ModalFooter>
+        <Button
+          variant="danger"
+          onClick={() => {
+            registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()), 'execution');
+            setIsStopExecutionModalOpen(false);
+          }}
+        >
+          Yes, stop execution
+        </Button>
+        <Button variant="link" onClick={() => setIsStopExecutionModalOpen(false)}>
+          Cancel
+        </Button>
+      </ModalFooter>
+    </Modal>
     </>
   );
 };
