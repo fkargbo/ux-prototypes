@@ -103,17 +103,34 @@ export const AgenticCapabilitiesActionButton: React.FC = () => {
   const isActive = isAgentActiveForCluster(clusterId);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  const handleClick = () => {
+  // After any modal dismiss, the browser never fires mouseleave on the button
+  // (the overlay intercepted all pointer events). Dispatching a synthetic mousemove
+  // forces the engine to re-evaluate :hover on every element under the cursor.
+  const unstickHover = () => {
+    requestAnimationFrame(() => {
+      document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true }));
+    });
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.blur();
     if (isActive) {
       setIsConfirmOpen(true);
     } else {
       setAgentActiveForCluster(clusterId, true);
+      unstickHover();
     }
   };
 
   const handleConfirmDisable = () => {
     setAgentActiveForCluster(clusterId, false);
     setIsConfirmOpen(false);
+    unstickHover();
+  };
+
+  const handleModalClose = () => {
+    setIsConfirmOpen(false);
+    unstickHover();
   };
 
   return (
@@ -140,10 +157,10 @@ export const AgenticCapabilitiesActionButton: React.FC = () => {
       <Modal
         variant={ModalVariant.small}
         isOpen={isConfirmOpen}
-        onClose={() => setIsConfirmOpen(false)}
+        onClose={handleModalClose}
         aria-labelledby="disable-ai-title"
       >
-          <ModalHeader title="Disable agentic runs?" labelId="disable-ai-title" />
+        <ModalHeader title="Disable agentic runs?" labelId="disable-ai-title" />
         <ModalBody>
           Stops all background analysis, active executions, and API token consumption for this cluster. You can
           re-enable agentic capabilities at any time.
@@ -152,7 +169,7 @@ export const AgenticCapabilitiesActionButton: React.FC = () => {
           <Button variant="danger" onClick={handleConfirmDisable}>
             Disable agentic runs
           </Button>
-          <Button variant="link" onClick={() => setIsConfirmOpen(false)}>
+          <Button variant="link" onClick={handleModalClose}>
             Cancel
           </Button>
         </ModalFooter>
