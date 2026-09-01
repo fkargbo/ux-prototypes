@@ -5891,9 +5891,10 @@ export const RemediationBlueprintPanel: React.FC<{
     );
   }
 
-  // Cluster-update domain: RCA + handoff to Administration → Cluster Update (shared for all these runs).
+  // Cluster-update domain: RCA + read-only assessment. Standard proposal controls are not supported.
   if (isClusterUpdatePlan) {
-        return (
+    return (
+      <>
       <Stack style={{ gap: '24px' }}>
           <StackItem>
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
@@ -6012,20 +6013,14 @@ export const RemediationBlueprintPanel: React.FC<{
                       </Flex>
             </CardHeader>
             <CardBody className="ols-remediation-option-card__body">
-              {onRemediateInClusterUpdates ? (
-                <Button
-                  variant="link"
-                  isInline
-                  isDisabled={!isAgenticAutomationEnabled}
-                  onClick={onRemediateInClusterUpdates}
-                >
-                  Remediate in Cluster Updates
-                </Button>
-              ) : (
-                <Content component="p" style={{ margin: 0 }}>
-                  Continue remediation from Administration → Cluster Update.
-                </Content>
-              )}
+              <Alert
+                variant="info"
+                isInline
+                title="External Workflow Required"
+              >
+                Cluster update readiness findings must be applied through the Cluster Settings portal
+                to preserve operator health validation checks.
+              </Alert>
             </CardBody>
           </Card>
         </StackItem>
@@ -6040,6 +6035,34 @@ export const RemediationBlueprintPanel: React.FC<{
           />
         </StackItem>
       </Stack>
+
+      {/* ── Cluster update sticky toolbar ──────────────────────────────────────
+          Only "Go to Cluster Settings" is rendered — standard proposal actions
+          (Execute remediation, Deny run, Download plan) are omitted because
+          cluster-update runs produce a read-only readiness assessment. */}
+      <div
+        style={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 100,
+          backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+          borderTop: '1px solid var(--pf-t--global--border--color--default)',
+          padding: 'var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md)',
+        }}
+      >
+        <ActionList style={{ '--pf-v6-c-action-list--ColumnGap': 'var(--pf-t--global--spacer--gap--action-to-action--default)' } as React.CSSProperties}>
+          <ActionListItem>
+            <Button
+              variant="primary"
+              isDisabled={!onRemediateInClusterUpdates}
+              onClick={onRemediateInClusterUpdates}
+            >
+              Go to Cluster Settings
+            </Button>
+          </ActionListItem>
+        </ActionList>
+      </div>
+      </>
     );
   }
 
