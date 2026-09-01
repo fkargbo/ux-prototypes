@@ -4732,7 +4732,6 @@ const RemediationOptionCard: React.FC<{
   isOptionLocked: boolean;
   showExecutionLog: boolean;
   rootCause?: { aggregatedFinding: string; rootCauseNarrative: string };
-  onExecute?: () => void;
   /** Human approval metadata — shown as plain secondary text once execution begins. */
   approval?: import('../../context/PlanWorkflowContext').ExecutionApproval | null;
   /** Live or resolved verification state, used to badge the verification-logs toggle. */
@@ -4749,7 +4748,6 @@ const RemediationOptionCard: React.FC<{
   showExecutionLog,
   isOptionLocked,
   rootCause,
-  onExecute,
   approval,
   verification,
 }) => {
@@ -5051,35 +5049,6 @@ const RemediationOptionCard: React.FC<{
                 codeStyle={{ fontSize: '12px' }}
               />
             )}
-            {/* Execute remediation — visible only in Proposed state via onExecute prop */}
-            {onExecute && (
-                <Flex
-                  gap={{ default: 'gapSm' }}
-                  flexWrap={{ default: 'wrap' }}
-                  style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
-                >
-                    <FlexItem>
-                      <Button
-                        variant="primary"
-                        isDisabled={!isAgenticAutomationEnabled}
-                        onClick={onExecute}
-                      >
-                        Execute remediation
-                      </Button>
-                    </FlexItem>
-                {rootCause && (
-                    <FlexItem>
-                      <Button
-                        variant="link"
-                      icon={<RhUiDownloadIcon />}
-                        onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
-                      >
-                        Download plan
-                      </Button>
-                    </FlexItem>
-                  )}
-                </Flex>
-              )}
             </div>
 
           {/* ── E. Rollback plan — shown after execution ── */}
@@ -5182,18 +5151,6 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* ── F. Card footer — Download plan (post-execution only) ── */}
-          {showEvidenceTrail && rootCause && (
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)', borderTop: '1px solid var(--pf-t--global--border--color--default)', paddingTop: 'var(--pf-t--global--spacer--md)' }}>
-                <Button
-                  variant="link"
-                icon={<RhUiDownloadIcon />}
-                onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
-                >
-                Download plan
-                </Button>
-            </div>
-          )}
         </CardBody>
       )}
     </Card>
@@ -6482,7 +6439,6 @@ export const RemediationBlueprintPanel: React.FC<{
                           isOptionLocked={isOptionLocked}
                           showExecutionLog={showExecutionLog && selectedOptionId === opt.id}
                           rootCause={opt.diagnosis}
-                          onExecute={isProposed && (executionPolicy !== 'auto' || reversibilityCircuitBreakerActive) ? () => { setSelectedOptionId(opt.id); setIsExecuteConfirmModalOpen(true); } : undefined}
                           approval={workflow.executionApproval}
                           verification={workflow.verification}
                         />
@@ -6525,19 +6481,6 @@ export const RemediationBlueprintPanel: React.FC<{
                 </Alert>
               )}
 
-              {isProposed && onRejectPlan && (
-                <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                  <FlexItem>
-                    <Button
-                      variant="secondary"
-                      isDisabled={!isAgenticAutomationEnabled}
-                      onClick={() => setIsDenyModalOpen(true)}
-                    >
-                      Deny run
-                    </Button>
-                  </FlexItem>
-                </Flex>
-              )}
 
               {/* ── Deny run confirmation modal ────────────────────────────── */}
               <Modal
@@ -6720,15 +6663,6 @@ export const RemediationBlueprintPanel: React.FC<{
             escalationLog={summaryEscalationLog}
             escalationPolicy={escalationPolicy}
           />
-        </StackItem>
-      )}
-
-      {/* ── Escalate to human action (Failed state only) ──────────────── */}
-      {status === 'Failed' && (
-        <StackItem>
-          <Button variant="secondary" isDisabled={!isAgenticAutomationEnabled}>
-            Escalate to human
-          </Button>
         </StackItem>
       )}
 
