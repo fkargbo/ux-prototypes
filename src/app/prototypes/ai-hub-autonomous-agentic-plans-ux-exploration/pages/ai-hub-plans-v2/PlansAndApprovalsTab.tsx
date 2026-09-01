@@ -5732,21 +5732,37 @@ export const RemediationBlueprintPanel: React.FC<{
   const summaryEscalationLog = (isEscalated || isEscalating) ? generateEscalationLogs(plan.id) : '';
 
   // ── Sticky action bar derived state ─────────────────────────────────────
-  /** Engine is actively running — triage decisions are not yet applicable. */
-  const isTransientState = isAnalyzing || isExecuting || isVerifying || isEscalating;
   /** Run has ended — no further mutations are possible. */
   const isInTerminalState =
     isTerminal || isDenied || isEmergencyStopped || isPlanAborted || isRunAborted || isEscalated;
+  /**
+   * Stop button is rendered in Position 1 at all times for layout stability.
+   * `isStopApplicable` drives visibility (hidden vs. visible) rather than
+   * mount/unmount, so Execute/Deny/Download never shift horizontally.
+   */
+  const isStopApplicable =
+    (isAnalyzing || isExecutionPhase || isVerifying) && !executionKillState;
+  const stopLabel = isAnalyzing ? 'Stop analysis' : 'Stop execution';
+  const stopAction = isAnalyzing
+    ? () => setIsStopAnalysisModalOpen(true)
+    : () => setIsStopExecutionModalOpen(true);
+
+  /** Execute / Deny are active only in the Proposed phase with all prerequisites met. */
   const stickyBarExecuteDisabled =
-    isInTerminalState || isTransientState || !isAgenticAutomationEnabled || !isProposed || isAnalysisOnly || !selectedOption;
+    !isAgenticAutomationEnabled || !isProposed || isAnalysisOnly || !selectedOption;
   const stickyBarDenyDisabled =
-    isInTerminalState || isTransientState || !isAgenticAutomationEnabled || !isProposed || !onRejectPlan;
-  /** Tooltip text varies: processing message in transient states, terminal message otherwise. */
-  const stickyDisabledTooltip = isTransientState
-    ? 'Action unavailable: Run is currently processing'
-    : 'Action unavailable: Run has reached a terminal state';
-  /** Download is unavailable only while analysis is running and no options have been generated yet. */
-  const stickyDownloadDisabled = isAnalyzing && !options.length;
+    !isAgenticAutomationEnabled || !isProposed || !onRejectPlan;
+
+  /** Phase-specific tooltip copy for disabled triage buttons. */
+  const executeTooltip = isAnalyzing
+    ? 'Root cause analysis is currently in progress'
+    : isExecutionPhase || isVerifying
+      ? 'Remediation execution is currently in progress'
+      : 'Action unavailable: Run has reached a terminal state';
+  const denyTooltip = executeTooltip;
+
+  /** Download is disabled only while Analyzing — the plan has not been generated yet. */
+  const stickyDownloadDisabled = isAnalyzing;
   const stickyRootCause = { aggregatedFinding: analysisLogFinding, rootCauseNarrative: analysisLogNarrative };
 
   if (!drawer && !isEscalating && !isPending && !isAnalyzing && !isRunAborted) return null;
@@ -6705,11 +6721,13 @@ export const RemediationBlueprintPanel: React.FC<{
     </Stack>
 
     {/* ── Sticky action bar ─────────────────────────────────────────────────
-        Anchored to the bottom of the details view scroll container.
-        Button states swap based on lifecycle phase:
-          • Transient  (Analyzing/Executing/Verifying) → Stop enabled, triage disabled
-          • Actionable (Proposed)                      → triage enabled, Stop hidden
-          • Terminal   (Completed/Failed/Denied/…)     → triage disabled, Download enabled */}
+        Stop (Danger) always occupies Position 1; visibility is toggled via CSS
+        rather than conditional mounting so Positions 2-4 never shift.
+        Phase matrix:
+          • Analyzing          → Stop ACTIVE | Execute/Deny/Download DISABLED
+          • Executing/Verifying → Stop ACTIVE | Execute/Deny DISABLED | Download ACTIVE
+          • Proposed            → Stop HIDDEN | Execute/Deny/Download ACTIVE
+          • Terminal            → Stop HIDDEN | Execute/Deny DISABLED | Download ACTIVE */}
     <div
       style={{
         position: 'sticky',
@@ -6721,10 +6739,22 @@ export const RemediationBlueprintPanel: React.FC<{
       }}
     >
       <ActionList>
-        {/* Execute remediation — Primary */}
+        {/* Position 1: Stop analysis / Stop execution — Danger
+            Always rendered; CSS visibility preserves layout in non-transient phases. */}
+        <ActionListItem style={{ visibility: isStopApplicable ? 'visible' : 'hidden' }}>
+          <Button
+            variant="danger"
+            isDisabled={!isAgenticAutomationEnabled}
+            onClick={stopAction}
+          >
+            {stopLabel}
+          </Button>
+        </ActionListItem>
+
+        {/* Position 2: Execute remediation — Primary */}
         <ActionListItem>
           {stickyBarExecuteDisabled ? (
-            <Tooltip content={stickyDisabledTooltip}>
+            <Tooltip content={executeTooltip}>
               <span>
                 <Button variant="primary" isDisabled>Execute remediation</Button>
               </span>
@@ -6744,10 +6774,10 @@ export const RemediationBlueprintPanel: React.FC<{
           )}
         </ActionListItem>
 
-        {/* Deny run — Secondary */}
+        {/* Position 3: Deny run — Secondary */}
         <ActionListItem>
           {stickyBarDenyDisabled ? (
-            <Tooltip content={stickyDisabledTooltip}>
+            <Tooltip content={denyTooltip}>
               <span>
                 <Button variant="secondary" isDisabled>Deny run</Button>
               </span>
@@ -6759,25 +6789,11 @@ export const RemediationBlueprintPanel: React.FC<{
           )}
         </ActionListItem>
 
-        {/* Stop analysis / Stop execution — Danger; only shown while engine is running */}
-        {(isAnalyzing || (isExecutionPhase && !executionKillState)) && (
-          <ActionListItem>
-            <Button
-              variant="danger"
-              isDisabled={!isAgenticAutomationEnabled}
-              onClick={isAnalyzing
-                ? () => setIsStopAnalysisModalOpen(true)
-                : () => setIsStopExecutionModalOpen(true)}
-            >
-              {isAnalyzing ? 'Stop analysis' : 'Stop execution'}
-            </Button>
-          </ActionListItem>
-        )}
-
-        {/* Download plan — Link; always shown; disabled only while analysis is in-flight */}
+        {/* Position 4: Download plan — Link
+            Disabled during Analyzing (no plan yet); active at all other phases. */}
         <ActionListItem>
           {stickyDownloadDisabled ? (
-            <Tooltip content="Download available once analysis generates a remediation plan">
+            <Tooltip content="Plan is being generated">
               <span>
                 <Button variant="link" icon={<RhUiDownloadIcon />} isDisabled>Download plan</Button>
               </span>
