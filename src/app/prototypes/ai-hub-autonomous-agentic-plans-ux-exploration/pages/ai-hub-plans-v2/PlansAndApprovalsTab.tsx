@@ -6764,7 +6764,10 @@ export const RemediationBlueprintPanel: React.FC<{
         <ActionListItem>
           {stickyBarExecuteDisabled ? (
             <Tooltip content="Action unavailable: Run has reached a terminal state">
-              <Button variant="primary" isAriaDisabled>Execute remediation</Button>
+              {/* span is required so the tooltip can fire on a fully disabled button */}
+              <span>
+                <Button variant="primary" isDisabled>Execute remediation</Button>
+              </span>
             </Tooltip>
           ) : (
             <Button
@@ -6783,7 +6786,9 @@ export const RemediationBlueprintPanel: React.FC<{
         <ActionListItem>
           {stickyBarDenyDisabled ? (
             <Tooltip content="Action unavailable: Run has reached a terminal state">
-              <Button variant="secondary" isAriaDisabled>Deny run</Button>
+              <span>
+                <Button variant="secondary" isDisabled>Deny run</Button>
+              </span>
             </Tooltip>
           ) : (
             <Button variant="secondary" onClick={() => setIsDenyModalOpen(true)}>
@@ -6795,10 +6800,11 @@ export const RemediationBlueprintPanel: React.FC<{
           <Button
             variant="link"
             icon={<RhUiDownloadIcon />}
-            isDisabled={!selectedOption}
             onClick={() => {
               if (selectedOption) {
                 downloadRemediationPlanMarkdown(plan, selectedOption, stickyRootCause);
+              } else {
+                downloadAnalysisReportMarkdown(plan, stickyRootCause);
               }
             }}
           >
