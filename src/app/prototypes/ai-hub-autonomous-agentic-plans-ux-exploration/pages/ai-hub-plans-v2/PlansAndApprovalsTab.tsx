@@ -6735,10 +6735,12 @@ export const RemediationBlueprintPanel: React.FC<{
         zIndex: 100,
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
         borderTop: '1px solid var(--pf-t--global--border--color--default)',
-        padding: 'var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--lg)',
+        padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
       }}
     >
-      <ActionList>
+      {/* Override ActionList's default group-to-group gap (48px) with the
+          action-to-action token (16px) used by PF Toolbar for button groups. */}
+      <ActionList style={{ '--pf-v6-c-action-list--ColumnGap': 'var(--pf-t--global--spacer--gap--action-to-action--default)' } as React.CSSProperties}>
         {/* Position 1: Stop analysis / Stop execution — Danger
             Always rendered; CSS visibility preserves layout in non-transient phases. */}
         <ActionListItem style={{ visibility: isStopApplicable ? 'visible' : 'hidden' }}>
