@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  ActionList,
+  ActionListItem,
   Alert,
   Button,
   Card,
@@ -5729,6 +5731,16 @@ export const RemediationBlueprintPanel: React.FC<{
   );
   const summaryEscalationLog = (isEscalated || isEscalating) ? generateEscalationLogs(plan.id) : '';
 
+  // ── Sticky action bar derived state ─────────────────────────────────────
+  /** True when the run is in a state where no user-initiated actions are possible. */
+  const isInTerminalState =
+    isTerminal || isDenied || isEmergencyStopped || isPlanAborted || isRunAborted || isEscalated;
+  const stickyBarExecuteDisabled =
+    isInTerminalState || !isAgenticAutomationEnabled || !isProposed || isAnalysisOnly || !selectedOption;
+  const stickyBarDenyDisabled =
+    isInTerminalState || !isAgenticAutomationEnabled || !isProposed || !onRejectPlan;
+  const stickyRootCause = { aggregatedFinding: analysisLogFinding, rootCauseNarrative: analysisLogNarrative };
+
   if (!drawer && !isEscalating && !isPending && !isAnalyzing && !isRunAborted) return null;
 
   // ── Analysis-aborted layout ────────────────────────────────────────────────
@@ -6733,6 +6745,68 @@ export const RemediationBlueprintPanel: React.FC<{
         />
       </StackItem>
     </Stack>
+
+    {/* ── Sticky action bar ─────────────────────────────────────────────────
+        Anchored to the bottom of the details view scroll container.
+        Execute and Deny are disabled (with tooltips) in terminal states;
+        Download remains enabled at all times for audit / post-mortem use. */}
+    <div
+      style={{
+        position: 'sticky',
+        bottom: 0,
+        zIndex: 100,
+        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+        borderTop: '1px solid var(--pf-t--global--border--color--default)',
+        padding: 'var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--lg)',
+      }}
+    >
+      <ActionList>
+        <ActionListItem>
+          {stickyBarExecuteDisabled ? (
+            <Tooltip content="Action unavailable: Run has reached a terminal state">
+              <Button variant="primary" isAriaDisabled>Execute remediation</Button>
+            </Tooltip>
+          ) : (
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (selectedOption) {
+                  setSelectedOptionId(selectedOption.id);
+                  setIsExecuteConfirmModalOpen(true);
+                }
+              }}
+            >
+              Execute remediation
+            </Button>
+          )}
+        </ActionListItem>
+        <ActionListItem>
+          {stickyBarDenyDisabled ? (
+            <Tooltip content="Action unavailable: Run has reached a terminal state">
+              <Button variant="secondary" isAriaDisabled>Deny run</Button>
+            </Tooltip>
+          ) : (
+            <Button variant="secondary" onClick={() => setIsDenyModalOpen(true)}>
+              Deny run
+            </Button>
+          )}
+        </ActionListItem>
+        <ActionListItem>
+          <Button
+            variant="link"
+            icon={<RhUiDownloadIcon />}
+            isDisabled={!selectedOption}
+            onClick={() => {
+              if (selectedOption) {
+                downloadRemediationPlanMarkdown(plan, selectedOption, stickyRootCause);
+              }
+            }}
+          >
+            Download plan
+          </Button>
+        </ActionListItem>
+      </ActionList>
+    </div>
 
     {/* Stop analysis modal — rendered as a portal; lives outside Stack to avoid adding a gap slot */}
           <Modal
