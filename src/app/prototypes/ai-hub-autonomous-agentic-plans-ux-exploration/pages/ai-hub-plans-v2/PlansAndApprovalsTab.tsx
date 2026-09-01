@@ -5689,45 +5689,55 @@ export const RemediationBlueprintPanel: React.FC<{
   const summaryEscalationLog = (isEscalated || isEscalating) ? generateEscalationLogs(plan.id) : '';
 
   // ── Sticky action bar derived state ─────────────────────────────────────
-  /** Run has ended — no further mutations are possible. */
-  const isInTerminalState =
-    isTerminal || isDenied || isEmergencyStopped || isPlanAborted || isRunAborted || isEscalated;
   /**
-   * Stop button is rendered in Position 1 at all times for layout stability.
-   * `isStopApplicable` drives visibility (hidden vs. visible) rather than
-   * mount/unmount, so Execute/Deny/Download never shift horizontally.
+   * Stop button phases (Position 1, conditionally rendered):
+   *   Pending (READY_FOR_ANALYSIS) → Stop analysis
+   *   Analyzing                    → Stop analysis
+   *   Executing / Plan aborted     → Stop execution
+   *   Verifying                    → Stop execution
+   *   Escalating                   → Stop execution
    */
   const isStopApplicable =
-    (isAnalyzing || isExecutionPhase || isVerifying) && !executionKillState;
-  const stopLabel = isAnalyzing ? 'Stop analysis' : 'Stop execution';
-  const stopAction = isAnalyzing
+    (isPending || isAnalyzing || isExecutionPhase || isVerifying || isEscalating) && !executionKillState;
+  const stopLabel = (isPending || isAnalyzing) ? 'Stop analysis' : 'Stop execution';
+  const stopAction = (isPending || isAnalyzing)
     ? () => setIsStopAnalysisModalOpen(true)
     : () => setIsStopExecutionModalOpen(true);
 
-  /** Execute / Deny are active only in the Proposed phase with all prerequisites met. */
+  /**
+   * Execute / Deny are active in Proposed and Escalated (both require human decision).
+   * All other phases — including transient and terminal — disable these buttons.
+   */
   const stickyBarExecuteDisabled =
-    !isAgenticAutomationEnabled || !isProposed || isAnalysisOnly || !selectedOption;
+    !isAgenticAutomationEnabled || (!isProposed && !isEscalated) || isAnalysisOnly || !selectedOption;
   const stickyBarDenyDisabled =
-    !isAgenticAutomationEnabled || !isProposed || !onRejectPlan;
+    !isAgenticAutomationEnabled || (!isProposed && !isEscalated) || !onRejectPlan;
 
-  /** Phase-specific tooltip copy for disabled triage buttons. */
-  const executeTooltip = isAnalyzing
-    ? 'Root cause analysis is currently in progress'
-    : isExecutionPhase || isVerifying
-      ? 'Remediation execution is currently in progress'
-      : 'Action unavailable: Run has reached a terminal state';
+  /**
+   * Phase-specific tooltip copy for disabled Execute / Deny buttons.
+   * Verifying and Escalating have distinct copy to avoid over-generalisation.
+   */
+  const executeTooltip = isPending
+    ? 'Run initialization in progress'
+    : isAnalyzing
+      ? 'Root cause analysis in progress'
+      : isExecutionPhase
+        ? 'Remediation execution in progress'
+        : isVerifying
+          ? 'Post-remediation health verification in progress'
+          : isEscalating
+            ? 'Engine is attempting automated constraint recovery'
+            : 'Action unavailable: Run has reached a terminal state';
   const denyTooltip = executeTooltip;
 
   /**
    * Download is disabled until the backend writes the complete ScopedActions payload to the CR
-   * status — this only happens when Analyzed=True (Proposed phase).
+   * status — this only happens when Analyzed=True (Proposed phase onward).
    * Pending: CR not yet created / analysis not started.
    * Analyzing: CR exists but ScopedActions payload is still being synthesised.
    */
   const stickyDownloadDisabled = isPending || isAnalyzing;
-  const stickyDownloadTooltip = isPending
-    ? 'Analysis has not started yet'
-    : 'Plan is being generated';
+  const stickyDownloadTooltip = 'Plan is being generated';
   const stickyRootCause = { aggregatedFinding: analysisLogFinding, rootCauseNarrative: analysisLogNarrative };
 
   if (!drawer && !isEscalating && !isPending && !isAnalyzing && !isRunAborted) return null;
@@ -6099,6 +6109,18 @@ export const RemediationBlueprintPanel: React.FC<{
         />
       </StackItem>
 
+      {/* ── HITL analysis approval gate (manual policy only) ──────────── */}
+      {isPendingReadyForAnalysis && (
+        <StackItem>
+          <Button
+            variant="primary"
+            isDisabled={!isAgenticAutomationEnabled}
+            onClick={() => dispatchAnalysis(plan.id)}
+          >
+            Approve analysis
+          </Button>
+        </StackItem>
+      )}
 
       {/* ── Status alerts (below heading) ────────────────────────────── */}
       {isEscalating && (
@@ -6674,12 +6696,15 @@ export const RemediationBlueprintPanel: React.FC<{
     </Stack>
 
     {/* ── Sticky action bar ─────────────────────────────────────────────────
-        Phase matrix:
-          • Pending (READY_FOR_ANALYSIS) → Approve analysis ONLY (primary)
-          • Analyzing          → Stop ACTIVE | Execute/Deny/Download DISABLED
-          • Executing/Verifying → Stop ACTIVE | Execute/Deny DISABLED | Download ACTIVE
-          • Proposed            → Stop HIDDEN | Execute/Deny/Download ACTIVE
-          • Terminal            → Stop HIDDEN | Execute/Deny DISABLED | Download ACTIVE */}
+        Phase matrix (evaluated AFTER domain override):
+          • Pending (READY_FOR_ANALYSIS) → Stop analysis ACTIVE | Execute/Deny/Download DISABLED
+          • Analyzing          → Stop analysis ACTIVE | Execute/Deny/Download DISABLED
+          • Executing          → Stop execution ACTIVE | Execute/Deny DISABLED | Download ACTIVE
+          • Verifying          → Stop execution ACTIVE | Execute/Deny DISABLED | Download ACTIVE
+          • Escalating         → Stop execution ACTIVE | Execute/Deny DISABLED | Download ACTIVE
+          • Proposed           → Stop HIDDEN | Execute/Deny/Download ACTIVE
+          • Escalated          → Stop HIDDEN | Execute/Deny/Download ACTIVE
+          • Terminal (4 states)→ Stop HIDDEN | Execute/Deny DISABLED | Download ACTIVE */}
     <div
       style={{
         position: 'sticky',
@@ -6693,22 +6718,8 @@ export const RemediationBlueprintPanel: React.FC<{
       {/* Override ActionList's default group-to-group gap (48px) with the
           action-to-action token (16px) used by PF Toolbar for button groups. */}
       <ActionList style={{ '--pf-v6-c-action-list--ColumnGap': 'var(--pf-t--global--spacer--gap--action-to-action--default)' } as React.CSSProperties}>
-        {/* Pending (READY_FOR_ANALYSIS): show only the analysis approval gate.
-            All other toolbar actions are irrelevant until analysis has been dispatched. */}
-        {isPendingReadyForAnalysis ? (
-          <ActionListItem>
-            <Button
-              variant="primary"
-              isDisabled={!isAgenticAutomationEnabled}
-              onClick={() => dispatchAnalysis(plan.id)}
-            >
-              Approve analysis
-            </Button>
-          </ActionListItem>
-        ) : (
-        <>
         {/* Position 1: Stop analysis / Stop execution — Danger
-            Conditionally rendered; other buttons shift left when not in a transient phase. */}
+            Conditionally rendered so Positions 2-4 shift left when Stop is not applicable. */}
         {isStopApplicable && (
           <ActionListItem>
             <Button
@@ -6784,8 +6795,6 @@ export const RemediationBlueprintPanel: React.FC<{
             </Button>
           )}
         </ActionListItem>
-        </>
-        )}
       </ActionList>
     </div>
 
