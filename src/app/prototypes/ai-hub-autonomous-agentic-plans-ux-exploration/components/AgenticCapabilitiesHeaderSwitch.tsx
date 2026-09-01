@@ -122,7 +122,7 @@ export const AgenticCapabilitiesActionButton: React.FC = () => {
         variant="primary"
         onClick={handleClick}
       >
-        {isActive ? 'Disable AI' : 'Enable AI'}
+        {isActive ? 'Disable agentic runs' : 'Enable agentic runs'}
       </Button>
       <Popover
         headerContent="Cluster agentic capabilities"
@@ -143,14 +143,14 @@ export const AgenticCapabilitiesActionButton: React.FC = () => {
         onClose={() => setIsConfirmOpen(false)}
         aria-labelledby="disable-ai-title"
       >
-        <ModalHeader title="Disable AI?" labelId="disable-ai-title" />
+          <ModalHeader title="Disable agentic runs?" labelId="disable-ai-title" />
         <ModalBody>
           Stops all background analysis, active executions, and API token consumption for this cluster. You can
           re-enable agentic capabilities at any time.
         </ModalBody>
         <ModalFooter>
           <Button variant="danger" onClick={handleConfirmDisable}>
-            Disable AI
+            Disable agentic runs
           </Button>
           <Button variant="link" onClick={() => setIsConfirmOpen(false)}>
             Cancel
