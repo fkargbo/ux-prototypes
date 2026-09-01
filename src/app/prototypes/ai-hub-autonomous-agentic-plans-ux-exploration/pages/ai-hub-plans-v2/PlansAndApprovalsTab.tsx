@@ -6328,16 +6328,6 @@ export const RemediationBlueprintPanel: React.FC<{
                   code={escalatedPlaybook.command}
                   codeStyle={{ fontSize: '12px' }}
                 />
-                <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-                  <Button variant="link" icon={<RhUiDownloadIcon />} iconPosition="start"
-                  onClick={() => downloadAnalysisReportMarkdown(plan, {
-                    aggregatedFinding: drawer?.aggregatedFinding ?? '',
-                    rootCauseNarrative: drawer?.rootCauseNarrative ?? '',
-                  })}
-                >
-                  Download plan
-                </Button>
-                </div>
               </div>
             </>
           ) : isEmergencyStopped ? (
