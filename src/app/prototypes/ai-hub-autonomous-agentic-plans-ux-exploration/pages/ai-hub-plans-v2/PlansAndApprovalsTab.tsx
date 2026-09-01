@@ -6735,23 +6735,25 @@ export const RemediationBlueprintPanel: React.FC<{
         zIndex: 100,
         backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
         borderTop: '1px solid var(--pf-t--global--border--color--default)',
-        padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--md)',
+        padding: 'var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md)',
       }}
     >
       {/* Override ActionList's default group-to-group gap (48px) with the
           action-to-action token (16px) used by PF Toolbar for button groups. */}
       <ActionList style={{ '--pf-v6-c-action-list--ColumnGap': 'var(--pf-t--global--spacer--gap--action-to-action--default)' } as React.CSSProperties}>
         {/* Position 1: Stop analysis / Stop execution — Danger
-            Always rendered; CSS visibility preserves layout in non-transient phases. */}
-        <ActionListItem style={{ visibility: isStopApplicable ? 'visible' : 'hidden' }}>
-          <Button
-            variant="danger"
-            isDisabled={!isAgenticAutomationEnabled}
-            onClick={stopAction}
-          >
-            {stopLabel}
-          </Button>
-        </ActionListItem>
+            Conditionally rendered; other buttons shift left when not in a transient phase. */}
+        {isStopApplicable && (
+          <ActionListItem>
+            <Button
+              variant="danger"
+              isDisabled={!isAgenticAutomationEnabled}
+              onClick={stopAction}
+            >
+              {stopLabel}
+            </Button>
+          </ActionListItem>
+        )}
 
         {/* Position 2: Execute remediation — Primary */}
         <ActionListItem>
