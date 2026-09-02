@@ -21,6 +21,13 @@
   color: var(--pf-t--global--text--color--subtle);
 }
 
+/* Higher-specificity override so the v3 page always wins over sibling
+   prototype stylesheets that share the same class name. */
+.ols-ai-hub-page--v3 .ols-aio-text-overline {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .ols-aio-stat-figure {
   margin-top: var(--pf-t--global--spacer--sm);
 }
