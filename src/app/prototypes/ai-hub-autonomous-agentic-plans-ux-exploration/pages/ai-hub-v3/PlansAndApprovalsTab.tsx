@@ -2450,7 +2450,7 @@ const RemediationOptionCard: React.FC<{
       id={`${cardId}-title`}
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
           Option {index + 1}
         </span>
         <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
@@ -2471,7 +2471,7 @@ const RemediationOptionCard: React.FC<{
       </Flex>
       <span
         style={{
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: '14px',
           lineHeight: 1.4,
           whiteSpace: 'normal',
@@ -2755,12 +2755,11 @@ const PostMortemPanel: React.FC<{
   if (postMortem.type === 'success') {
     const sectionLabel = (text: string) => (
       <Content
-        component="small"
+        component="p"
         style={{
           display: 'block',
           fontWeight: 700,
-          color: 'var(--pf-t--global--text--color--subtle)',
-          marginBottom: 'var(--pf-t--global--spacer--xs)',
+          marginBottom: 'var(--pf-t--global--spacer--sm)',
           marginTop: 'var(--pf-t--global--spacer--md)',
         }}
       >

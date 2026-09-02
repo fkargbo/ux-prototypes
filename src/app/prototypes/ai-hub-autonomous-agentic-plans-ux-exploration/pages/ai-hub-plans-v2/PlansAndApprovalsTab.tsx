@@ -3884,8 +3884,7 @@ const ACTION_STATUS_COLOR: Record<ExecutionAction['status'], 'green' | 'red' | '
 const SECTION_OVERLINE_STYLE: React.CSSProperties = {
   display: 'block',
   fontWeight: 700,
-  color: 'var(--pf-t--global--text--color--subtle)',
-  marginBottom: 'var(--pf-t--global--spacer--xs)',
+  marginBottom: 'var(--pf-t--global--spacer--sm)',
 };
 
 const ExecutionSummaryCard: React.FC<{
@@ -3958,13 +3957,13 @@ const ExecutionSummaryCard: React.FC<{
           {summary ? (
             <Stack hasGutter>
               <StackItem>
-                <Content component="small" style={{ display: 'block', fontWeight: 600, marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                <Content component="small" style={{ display: 'block', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
                   Targeted root cause
                 </Content>
                 <Content component="p" style={{ fontSize: '0.875rem' }}>{summary.targetedRootCause}</Content>
               </StackItem>
               <StackItem>
-                <Content component="small" style={{ display: 'block', fontWeight: 600, marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+                <Content component="small" style={{ display: 'block', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
                   Remediation delta
                 </Content>
                 <Content component="p" style={{ fontSize: '0.875rem' }}>{summary.remediationDelta}</Content>
@@ -4532,12 +4531,12 @@ const TerminalEvidenceCard: React.FC<{
           alignItems={{ default: 'alignItemsFlexStart' }}
           gap={{ default: 'gapXs' }}
         >
-          <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
             Remediation
           </span>
           <span
             style={{
-              fontWeight: 600,
+              fontWeight: 700,
               fontSize: '14px',
               lineHeight: 1.4,
               whiteSpace: 'normal',
@@ -4854,7 +4853,7 @@ const RemediationOptionCard: React.FC<{
       id={`${cardId}-title`}
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
           Option {index + 1}
         </span>
         <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
@@ -4870,7 +4869,7 @@ const RemediationOptionCard: React.FC<{
       </Flex>
       <span
         style={{
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: '14px',
           lineHeight: 1.4,
           whiteSpace: 'normal',
