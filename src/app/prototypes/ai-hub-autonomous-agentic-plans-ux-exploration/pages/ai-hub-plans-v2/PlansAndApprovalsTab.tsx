@@ -2175,7 +2175,7 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         ],
       },
       rbac: {
-        summary: 'Includes write: patch securitycontextconstraints · create mutatingwebhookconfigurations',
+        summary: 'Includes mutating actions: patch securitycontextconstraints · create mutatingwebhookconfigurations',
         rules: [
           { namespace: 'production', resource: 'pods', verbs: 'get, list', purpose: 'Pre-check running pods with hostNetwork before mutation' },
           { namespace: 'production', resource: 'deployments (apps)', verbs: 'get, list', purpose: 'Identify non-compliant deployment specs' },
@@ -2199,7 +2199,7 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         ],
       },
       rbac: {
-        summary: 'Includes write: delete deployments',
+        summary: 'Includes mutating actions: delete deployments',
         rules: [
           { namespace: 'production', resource: 'deployments (apps)', verbs: 'get, list, delete', purpose: 'List and delete deployments tagged as non-compliant', isWrite: true },
           { namespace: 'production', resource: 'pods', verbs: 'get, list', purpose: 'Confirm pod shutdown after deployment deletion' },
@@ -2247,7 +2247,7 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         ],
       },
       rbac: {
-        summary: 'Includes write: update clusterversions',
+        summary: 'Includes mutating actions: update clusterversions',
         rules: [
           { namespace: 'cluster-wide', resource: 'clusterversions (config.openshift.io)', verbs: 'get, update, patch', purpose: 'Initiate and track rolling upgrade to 4.15.8 via upgrade graph', isWrite: true },
           { namespace: 'cluster-wide', resource: 'clusteroperators (config.openshift.io)', verbs: 'get, list, watch', purpose: 'Gate upgrade on all ClusterOperators being healthy before and after' },
@@ -2293,7 +2293,7 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         ],
       },
       rbac: {
-        summary: 'Includes write: patch secrets · patch statefulsets',
+        summary: 'Includes mutating actions: patch secrets · patch statefulsets',
         rules: [
           { namespace: 'openshift-monitoring', resource: 'secrets', kind: 'Secret', instanceName: 'alertmanager-pagerduty', verbs: 'get, create, patch', purpose: 'Rotate PagerDuty integration key in this specific secret', isWrite: true },
           { namespace: 'openshift-monitoring', resource: 'statefulsets (apps)', kind: 'StatefulSet', instanceName: 'alertmanager-main', verbs: 'get, patch', purpose: 'Trigger rolling restart to pick up the new secret', isWrite: true },
@@ -2316,7 +2316,7 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         ],
       },
       rbac: {
-        summary: 'Includes write: patch secrets · delete pods',
+        summary: 'Includes mutating actions: patch secrets · delete pods',
         rules: [
           { namespace: 'openshift-monitoring', resource: 'secrets', kind: 'Secret', instanceName: 'alertmanager-main', verbs: 'get, patch', purpose: 'Silence PagerDuty route in this specific Alertmanager configuration secret', isWrite: true },
           { namespace: 'openshift-monitoring', resource: 'pods', kind: 'Pod', instanceName: 'alertmanager-main-0', verbs: 'get, list, delete', purpose: 'Force-restart this pod to apply the silenced config', isWrite: true },
@@ -2342,7 +2342,7 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         ],
       },
       rbac: {
-        summary: 'Includes write: patch statefulsets · exec pods',
+        summary: 'Includes mutating actions: patch statefulsets · exec pods',
         rules: [
           { namespace: 'openshift-monitoring', resource: 'statefulsets (apps)', verbs: 'get, list, patch', purpose: 'Scale thanos-compactor to zero then back to one for safe PVC access', isWrite: true },
           { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, list, exec', purpose: 'Exec into compactor pod to remove the corrupted TSDB block', isWrite: true },
@@ -2366,7 +2366,7 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         ],
       },
       rbac: {
-        summary: 'Includes write: patch persistentvolumeclaims · delete pods',
+        summary: 'Includes mutating actions: patch persistentvolumeclaims · delete pods',
         rules: [
           { namespace: 'openshift-monitoring', resource: 'persistentvolumeclaims', kind: 'PersistentVolumeClaim', instanceName: 'thanos-compactor-data', verbs: 'get, patch', purpose: 'Resize thanos-compactor-data PVC to 200 GiB storage', isWrite: true },
           { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, list, delete', purpose: 'Delete compactor pod to force re-attachment on the resized PVC', isWrite: true },
@@ -2392,7 +2392,7 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         ],
       },
       rbac: {
-        summary: 'Includes write: patch deployments · exec pods',
+        summary: 'Includes mutating actions: patch deployments · exec pods',
         rules: [
           { namespace: 'openshift-monitoring', resource: 'deployments (apps)', verbs: 'get, patch', purpose: 'Scale grafana to zero and back to one for safe PVC access', isWrite: true },
           { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, list, exec', purpose: 'Exec into grafana-debug pod to remove the stale WAL lock file', isWrite: true },
@@ -2415,7 +2415,7 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
         ],
       },
       rbac: {
-        summary: 'Includes write: create volumesnapshots · exec pods',
+        summary: 'Includes mutating actions: create volumesnapshots · exec pods',
         rules: [
           { namespace: 'openshift-monitoring', resource: 'volumesnapshots (snapshot.storage.k8s.io)', verbs: 'get, create', purpose: 'Take PVC snapshot before WAL checkpoint as a rollback point', isWrite: true },
           { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, exec', purpose: 'Exec into Grafana container to run SQLite WAL checkpoint', isWrite: true },
@@ -4595,7 +4595,7 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
         variant="warning"
         isInline
         isPlain
-        title="Permissions are locked at approval. The agent cannot escalate its privileges beyond these rules."
+        title="Permissions are fixed upon approval. The agent cannot exceed these scoped privileges."
         style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
       />
 
@@ -6103,8 +6103,7 @@ export const RemediationBlueprintPanel: React.FC<{
             }}
             aria-hidden
           />
-          The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
-          review AI-generated content prior to use.
+          OpenShift Lightspeed uses AI technology. Always review AI-generated content prior to taking action.
                         </Content>
       </StackItem>
 

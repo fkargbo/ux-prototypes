@@ -4537,7 +4537,14 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
                 </Td>
 
                 {/* Purpose column */}
-                <Td data-label="Purpose">{rule.purpose}</Td>
+                <Td data-label="Purpose">
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                    <FlexItem>{rule.purpose}</FlexItem>
+                    {rule.isWrite && (
+                      <FlexItem><Label color="orange" isCompact>write</Label></FlexItem>
+                    )}
+                  </Flex>
+                </Td>
               </Tr>
             ))}
           </Tbody>
