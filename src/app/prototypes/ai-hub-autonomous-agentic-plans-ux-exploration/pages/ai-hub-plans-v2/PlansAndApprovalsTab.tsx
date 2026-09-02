@@ -4573,6 +4573,12 @@ const TerminalEvidenceCard: React.FC<{
 
 // ─── RBAC Permissions Section ────────────────────────────────────────────────
 
+/** Write verbs used to orange-tint individual verb Labels in the RBAC permissions table. */
+const WRITE_VERBS = new Set([
+  'create', 'update', 'patch', 'delete', 'exec',
+  'deletecollection', 'bind', 'escalate', 'impersonate',
+]);
+
 const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = ({ rbac, optionId }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -4697,20 +4703,24 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
                   )}
                 </Td>
 
-                {/* Verbs column */}
+                {/* Verbs column — individual Label per verb; orange for write, grey for read */}
                 <Td data-label="Verbs">
-                  <code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code>
+                  <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
+                    {rule.verbs.split(',').map((verb) => {
+                      const v = verb.trim();
+                      return (
+                        <FlexItem key={v}>
+                          <Label color={rule.isWrite && WRITE_VERBS.has(v) ? 'orange' : 'grey'} isCompact>
+                            {v}
+                          </Label>
+                        </FlexItem>
+                      );
+                    })}
+                  </Flex>
                 </Td>
 
                 {/* Purpose column */}
-                <Td data-label="Purpose">
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                    <FlexItem>{rule.purpose}</FlexItem>
-                    {rule.isWrite && (
-                      <FlexItem><Label color="orange" isCompact>write</Label></FlexItem>
-                    )}
-                  </Flex>
-                </Td>
+                <Td data-label="Purpose">{rule.purpose}</Td>
               </Tr>
             ))}
           </Tbody>
