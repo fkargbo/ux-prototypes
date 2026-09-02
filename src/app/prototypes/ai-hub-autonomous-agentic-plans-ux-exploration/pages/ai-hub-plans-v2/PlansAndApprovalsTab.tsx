@@ -4573,16 +4573,6 @@ const TerminalEvidenceCard: React.FC<{
 
 // ─── RBAC Permissions Section ────────────────────────────────────────────────
 
-/**
- * Kubernetes verbs that mutate cluster state.
- * Used to color-code verb badges in the RBAC permissions table.
- * Read verbs (get, list, watch, use) render grey; write verbs render orange.
- */
-const WRITE_VERBS = new Set([
-  'create', 'update', 'patch', 'delete', 'exec',
-  'deletecollection', 'bind', 'escalate', 'impersonate',
-]);
-
 const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = ({ rbac, optionId }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -4663,7 +4653,22 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
                     <Label color="purple" isCompact>Cluster-wide</Label>
                   ) : (
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <Label color="teal" isCompact>NS</Label>
+                      <span
+                        style={{
+                          backgroundColor: '#1E4F18',
+                          color: '#FFFFFF',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          lineHeight: 1,
+                          display: 'inline-block',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}
+                      >
+                        NS
+                      </span>
                       <a
                         href={`/k8s/cluster/namespaces/${rule.namespace}`}
                         style={{
@@ -4692,20 +4697,9 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
                   )}
                 </Td>
 
-                {/* Verbs column — per-verb Labels: grey for read, orange for write */}
+                {/* Verbs column */}
                 <Td data-label="Verbs">
-                  <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
-                    {rule.verbs.split(',').map((verb) => {
-                      const v = verb.trim();
-                      return (
-                        <FlexItem key={v}>
-                          <Label color={WRITE_VERBS.has(v) ? 'orange' : 'grey'} isCompact>
-                            {v}
-                          </Label>
-                        </FlexItem>
-                      );
-                    })}
-                  </Flex>
+                  <code style={{ fontSize: '0.8125rem' }}>{rule.verbs}</code>
                 </Td>
 
                 {/* Purpose column */}
