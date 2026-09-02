@@ -2578,9 +2578,7 @@ const RemediationOptionCard: React.FC<{
                 component="small"
                 style={{
                   display: 'block',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
+                  fontWeight: 700,
                   color: 'var(--pf-t--global--text--color--subtle)',
                   margin: '0 0 var(--pf-t--global--spacer--xs)',
                 }}
@@ -2610,14 +2608,12 @@ const RemediationOptionCard: React.FC<{
                 component="small"
                 style={{
                   display: 'block',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
+                  fontWeight: 700,
                   color: 'var(--pf-t--global--text--color--subtle)',
                   marginBottom: 'var(--pf-t--global--spacer--xs)',
                 }}
               >
-                PROPOSED AGENT COMMANDS
+                Proposed agent commands
               </Content>
               <ClipboardCopy
                 isReadOnly
@@ -2762,9 +2758,7 @@ const PostMortemPanel: React.FC<{
         component="small"
         style={{
           display: 'block',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
+          fontWeight: 700,
           color: 'var(--pf-t--global--text--color--subtle)',
           marginBottom: 'var(--pf-t--global--spacer--xs)',
           marginTop: 'var(--pf-t--global--spacer--md)',
