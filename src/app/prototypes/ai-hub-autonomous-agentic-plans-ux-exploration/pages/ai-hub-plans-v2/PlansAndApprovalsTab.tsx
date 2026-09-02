@@ -3883,11 +3883,9 @@ const ACTION_STATUS_COLOR: Record<ExecutionAction['status'], 'green' | 'red' | '
 
 const SECTION_OVERLINE_STYLE: React.CSSProperties = {
   display: 'block',
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
+  fontWeight: 700,
   color: 'var(--pf-t--global--text--color--subtle)',
-  marginBottom: 'var(--pf-t--global--spacer--sm)',
+  marginBottom: 'var(--pf-t--global--spacer--xs)',
 };
 
 const ExecutionSummaryCard: React.FC<{
@@ -4951,17 +4949,7 @@ const RemediationOptionCard: React.FC<{
           {/* ── B. Root cause analysis (per-option; backend: options[].diagnosis) — OLS-3724 ── */}
           {rootCause && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-              <Content
-                component="small"
-                style={{
-                  display: 'block',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  color: 'var(--pf-t--global--text--color--subtle)',
-                  marginBottom: 'var(--pf-t--global--spacer--sm)',
-                }}
-              >
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>
                 Root cause analysis
               </Content>
               <div
@@ -5010,18 +4998,8 @@ const RemediationOptionCard: React.FC<{
 
           {/* ── D. Proposed / executed commands ── */}
           <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-              <Content
-                component="small"
-                style={{
-                  display: 'block',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  color: 'var(--pf-t--global--text--color--subtle)',
-                marginBottom: 'var(--pf-t--global--spacer--sm)',
-                }}
-              >
-              {isExecuting || isTerminal ? 'Executed commands' : 'Proposed agent commands'}
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>
+                {isExecuting || isTerminal ? 'Executed commands' : 'Proposed agent commands'}
               </Content>
             {option.commands && option.commands.length > 0 ? (
               <Stack hasGutter>
@@ -5068,19 +5046,9 @@ const RemediationOptionCard: React.FC<{
             return (
               <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
                 <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
-                <Content
-                  component="small"
-                  style={{
-                    display: 'block',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    color: 'var(--pf-t--global--text--color--subtle)',
-                    marginBottom: 'var(--pf-t--global--spacer--sm)',
-                  }}
-                >
+                <Content component="small" style={SECTION_OVERLINE_STYLE}>
                   Rollback plan
-      </Content>
+                </Content>
     <Content
       component="p"
                   style={{
@@ -5105,17 +5073,7 @@ const RemediationOptionCard: React.FC<{
           {showEvidenceTrail && option.verificationSteps && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
               <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
-      <Content
-        component="small"
-        style={{
-          display: 'block',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  color: 'var(--pf-t--global--text--color--subtle)',
-                  marginBottom: 'var(--pf-t--global--spacer--sm)',
-                }}
-              >
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>
                 Verification steps
               </Content>
               <Content
