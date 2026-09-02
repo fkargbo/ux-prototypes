@@ -136,7 +136,7 @@ export const AgenticCapabilitiesActionButton: React.FC = () => {
   return (
     <>
       <Button
-        variant="primary"
+        variant={isActive ? 'danger' : 'primary'}
         onClick={handleClick}
       >
         {isActive ? 'Disable agentic runs' : 'Enable agentic runs'}
@@ -162,8 +162,9 @@ export const AgenticCapabilitiesActionButton: React.FC = () => {
       >
         <ModalHeader title="Disable agentic runs?" labelId="disable-ai-title" />
         <ModalBody>
-          Stops all background analysis, active executions, and API token consumption for this cluster. You can
-          re-enable agentic capabilities at any time.
+          Immediately stops all active runs and background analysis for this cluster. Any runs currently in
+          progress will be permanently terminated. You can re-enable agentic capabilities at any time to start
+          new runs.
         </ModalBody>
         <ModalFooter>
           <Button variant="danger" onClick={handleConfirmDisable}>
