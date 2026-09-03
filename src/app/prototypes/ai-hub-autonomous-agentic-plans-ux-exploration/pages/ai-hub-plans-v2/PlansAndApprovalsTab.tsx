@@ -4764,6 +4764,10 @@ const RemediationOptionCard: React.FC<{
   const isExecuting = status === 'Executing';
   const cardRootRef = React.useRef<HTMLDivElement>(null);
   const wasSelectedRef = React.useRef(isSelected);
+
+  // Independent expand state — completely decoupled from radio selection.
+  // Cards start collapsed; body is always visible in terminal / execution phases.
+  const [isExpanded, setIsExpanded] = useState(false);
   const activeExecutionLogLines = useMemo(
     () => buildActiveExecutionLogLines(plan, option),
     [plan, option],
@@ -4814,7 +4818,8 @@ const RemediationOptionCard: React.FC<{
   if (isExecutionPhase && !isFirst) return null;
 
   const isInteractive = !isExecutionPhase && !isOptionLocked && !isTerminal;
-  const isBodyVisible = isSelected || isTerminal;
+  // Body is always visible in terminal / execution phases; otherwise driven by the independent expand toggle.
+  const isBodyVisible = isExpanded || isTerminal || (isExecutionPhase && isFirst);
   const cardId = `remediation-option-${option.id}`;
 
   // Execution status now lives in the top-right corner of the card header
@@ -4851,6 +4856,9 @@ const RemediationOptionCard: React.FC<{
           Option {index + 1}
         </Content>
         <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
+          {isFirst && isInteractive && (
+            <Label color="blue" isCompact>AI Recommended</Label>
+          )}
           {isOptionLocked && isFirst && (
                 <Label color="orange" isCompact>
               Approved option
@@ -4902,14 +4910,12 @@ const RemediationOptionCard: React.FC<{
         }
         onExpand={
           isInteractive
-            ? (_event, _id) => {
-                onSelect(option.id);
-              }
+            ? (_event, _id) => setIsExpanded((prev) => !prev)
             : undefined
         }
         toggleButtonProps={
           isInteractive
-            ? { 'aria-label': isSelected ? `Collapse option ${index + 1}` : `Expand option ${index + 1}` }
+            ? { 'aria-label': isExpanded ? `Collapse option ${index + 1}` : `Expand option ${index + 1}` }
             : undefined
         }
       >
@@ -5521,7 +5527,9 @@ export const RemediationBlueprintPanel: React.FC<{
   const visibleOptionCount = isOptionLocked ? 1 : optionCount;
   const optionLabel = visibleOptionCount === 1 ? '1 remediation option' : `${visibleOptionCount} remediation options`;
 
-  const [selectedOptionId, setSelectedOptionId] = useState<string>(options[0]?.id ?? '');
+  // Starts null — user must explicitly select an option before Execute is enabled.
+  // Terminal / execution phases populate this via the executionApproval useEffect below.
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (workflow.executionApproval?.optionId) {
@@ -5549,10 +5557,15 @@ export const RemediationBlueprintPanel: React.FC<{
     return options.slice(0, 1);
   }, [approvedOptionId, options]);
 
-  const selectedOption = visibleOptions.find((opt) => opt.id === selectedOptionId)
-    ?? visibleOptions[0]
-    ?? options.find((opt) => opt.id === selectedOptionId)
-    ?? options[0];
+  // In terminal / execution phases the approved option is always resolved;
+  // in interactive phases (Proposed / Escalated) we return null until the user picks one.
+  const selectedOption = selectedOptionId
+    ? (visibleOptions.find((opt) => opt.id === selectedOptionId)
+        ?? options.find((opt) => opt.id === selectedOptionId)
+        ?? null)
+    : (isExecutionPhase || isTerminal
+        ? (visibleOptions[0] ?? options[0] ?? null)
+        : null);
   const selectedOptionIndex = workflow.executionApproval?.optionIndex
     ?? Math.max(0, options.findIndex((opt) => opt.id === selectedOption?.id));
 
@@ -5678,17 +5691,19 @@ export const RemediationBlueprintPanel: React.FC<{
    * Phase-specific tooltip copy for disabled Execute / Deny buttons.
    * Verifying and Escalating have distinct copy to avoid over-generalisation.
    */
-  const executeTooltip = isPending
-    ? 'Run initialization in progress'
-    : isAnalyzing
-      ? 'Root cause analysis in progress'
-      : isExecutionPhase
-        ? 'Remediation execution in progress'
-        : isVerifying
-          ? 'Post-remediation health verification in progress'
-          : isEscalating
-            ? 'Engine is attempting automated constraint recovery'
-            : 'Action unavailable: Run has reached a terminal state';
+  const executeTooltip = (isProposed || isEscalated) && !selectedOption
+    ? 'Select a remediation option above to execute'
+    : isPending
+      ? 'Run initialization in progress'
+      : isAnalyzing
+        ? 'Root cause analysis in progress'
+        : isExecutionPhase
+          ? 'Remediation execution in progress'
+          : isVerifying
+            ? 'Post-remediation health verification in progress'
+            : isEscalating
+              ? 'Engine is attempting automated constraint recovery'
+              : 'Action unavailable: Run has reached a terminal state';
   const denyTooltip = executeTooltip;
 
   /**
