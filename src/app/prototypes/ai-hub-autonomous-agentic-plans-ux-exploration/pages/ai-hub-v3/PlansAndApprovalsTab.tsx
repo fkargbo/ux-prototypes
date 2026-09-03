@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   CardBody,
-  CardHeader,
   Checkbox,
   ClipboardCopy,
   ClipboardCopyVariant,
@@ -36,6 +35,7 @@ import {
   Pagination,
   PaginationVariant,
   Popover,
+  Radio,
   SearchInput,
   Skeleton,
   Spinner,
@@ -44,7 +44,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, DownloadIcon, EllipsisVIcon, HelpIcon, RhUiBanIcon, RhUiCheckCircleFillIcon, RhUiErrorFillIcon, RhUiInProgressIcon, RhUiPauseCircleIcon, RhUiPendingIcon, RhUiRunningIcon, RhUiSyncIcon, RhUiWarningFillIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AngleDownIcon, AngleRightIcon, AngleUpIcon, DownloadIcon, EllipsisVIcon, HelpIcon, RhUiBanIcon, RhUiCheckCircleFillIcon, RhUiErrorFillIcon, RhUiInProgressIcon, RhUiPauseCircleIcon, RhUiPendingIcon, RhUiRunningIcon, RhUiSyncIcon, RhUiWarningFillIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -2439,46 +2439,40 @@ const RemediationOptionCard: React.FC<{
   if (isExecutionPhase && !isFirst) return null;
 
   const isInteractive = !isExecutionPhase && !isOptionLocked && !isTerminal;
-  const isBodyVisible = isSelected || isTerminal;
+  const isCompleted = status === 'Completed';
+  const isFailed = status === 'Failed';
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isBodyVisible = isExpanded || isTerminal || (isExecutionPhase && isFirst);
   const cardId = `remediation-option-${option.id}`;
 
-  const headerContent = (
-    <Flex
-      direction={{ default: 'column' }}
-      alignItems={{ default: 'alignItemsFlexStart' }}
-      gap={{ default: 'gapXs' }}
-      id={`${cardId}-title`}
-    >
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'], whiteSpace: 'nowrap', marginBlock: 0 }}>
-          Option {index + 1}
-        </Content>
-        <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
-          {isTerminal && isFirst && (
-            <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
-              {status === 'Completed' ? 'Executed' : 'Failed'}
-            </Label>
-          )}
-          {isOptionLocked && isFirst && (
-            <Label color="orange" variant="outline" isCompact>
-              Approved option
-            </Label>
-          )}
-          <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
-            {formatReversibilityLabel(option.reversible)}
-          </Label>
-        </Flex>
-      </Flex>
-      <Content
-        component="p"
-        style={{
-          fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
-          lineHeight: 1.4,
-        }}
-      >
-        {option.title}
-      </Content>
-    </Flex>
+  // Execution status label — top-right of the header row
+  const executionStatusLabel =
+    (isExecutionPhase || isTerminal) && !isExecutionKilled ? (
+      isExecutionPhase ? (
+        <Label color="blue" icon={<Spinner size="sm" aria-label="Executing" />}>Executing</Label>
+      ) : isCompleted ? (
+        <Label color="green" icon={<RhUiCheckCircleFillIcon />}>Execution successful</Label>
+      ) : isFailed ? (
+        <Label color="red" icon={<RhUiErrorFillIcon />}>Execution failed</Label>
+      ) : null
+    ) : null;
+
+  // Radio label — badges sit alongside the "Select option N" text
+  const radioLabel = (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
+      <span style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'] }}>
+        Select option {index + 1}
+      </span>
+      {isFirst && isInteractive && (
+        <Label color="blue" isCompact>AI Recommended</Label>
+      )}
+      {isOptionLocked && isFirst && (
+        <Label color="orange" isCompact>Approved option</Label>
+      )}
+      <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
+        {formatReversibilityLabel(option.reversible)}
+      </Label>
+    </span>
   );
 
   const handleConfirmStopExecution = () => {
@@ -2491,43 +2485,83 @@ const RemediationOptionCard: React.FC<{
     <div ref={cardRootRef}>
     <Card
       id={cardId}
-      isSelectable={isInteractive}
-      isSelected={isSelected}
-      isExpanded={isBodyVisible}
+      style={{
+        borderRadius: '16px',
+        boxShadow: isSelected && isInteractive
+          ? `0 0 0 3px var(--pf-t--global--border--color--brand--default)`
+          : undefined,
+      }}
     >
-      <CardHeader
-        selectableActions={
-          isInteractive
-            ? {
-                selectableActionId: `radio-${option.id}`,
-                selectableActionAriaLabelledby: `${cardId}-title`,
-                name: `remedy-${plan.id}`,
-                variant: 'single',
-                onChange: (_event, checked) => {
-                  if (checked) onSelect(option.id);
-                },
-                hasNoOffset: true,
-              }
-            : undefined
-        }
-        onExpand={
-          isInteractive
-            ? (_event, _id) => {
-                onSelect(option.id);
-              }
-            : undefined
-        }
-        toggleButtonProps={
-          isInteractive
-            ? { 'aria-label': isSelected ? `Collapse option ${index + 1}` : `Expand option ${index + 1}` }
-            : undefined
-        }
-      >
-        {headerContent}
-      </CardHeader>
+      {/* ── Always-visible header CardBody: Row 1 (Radio/Badges), Row 2 (Title), Row 3 (Expand link) ── */}
+      <CardBody>
+        {/* Row 1 — Selection zone: Radio + badges + optional execution status label */}
+        <Flex
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          <FlexItem>
+            {isInteractive ? (
+              <Radio
+                id={`select-option-${option.id}`}
+                name={`remedy-${plan.id}`}
+                isChecked={isSelected}
+                onChange={() => onSelect(option.id)}
+                label={radioLabel}
+                aria-label={`Select option ${index + 1}`}
+              />
+            ) : (
+              /* Terminal / execution phases — plain text label instead of radio */
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                <Content component="small" style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'], marginBlock: 0 }}>
+                  Option {index + 1}
+                </Content>
+                {isOptionLocked && isFirst && (
+                  <Label color="orange" isCompact>Approved option</Label>
+                )}
+                <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
+                  {formatReversibilityLabel(option.reversible)}
+                </Label>
+              </Flex>
+            )}
+          </FlexItem>
+          {executionStatusLabel && <FlexItem>{executionStatusLabel}</FlexItem>}
+        </Flex>
+
+        {/* Row 2 — Title */}
+        <Content
+          component="p"
+          id={`${cardId}-title`}
+          style={{
+            fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
+            lineHeight: 1.4,
+            marginBottom: isInteractive ? 'var(--pf-t--global--spacer--md)' : 0,
+            paddingInlineStart: isInteractive ? '24px' : undefined,
+          }}
+        >
+          {option.title}
+        </Content>
+
+        {/* Row 3 — Expansion toggle (interactive phases only) */}
+        {isInteractive && (
+          <div style={{ paddingInlineStart: '24px' }}>
+            <Button
+              variant="link"
+              isInline
+              icon={isExpanded ? <AngleUpIcon /> : <AngleDownIcon />}
+              iconPosition="end"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              aria-expanded={isExpanded}
+              aria-controls={`${cardId}-body`}
+            >
+              {isExpanded ? 'Hide option details' : 'View option details'}
+            </Button>
+          </div>
+        )}
+      </CardBody>
 
       {isBodyVisible && (
-        <CardBody className="ols-remediation-option-card__body">
+        <CardBody id={`${cardId}-body`} className="ols-remediation-option-card__body">
           <Content
             component="p"
             className="ols-aio-text-subtle-sm"
