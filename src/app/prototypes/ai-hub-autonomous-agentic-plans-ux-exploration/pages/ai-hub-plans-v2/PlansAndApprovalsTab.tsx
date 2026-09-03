@@ -4579,7 +4579,6 @@ const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = (
 
   return (
     <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
-      <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
       <Content component="small" style={SECTION_OVERLINE_STYLE}>Required permissions</Content>
 
       {/* Security guardrail alert */}
@@ -4938,7 +4937,7 @@ const RemediationOptionCard: React.FC<{
       </CardBody>
 
       {isBodyVisible && (
-        <CardBody id={`${cardId}-body`} className="ols-remediation-option-card__body" style={{ borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+        <CardBody id={`${cardId}-body`} className="ols-remediation-option-card__body">
           {/* ── A. Approval metadata (post-approval evidence trail; status now lives top-right in the header) ── */}
           {(isExecuting || isTerminal) && !isExecutionKilled && approval && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
