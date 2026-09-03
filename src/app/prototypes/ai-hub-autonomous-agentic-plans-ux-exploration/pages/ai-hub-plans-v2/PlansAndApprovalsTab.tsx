@@ -4859,9 +4859,12 @@ const RemediationOptionCard: React.FC<{
     <div ref={cardRootRef}>
     <Card
       id={cardId}
-      isSelectable={isInteractive}
-      isSelected={isSelected && isInteractive}
-      style={{ borderRadius: '16px' }}
+      style={{
+        borderRadius: '16px',
+        boxShadow: isSelected && isInteractive
+          ? `0 0 0 3px var(--pf-t--global--border--color--brand--default)`
+          : undefined,
+      }}
     >
       {/* ── Always-visible header CardBody: Row 1 (Radio/Badges), Row 2 (Title), Row 3 (Expand link) ── */}
       <CardBody>
