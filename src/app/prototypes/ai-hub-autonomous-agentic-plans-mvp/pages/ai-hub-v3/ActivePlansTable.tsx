@@ -1,16 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
   Flex,
   FlexItem,
-  InputGroup,
-  InputGroupItem,
   Label,
-  MenuToggle,
-  MenuToggleElement,
   Pagination,
   PaginationVariant,
   TextInput,
@@ -19,7 +12,6 @@ import {
 } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
-  CheckIcon,
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
 } from '@patternfly/react-icons';
@@ -295,10 +287,7 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
 
-  // ── Dual-category search ────────────────────────────────────────────────────
-  const [searchCategory, setSearchCategory] = useState<'name' | 'label'>('name');
   const [searchInputValue, setSearchInputValue] = useState('');
-  const [searchCategoryOpen, setSearchCategoryOpen] = useState(false);
 
   const onSort = useCallback(
     (_event: React.MouseEvent, columnIndex: number, direction: 'asc' | 'desc') => {
@@ -361,14 +350,11 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
   const searchFilteredFleetRows = useMemo(() => {
     if (!searchInputValue.trim()) return sortedFleetRows;
     const q = searchInputValue.toLowerCase();
-    return sortedFleetRows.filter((row) => {
-      if (searchCategory === 'name') return row.clusterName.toLowerCase().includes(q);
-      return row.labels.some((l) => l.toLowerCase().includes(q));
-    });
-  }, [sortedFleetRows, searchInputValue, searchCategory]);
+    return sortedFleetRows.filter((row) => row.clusterName.toLowerCase().includes(q));
+  }, [sortedFleetRows, searchInputValue]);
 
   // Reset to page 1 when search changes
-  useEffect(() => { setPage(1); }, [searchInputValue, searchCategory]);
+  useEffect(() => { setPage(1); }, [searchInputValue]);
 
   const totalRows = scope === 'fleet' ? searchFilteredFleetRows.length : sortedClusterRows.length;
 
@@ -434,69 +420,13 @@ export const ActivePlansTable: React.FC<ActivePlansTableProps> = ({
         >
           {scope === 'fleet' ? (
             <FlexItem>
-              <InputGroup>
-                {/* Category selector */}
-                <InputGroupItem>
-                  <Dropdown
-                    isOpen={searchCategoryOpen}
-                    onOpenChange={setSearchCategoryOpen}
-                    toggle={(ref: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle
-                        ref={ref}
-                        onClick={() => setSearchCategoryOpen((o) => !o)}
-                        isExpanded={searchCategoryOpen}
-                        style={{ minWidth: 0 }}
-                      >
-                        {searchCategory === 'name' ? 'Name' : 'Label'}
-                      </MenuToggle>
-                    )}
-                  >
-                    <DropdownList>
-                      <DropdownItem
-                        key="name"
-                        onClick={() => {
-                          setSearchCategory('name');
-                          setSearchInputValue('');
-                          setSearchCategoryOpen(false);
-                        }}
-                      >
-                        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24 }}>
-                          Name
-                          {searchCategory === 'name' && (
-                            <CheckIcon style={{ color: 'var(--pf-t--global--color--brand--default)' }} />
-                          )}
-                        </span>
-                      </DropdownItem>
-                      <DropdownItem
-                        key="label"
-                        onClick={() => {
-                          setSearchCategory('label');
-                          setSearchInputValue('');
-                          setSearchCategoryOpen(false);
-                        }}
-                      >
-                        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24 }}>
-                          Label
-                          {searchCategory === 'label' && (
-                            <CheckIcon style={{ color: 'var(--pf-t--global--color--brand--default)' }} />
-                          )}
-                        </span>
-                      </DropdownItem>
-                    </DropdownList>
-                  </Dropdown>
-                </InputGroupItem>
-
-                {/* Text search field */}
-                <InputGroupItem isFill>
-                  <TextInput
-                    aria-label={searchCategory === 'name' ? 'Search clusters by name' : 'Search clusters by label'}
-                    placeholder={searchCategory === 'name' ? 'Search by name...' : 'Search by label...'}
-                    value={searchInputValue}
-                    onChange={(_e, val) => setSearchInputValue(val)}
-                    style={{ minWidth: 220 }}
-                  />
-                </InputGroupItem>
-              </InputGroup>
+              <TextInput
+                aria-label="Filter clusters by name"
+                placeholder="Search by name..."
+                value={searchInputValue}
+                onChange={(_e, val) => setSearchInputValue(val)}
+                style={{ minWidth: 220 }}
+              />
             </FlexItem>
           ) : (
             <FlexItem />

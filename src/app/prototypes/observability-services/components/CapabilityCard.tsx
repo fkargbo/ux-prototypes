@@ -15,43 +15,61 @@ import {
   List,
   ListItem,
   Content,
-  Title,
+  Tooltip,
 } from '@patternfly/react-core';
 import {
   CheckCircleIcon,
+  ExclamationCircleIcon,
   ExclamationTriangleIcon,
   ExternalLinkAltIcon,
   MinusCircleIcon,
 } from '@patternfly/react-icons';
 import type { CapabilityAction, CapabilityCardData, CapabilityDependency } from '../types';
+import { OperationalHealthLabel } from './OperationalHealthLabel';
+
 
 export interface CapabilityCardProps {
   capability: CapabilityCardData;
+  /**
+   * Optional callback fired when a dependency inline-action button is clicked.
+   * Receives the dep ID. Used by the v2 simulation to advance the scenario step
+   * when the user triggers a specific action (e.g. "Configure MonitoringStack CR").
+   */
+  onDepAction?: (depId: string) => void;
 }
 
-const DependencyIcon: React.FC<{ state: CapabilityDependency['state'] }> = ({ state }) => {
+const DependencyIcon: React.FC<{
+  state: CapabilityDependency['state'];
+  category?: CapabilityDependency['category'];
+  detail?: string;
+}> = ({ state, category, detail }) => {
   if (state === 'ready') {
-    return (
-      <CheckCircleIcon
-        color="var(--pf-t--global--icon--color--status--success--default)"
-        aria-hidden
-      />
-    );
+    return <CheckCircleIcon color="var(--pf-t--global--icon--color--status--success--default)" aria-hidden />;
   }
+
+  if (state === 'degraded') {
+    const icon = <ExclamationCircleIcon color="var(--pf-t--global--icon--color--status--danger--default)" aria-hidden />;
+    return detail ? <Tooltip content={detail} position="right">{icon}</Tooltip> : icon;
+  }
+
   if (state === 'attention') {
-    return (
-      <ExclamationTriangleIcon
-        color="var(--pf-t--global--icon--color--status--warning--default)"
-        aria-hidden
-      />
-    );
+    const icon = <ExclamationTriangleIcon color="var(--pf-t--global--icon--color--status--warning--default)" aria-hidden />;
+    // Use the item-specific detail as the icon tooltip so each component gets
+    // accurate context rather than a generic fallback string.
+    return detail ? <Tooltip content={detail} position="right">{icon}</Tooltip> : icon;
   }
-  // 'missing' — component not yet installed or configured
+
+  // 'missing' — neutral grey; tooltip varies by category (Day 0 context)
+  const missingTooltip =
+    category === 'OPERATOR'
+      ? 'Not installed'
+      : category === 'CONFIGURATION'
+        ? 'Operator required'
+        : 'Not configured';
   return (
-    <MinusCircleIcon
-      color="var(--pf-t--global--icon--color--subtle)"
-      aria-hidden
-    />
+    <Tooltip content={missingTooltip} position="right">
+      <MinusCircleIcon color="var(--pf-t--global--icon--color--subtle)" aria-hidden />
+    </Tooltip>
   );
 };
 
@@ -59,17 +77,50 @@ const dependencyStateLabel = (state: CapabilityDependency['state']): string => {
   switch (state) {
     case 'ready':
       return 'Ready';
+    case 'degraded':
+      return 'Degraded';
     case 'attention':
       return 'Needs attention';
     case 'missing':
-      return 'Not installed';
+      return 'Not configured';
     default:
-      return 'Not installed';
+      return 'Unknown';
   }
 };
 
-export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) => {
+export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onDepAction }) => {
   const navigate = useNavigate();
+
+  const renderDepItem = (dep: CapabilityDependency) => (
+    <ListItem key={dep.id} icon={<DependencyIcon state={dep.state} category={dep.category} detail={dep.detail} />}>
+      <span className="pf-v6-u-screen-reader">{dependencyStateLabel(dep.state)}: </span>
+      {dep.detail ? (
+        <Tooltip content={dep.detail} position="top">
+          <span style={{ cursor: 'help' }}>{dep.label}</span>
+        </Tooltip>
+      ) : (
+        dep.label
+      )}
+      {dep.action ? (
+        <div style={{ marginTop: '4px' }}>
+          <Button
+            variant="link"
+            isInline
+            onClick={() => {
+              onDepAction?.(dep.id);
+              if (dep.action!.isExternal || dep.action!.href?.startsWith('http')) {
+                window.open(dep.action!.href, '_blank', 'noopener,noreferrer');
+              } else if (dep.action!.href) {
+                navigate(dep.action!.href);
+              }
+            }}
+          >
+            {dep.action.label}
+          </Button>
+        </div>
+      ) : null}
+    </ListItem>
+  );
 
   const handleAction = (action: CapabilityAction) => {
     if (!action.href) {
@@ -86,6 +137,9 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
     .filter((a): a is CapabilityAction & { helperText: string } => Boolean(a.helperText))
     .map((a) => ({ id: `${a.id}-helper-text`, text: a.helperText }));
 
+  const primaryActions = capability.actions.filter((a) => a.variant !== 'link');
+  const learnMoreActions = capability.actions.filter((a) => a.variant === 'link');
+
   const hasFooterContent = capability.actions.length > 0 || helperTextEntries.length > 0;
 
   return (
@@ -98,10 +152,10 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
         <Flex
           justifyContent={{ default: 'justifyContentSpaceBetween' }}
           alignItems={{ default: 'alignItemsFlexStart' }}
-          flexWrap={{ default: 'wrap' }}
+          flexWrap={{ default: 'nowrap' }}
           gap={{ default: 'gapSm' }}
         >
-          <FlexItem>
+          <FlexItem style={{ minWidth: 0 }}>
             <CardTitle
               id={`capability-title-${capability.id}`}
               component="h3"
@@ -110,15 +164,15 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
               {capability.title}
             </CardTitle>
           </FlexItem>
-          <FlexItem>
+          <FlexItem style={{ flexShrink: 0 }}>
             <Label
               color={capability.status.color}
               isCompact
               icon={
                 capability.status.kind === 'fully-enabled' ? (
                   <CheckCircleIcon />
-                ) : capability.status.kind === 'configuration-required' ? (
-                  <ExclamationTriangleIcon />
+                ) : capability.status.kind === 'degraded' ? (
+                  <ExclamationCircleIcon />
                 ) : undefined
               }
             >
@@ -132,27 +186,60 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
         <Content component="p" className="ols-obs-services-capability-card__summary">
           {capability.summary}
         </Content>
-        {capability.dependencies && capability.dependencies.length > 0 ? (
-          <>
-            <Title headingLevel="h4" size="md" className="ols-obs-services-capability-card__deps-heading">
-              Dependencies
-            </Title>
-            <List isPlain className="ols-obs-services-capability-card__deps">
-              {capability.dependencies.map((dep) => (
-                <ListItem key={dep.id} icon={<DependencyIcon state={dep.state} />}>
-                  <span className="pf-v6-u-screen-reader">{dependencyStateLabel(dep.state)}: </span>
-                  {dep.label}
-                  {dep.detail ? (
-                    <Content component="small" className="ols-obs-services-capability-card__dep-detail">
-                      {' '}
-                      ({dep.detail})
-                    </Content>
-                  ) : null}
-                </ListItem>
-              ))}
-            </List>
-          </>
-        ) : null}
+        {(() => {
+          const deps = capability.dependencies ?? [];
+          if (deps.length === 0) return null;
+
+          const isCategorized = deps.some((d) => d.category);
+
+          if (isCategorized) {
+            const operatorDeps = deps.filter((d) => d.category === 'OPERATOR');
+            const configDeps = deps.filter((d) => d.category === 'CONFIGURATION');
+            return (
+              <>
+                <OperationalHealthLabel
+                  runtimeHealth={capability.runtimeHealth ?? 'HEALTHY'}
+                  className="ols-obs-services-capability-card__ops-health-label"
+                />
+                {operatorDeps.length > 0 && (
+                  <>
+                    <h4 className="ols-obs-services-capability-card__deps-heading">
+                      Required operators
+                    </h4>
+                    <List isPlain className="ols-obs-services-capability-card__deps">
+                      {operatorDeps.map(renderDepItem)}
+                    </List>
+                  </>
+                )}
+                {configDeps.length > 0 && (
+                  <>
+                    <h4 className="ols-obs-services-capability-card__deps-heading ols-obs-services-capability-card__deps-heading--spaced">
+                      Required configurations
+                    </h4>
+                    <List isPlain className="ols-obs-services-capability-card__deps">
+                      {configDeps.map(renderDepItem)}
+                    </List>
+                  </>
+                )}
+              </>
+            );
+          }
+
+          return (
+            <>
+              <h4 className="ols-obs-services-capability-card__deps-heading">
+                Required components
+              </h4>
+              <OperationalHealthLabel
+                runtimeHealth={capability.runtimeHealth ?? 'HEALTHY'}
+                className="ols-obs-services-capability-card__ops-health-label"
+              />
+              <List isPlain className="ols-obs-services-capability-card__deps">
+                {deps.map(renderDepItem)}
+              </List>
+            </>
+          );
+        })()}
       </CardBody>
       {hasFooterContent ? (
         <CardFooter>
@@ -171,9 +258,9 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
               </FlexItem>
             ))}
             {capability.actions.length > 0 ? (
-              <FlexItem>
-                <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-                  {capability.actions.map((action) => (
+              <FlexItem style={{ width: '100%' }}>
+                <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }} flexWrap={{ default: 'nowrap' }}>
+                  {primaryActions.map((action) => (
                     <FlexItem key={action.id}>
                       <Button
                         variant={action.variant}
@@ -186,6 +273,19 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability }) =>
                         aria-describedby={
                           action.helperText ? `${action.id}-helper-text` : undefined
                         }
+                      >
+                        {action.label}
+                      </Button>
+                    </FlexItem>
+                  ))}
+                  {learnMoreActions.map((action) => (
+                    <FlexItem key={action.id}>
+                      <Button
+                        variant="link"
+                        onClick={() => handleAction(action)}
+                        icon={<ExternalLinkAltIcon />}
+                        iconPosition="end"
+                        aria-label={`${action.label} (opens in a new tab)`}
                       >
                         {action.label}
                       </Button>

@@ -1,0 +1,28 @@
+---
+description: Isolation fence for the observability-gen-ui-dashboards prototype — all edits must stay inside its directory.
+globs:
+  - src/app/prototypes/observability-gen-ui-dashboards/**
+alwaysApply: false
+---
+
+# Prototype: observability-gen-ui-dashboards — Isolation Fence
+
+## HARD RULE
+Every file read, edit, or creation for this prototype MUST be inside:
+```
+src/app/prototypes/observability-gen-ui-dashboards/
+```
+
+## STRICTLY FORBIDDEN
+- ❌ Any edit to other prototype directories (including `observability-agentic-troubleshooting-ai`, which has a similarly named `DashboardsPersesPage.tsx`)
+- ❌ Any edit to shared components, global CSS, or infrastructure outside this prototype's directory
+- ❌ Copying a fix from this prototype into another prototype (even if the code looks identical)
+
+## REQUIRED: Confirm target before every edit
+Before writing or editing **any** file, confirm its path starts with:
+`src/app/prototypes/observability-gen-ui-dashboards/`
+
+If the target path is outside this prefix → **STOP and ask the user** which prototype they intended.
+
+## Why this matters
+`DashboardsPersesPage.tsx` and related dashboard files also exist in `observability-agentic-troubleshooting-ai`. Always resolve the full path before editing.
