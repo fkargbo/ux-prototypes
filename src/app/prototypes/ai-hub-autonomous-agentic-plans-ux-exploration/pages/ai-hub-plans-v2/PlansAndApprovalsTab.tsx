@@ -35,6 +35,7 @@ import {
   Pagination,
   PaginationVariant,
   Popover,
+  Radio,
   Skeleton,
   Spinner,
   SearchInput,
@@ -43,7 +44,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { ColumnsIcon, EllipsisVIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiBanIcon, RhUiCheckCircleFillIcon, RhUiDownloadIcon, RhUiErrorFillIcon, RhUiInProgressIcon, RhUiPauseCircleIcon, RhUiPendingIcon, RhUiRunningIcon, RhUiSyncIcon, RhUiWarningFillIcon, SearchIcon } from '@patternfly/react-icons';
+import { AngleDownIcon, AngleUpIcon, ColumnsIcon, EllipsisVIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiBanIcon, RhUiCheckCircleFillIcon, RhUiDownloadIcon, RhUiErrorFillIcon, RhUiInProgressIcon, RhUiPauseCircleIcon, RhUiPendingIcon, RhUiRunningIcon, RhUiSyncIcon, RhUiWarningFillIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
@@ -4837,84 +4838,107 @@ const RemediationOptionCard: React.FC<{
       ) : null
     ) : null;
 
-  const headerContent = (
-    <Flex
-      justifyContent={{ default: 'justifyContentSpaceBetween' }}
-      alignItems={{ default: 'alignItemsFlexStart' }}
-      flexWrap={{ default: 'nowrap' }}
-      style={{ width: '100%' }}
-    >
-      <FlexItem>
-    <Flex
-      direction={{ default: 'column' }}
-      alignItems={{ default: 'alignItemsFlexStart' }}
-      gap={{ default: 'gapXs' }}
-      id={`${cardId}-title`}
-    >
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'], whiteSpace: 'nowrap', marginBlock: 0 }}>
-          Option {index + 1}
-        </Content>
-        <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
-          {isFirst && isInteractive && (
-            <Label color="blue" isCompact>AI Recommended</Label>
-          )}
-          {isOptionLocked && isFirst && (
-                <Label color="orange" isCompact>
-              Approved option
-            </Label>
-          )}
-          <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
-            {formatReversibilityLabel(option.reversible)}
-          </Label>
-        </Flex>
-      </Flex>
-      <Content
-        component="p"
-        style={{
-          fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
-          lineHeight: 1.4,
-        }}
-      >
-        {option.title}
-      </Content>
-        </Flex>
-      </FlexItem>
-      {executionStatusLabel && <FlexItem>{executionStatusLabel}</FlexItem>}
-    </Flex>
+  // Radio label — inline badges sit next to the "Select option N" text.
+  const radioLabel = (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
+      <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'] }}>
+        Select option {index + 1}
+      </span>
+      {isFirst && isInteractive && (
+        <Label color="blue" isCompact>AI Recommended</Label>
+      )}
+      {isOptionLocked && isFirst && (
+        <Label color="orange" isCompact>Approved option</Label>
+      )}
+      <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
+        {formatReversibilityLabel(option.reversible)}
+      </Label>
+    </span>
   );
 
   return (
     <div ref={cardRootRef}>
     <Card
       id={cardId}
-      isExpanded={isBodyVisible}
       style={{
         borderRadius: '16px',
-        // Blue selection border — mirrors PF's isSelected visual without a radio input.
+        // Blue selection border — applied when user explicitly selects this option.
         outline: isSelected && isInteractive
           ? '2px solid var(--pf-t--global--border--color--brand--default)'
           : undefined,
         outlineOffset: '-2px',
       }}
     >
-      <CardHeader
-        onExpand={
-          isInteractive
-            ? (_event, _id) => setIsExpanded((prev) => !prev)
-            : undefined
-        }
-        toggleButtonProps={
-          isInteractive
-            ? { 'aria-label': isExpanded ? `Collapse option ${index + 1}` : `Expand option ${index + 1}` }
-            : undefined
-        }
-      >
-        {headerContent}
-      </CardHeader>
+      {/* ── Always-visible header CardBody: Row 1 (Radio/Badges), Row 2 (Title), Row 3 (Expand link) ── */}
+      <CardBody>
+        {/* Row 1 — Selection zone: Radio + badges + optional execution status label */}
+        <Flex
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          <FlexItem>
+            {isInteractive ? (
+              <Radio
+                id={`select-option-${option.id}`}
+                name={`remedy-${plan.id}`}
+                isChecked={isSelected}
+                onChange={() => onSelect(option.id)}
+                label={radioLabel}
+                aria-label={`Select option ${index + 1}`}
+              />
+            ) : (
+              /* Terminal / execution phases — show "Option N" label instead of radio */
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'], marginBlock: 0 }}>
+                  Option {index + 1}
+                </Content>
+                {isOptionLocked && isFirst && (
+                  <Label color="orange" isCompact>Approved option</Label>
+                )}
+                <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
+                  {formatReversibilityLabel(option.reversible)}
+                </Label>
+              </Flex>
+            )}
+          </FlexItem>
+          {executionStatusLabel && <FlexItem>{executionStatusLabel}</FlexItem>}
+        </Flex>
+
+        {/* Row 2 — Title */}
+        <Content
+          component="p"
+          id={`${cardId}-title`}
+          style={{
+            fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
+            lineHeight: 1.4,
+            marginBottom: isInteractive ? 'var(--pf-t--global--spacer--md)' : 0,
+            paddingInlineStart: isInteractive ? '24px' : undefined,
+          }}
+        >
+          {option.title}
+        </Content>
+
+        {/* Row 3 — Expansion toggle (interactive phases only) */}
+        {isInteractive && (
+          <div style={{ paddingInlineStart: '24px' }}>
+            <Button
+              variant="link"
+              isInline
+              icon={isExpanded ? <AngleUpIcon /> : <AngleDownIcon />}
+              iconPosition="end"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              aria-expanded={isExpanded}
+              aria-controls={`${cardId}-body`}
+            >
+              {isExpanded ? 'Hide option details' : 'View option details'}
+            </Button>
+          </div>
+        )}
+      </CardBody>
 
       {isBodyVisible && (
-        <CardBody className="ols-remediation-option-card__body">
+        <CardBody id={`${cardId}-body`} className="ols-remediation-option-card__body" style={{ borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
           {/* ── A. Approval metadata (post-approval evidence trail; status now lives top-right in the header) ── */}
           {(isExecuting || isTerminal) && !isExecutionKilled && approval && (
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
@@ -5107,28 +5131,6 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
-          {/* ── Selection control — only shown in interactive (Proposed/Escalated) phases ── */}
-          {isInteractive && (
-            <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)', paddingTop: 'var(--pf-t--global--spacer--md)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
-              {isSelected ? (
-                <Button
-                  variant="secondary"
-                  isDisabled
-                  icon={<RhUiCheckCircleFillIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />}
-                  iconPosition="start"
-                >
-                  Option selected
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  onClick={() => onSelect(option.id)}
-                >
-                  Select this option
-                </Button>
-              )}
-            </div>
-          )}
         </CardBody>
       )}
     </Card>
