@@ -6271,9 +6271,6 @@ export const RemediationBlueprintPanel: React.FC<{
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
             <Title headingLevel="h4" size="md">Remediation hub</Title>
             <Label color="grey" isCompact>AI-generated</Label>
-            {!isAnalyzing && !isTerminal && !isDenied && visibleOptionCount > 0 && (
-              <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
-            )}
           </Flex>
           <WaitingApprovalPlanMeta plan={plan} />
         </Flex>
