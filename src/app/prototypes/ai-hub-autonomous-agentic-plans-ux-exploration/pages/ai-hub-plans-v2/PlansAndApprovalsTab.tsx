@@ -6022,16 +6022,14 @@ export const RemediationBlueprintPanel: React.FC<{
             </Button>
           </ActionListItem>
         </ActionList>
-        <Content
-          component="small"
-          style={{
-            display: 'block',
-            marginTop: 'var(--pf-t--global--spacer--sm)',
-            color: 'var(--pf-t--global--text--color--subtle)',
-          }}
-        >
-          The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always review AI-generated content prior to use.
-        </Content>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+          <FlexItem><InfoCircleIcon color="var(--pf-t--global--icon--color--status--info--default)" /></FlexItem>
+          <FlexItem>
+            <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+              The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always review AI-generated content prior to use.
+            </Content>
+          </FlexItem>
+        </Flex>
       </div>
       </>
     );
@@ -6784,16 +6782,14 @@ export const RemediationBlueprintPanel: React.FC<{
         </>
         )}
       </ActionList>
-      <Content
-        component="small"
-        style={{
-          display: 'block',
-          marginTop: 'var(--pf-t--global--spacer--sm)',
-          color: 'var(--pf-t--global--text--color--subtle)',
-        }}
-      >
-        The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always review AI-generated content prior to use.
-      </Content>
+      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+        <FlexItem><InfoCircleIcon color="var(--pf-t--global--icon--color--status--info--default)" /></FlexItem>
+        <FlexItem>
+          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+            The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always review AI-generated content prior to use.
+          </Content>
+        </FlexItem>
+      </Flex>
     </div>
 
     {/* Stop analysis modal — rendered as a portal; lives outside Stack to avoid adding a gap slot */}
