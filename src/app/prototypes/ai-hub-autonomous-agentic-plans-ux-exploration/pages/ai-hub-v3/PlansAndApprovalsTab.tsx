@@ -2450,7 +2450,7 @@ const RemediationOptionCard: React.FC<{
       id={`${cardId}-title`}
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
+        <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'], whiteSpace: 'nowrap' }}>
           Option {index + 1}
         </Content>
         <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
