@@ -6022,6 +6022,16 @@ export const RemediationBlueprintPanel: React.FC<{
             </Button>
           </ActionListItem>
         </ActionList>
+        <Content
+          component="small"
+          style={{
+            display: 'block',
+            marginTop: 'var(--pf-t--global--spacer--sm)',
+            color: 'var(--pf-t--global--text--color--subtle)',
+          }}
+        >
+          The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always review AI-generated content prior to use.
+        </Content>
       </div>
       </>
     );
@@ -6774,6 +6784,16 @@ export const RemediationBlueprintPanel: React.FC<{
         </>
         )}
       </ActionList>
+      <Content
+        component="small"
+        style={{
+          display: 'block',
+          marginTop: 'var(--pf-t--global--spacer--sm)',
+          color: 'var(--pf-t--global--text--color--subtle)',
+        }}
+      >
+        The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always review AI-generated content prior to use.
+      </Content>
     </div>
 
     {/* Stop analysis modal — rendered as a portal; lives outside Stack to avoid adding a gap slot */}
