@@ -4840,7 +4840,7 @@ const RemediationOptionCard: React.FC<{
   // Radio label — inline badges sit next to the "Select option N" text.
   const radioLabel = (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
-      <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'] }}>
+      <span style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'] }}>
         Select option {index + 1}
       </span>
       {isFirst && isInteractive && (
@@ -4859,14 +4859,9 @@ const RemediationOptionCard: React.FC<{
     <div ref={cardRootRef}>
     <Card
       id={cardId}
-      style={{
-        borderRadius: '16px',
-        // Blue selection border — applied when user explicitly selects this option.
-        outline: isSelected && isInteractive
-          ? '2px solid var(--pf-t--global--border--color--brand--default)'
-          : undefined,
-        outlineOffset: '-2px',
-      }}
+      isSelectable={isInteractive}
+      isSelected={isSelected && isInteractive}
+      style={{ borderRadius: '16px' }}
     >
       {/* ── Always-visible header CardBody: Row 1 (Radio/Badges), Row 2 (Title), Row 3 (Expand link) ── */}
       <CardBody>
