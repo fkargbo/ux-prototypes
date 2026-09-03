@@ -2450,9 +2450,9 @@ const RemediationOptionCard: React.FC<{
       id={`${cardId}-title`}
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <span style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
+        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
           Option {index + 1}
-        </span>
+        </Content>
         <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
           {isTerminal && isFirst && (
             <Label color={status === 'Completed' ? 'green' : 'red'} isCompact variant="outline">
@@ -2469,17 +2469,15 @@ const RemediationOptionCard: React.FC<{
           </Label>
         </Flex>
       </Flex>
-      <span
+      <Content
+        component="p"
         style={{
-          fontWeight: 700,
-          fontSize: '14px',
+          fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
           lineHeight: 1.4,
-          whiteSpace: 'normal',
-          wordBreak: 'break-word',
         }}
       >
         {option.title}
-      </span>
+      </Content>
     </Flex>
   );
 
@@ -2578,7 +2576,7 @@ const RemediationOptionCard: React.FC<{
                 component="small"
                 style={{
                   display: 'block',
-                  fontWeight: 700,
+                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
                   color: 'var(--pf-t--global--text--color--subtle)',
                   margin: '0 0 var(--pf-t--global--spacer--xs)',
                 }}
@@ -2608,7 +2606,7 @@ const RemediationOptionCard: React.FC<{
                 component="small"
                 style={{
                   display: 'block',
-                  fontWeight: 700,
+                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
                   color: 'var(--pf-t--global--text--color--subtle)',
                   marginBottom: 'var(--pf-t--global--spacer--xs)',
                 }}
@@ -2758,7 +2756,7 @@ const PostMortemPanel: React.FC<{
         component="p"
         style={{
           display: 'block',
-          fontWeight: 700,
+          fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
           marginBottom: 'var(--pf-t--global--spacer--sm)',
           marginTop: 'var(--pf-t--global--spacer--md)',
         }}
@@ -3719,7 +3717,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                   style={{
                     display: 'block',
                     marginBottom: 'var(--pf-t--global--spacer--xs)',
-                    fontWeight: 600,
+                    fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
                   }}
                 >
                   {escalatedPlaybook.title}

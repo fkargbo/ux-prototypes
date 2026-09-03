@@ -3883,7 +3883,7 @@ const ACTION_STATUS_COLOR: Record<ExecutionAction['status'], 'green' | 'red' | '
 
 const SECTION_OVERLINE_STYLE: React.CSSProperties = {
   display: 'block',
-  fontWeight: 700,
+  fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
   marginBottom: 'var(--pf-t--global--spacer--sm)',
 };
 
@@ -3955,20 +3955,16 @@ const ExecutionSummaryCard: React.FC<{
         <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
           <Content component="small" style={SECTION_OVERLINE_STYLE}>Contextual evidence</Content>
           {summary ? (
-            <Stack hasGutter>
-              <StackItem>
-                <Content component="small" style={{ display: 'block', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                  Targeted root cause
-                </Content>
-                <Content component="p" style={{ fontSize: '0.875rem' }}>{summary.targetedRootCause}</Content>
-              </StackItem>
-              <StackItem>
-                <Content component="small" style={{ display: 'block', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                  Remediation delta
-                </Content>
-                <Content component="p" style={{ fontSize: '0.875rem' }}>{summary.remediationDelta}</Content>
-              </StackItem>
-            </Stack>
+            <DescriptionList>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Targeted root cause</DescriptionListTerm>
+                <DescriptionListDescription>{summary.targetedRootCause}</DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Remediation delta</DescriptionListTerm>
+                <DescriptionListDescription>{summary.remediationDelta}</DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
           ) : isCompleted ? (
             <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
               Execution completed — logs available below.
@@ -4531,20 +4527,18 @@ const TerminalEvidenceCard: React.FC<{
           alignItems={{ default: 'alignItemsFlexStart' }}
           gap={{ default: 'gapXs' }}
         >
-          <span style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
+          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
             Remediation
-          </span>
-          <span
+          </Content>
+          <Content
+            component="p"
             style={{
-              fontWeight: 700,
-              fontSize: '14px',
+              fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
               lineHeight: 1.4,
-              whiteSpace: 'normal',
-              wordBreak: 'break-word',
             }}
           >
             {plan.synopsis}
-          </span>
+          </Content>
         </Flex>
       </FlexItem>
       {executionStatusLabel && <FlexItem>{executionStatusLabel}</FlexItem>}
@@ -4853,9 +4847,9 @@ const RemediationOptionCard: React.FC<{
       id={`${cardId}-title`}
     >
       <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-        <span style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
+        <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
           Option {index + 1}
-        </span>
+        </Content>
         <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
           {isOptionLocked && isFirst && (
                 <Label color="orange" isCompact>
@@ -4867,17 +4861,15 @@ const RemediationOptionCard: React.FC<{
           </Label>
         </Flex>
       </Flex>
-      <span
+      <Content
+        component="p"
         style={{
-          fontWeight: 700,
-          fontSize: '14px',
+          fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
           lineHeight: 1.4,
-          whiteSpace: 'normal',
-          wordBreak: 'break-word',
         }}
       >
         {option.title}
-      </span>
+      </Content>
         </Flex>
       </FlexItem>
       {executionStatusLabel && <FlexItem>{executionStatusLabel}</FlexItem>}
@@ -5923,20 +5915,18 @@ export const RemediationBlueprintPanel: React.FC<{
                     alignItems={{ default: 'alignItemsFlexStart' }}
                     gap={{ default: 'gapXs' }}
                   >
-                    <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
                       Remediation
-                    </span>
-                          <span
+                    </Content>
+                    <Content
+                      component="p"
                       style={{
-                        fontWeight: 600,
-                        fontSize: '14px',
+                        fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
                         lineHeight: 1.4,
-                        whiteSpace: 'normal',
-                        wordBreak: 'break-word',
                       }}
                     >
                       {plan.synopsis}
-                          </span>
+                    </Content>
                   </Flex>
                 </FlexItem>
                 <FlexItem>
@@ -6284,7 +6274,7 @@ export const RemediationBlueprintPanel: React.FC<{
                   style={{
                     display: 'block',
                     marginBottom: 'var(--pf-t--global--spacer--xs)',
-                    fontWeight: 600,
+                    fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
                   }}
                 >
                   {escalatedPlaybook.title}
