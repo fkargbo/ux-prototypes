@@ -4841,7 +4841,7 @@ const RemediationOptionCard: React.FC<{
   const radioLabel = (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
       <span style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'] }}>
-        Select option {index + 1}
+        Select plan {index + 1}
       </span>
       {isFirst && isInteractive && (
         <Label color="blue" isCompact>AI Recommended</Label>
@@ -4882,7 +4882,7 @@ const RemediationOptionCard: React.FC<{
                 isChecked={isSelected}
                 onChange={() => onSelect(option.id)}
                 label={radioLabel}
-                aria-label={`Select option ${index + 1}`}
+                aria-label={`Select plan ${index + 1}`}
               />
             ) : (
               /* Terminal / execution phases — show "Option N" label instead of radio */
@@ -4928,7 +4928,7 @@ const RemediationOptionCard: React.FC<{
               aria-expanded={isExpanded}
               aria-controls={`${cardId}-body`}
             >
-              {isExpanded ? 'Hide option details' : 'View option details'}
+              {isExpanded ? 'Hide plan details' : 'View plan details'}
             </Button>
           </div>
         )}
@@ -5380,7 +5380,7 @@ export const RemediationBlueprintPanel: React.FC<{
   plan: PlanRow;
   onRejectPlan?: () => void;
   onStartNewInvestigation?: () => void;
-  /** Cluster-update runs: open Administration → Cluster Update from Remediation hub. */
+  /** Cluster-update runs: open Administration → Cluster Update from Remediation plans. */
   onRemediateInClusterUpdates?: () => void;
   /**
    * Called when the internal Pending sub-state changes.
@@ -5827,7 +5827,7 @@ export const RemediationBlueprintPanel: React.FC<{
         {/* D. Remediation Hub — muted, no options available */}
         <StackItem>
           <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-            Remediation hub
+            Remediation plans
           </Title>
           <div style={LOCKED_BOX_STYLE}>
             <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -5926,7 +5926,7 @@ export const RemediationBlueprintPanel: React.FC<{
 
         <StackItem>
           <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-            Remediation hub
+            Remediation plans
           </Title>
           <Card style={{ borderRadius: '16px' }}>
             <CardHeader>
@@ -6269,7 +6269,7 @@ export const RemediationBlueprintPanel: React.FC<{
           style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
         >
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-            <Title headingLevel="h4" size="md">Remediation hub</Title>
+            <Title headingLevel="h4" size="md">Remediation plans</Title>
             <Label color="grey" isCompact>AI-generated</Label>
           </Flex>
           <WaitingApprovalPlanMeta plan={plan} />
