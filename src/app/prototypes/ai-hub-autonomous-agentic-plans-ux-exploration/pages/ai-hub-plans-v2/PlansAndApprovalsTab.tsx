@@ -4888,26 +4888,17 @@ const RemediationOptionCard: React.FC<{
     <div ref={cardRootRef}>
     <Card
       id={cardId}
-      isSelectable={isInteractive}
-      isSelected={isSelected}
       isExpanded={isBodyVisible}
-      style={{ borderRadius: '16px' }}
+      style={{
+        borderRadius: '16px',
+        // Blue selection border — mirrors PF's isSelected visual without a radio input.
+        outline: isSelected && isInteractive
+          ? '2px solid var(--pf-t--global--border--color--brand--default)'
+          : undefined,
+        outlineOffset: '-2px',
+      }}
     >
       <CardHeader
-        selectableActions={
-          isInteractive
-            ? {
-                selectableActionId: `radio-${option.id}`,
-                selectableActionAriaLabelledby: `${cardId}-title`,
-                name: `remedy-${plan.id}`,
-                variant: 'single',
-                onChange: (_event, checked) => {
-                  if (checked) onSelect(option.id);
-                },
-                hasNoOffset: true,
-              }
-            : undefined
-        }
         onExpand={
           isInteractive
             ? (_event, _id) => setIsExpanded((prev) => !prev)
@@ -5116,6 +5107,28 @@ const RemediationOptionCard: React.FC<{
             </div>
           )}
 
+          {/* ── Selection control — only shown in interactive (Proposed/Escalated) phases ── */}
+          {isInteractive && (
+            <div style={{ marginTop: 'var(--pf-t--global--spacer--lg)', paddingTop: 'var(--pf-t--global--spacer--md)', borderTop: '1px solid var(--pf-t--global--border--color--default)' }}>
+              {isSelected ? (
+                <Button
+                  variant="secondary"
+                  isDisabled
+                  icon={<RhUiCheckCircleFillIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />}
+                  iconPosition="start"
+                >
+                  Option selected
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  onClick={() => onSelect(option.id)}
+                >
+                  Select this option
+                </Button>
+              )}
+            </div>
+          )}
         </CardBody>
       )}
     </Card>
