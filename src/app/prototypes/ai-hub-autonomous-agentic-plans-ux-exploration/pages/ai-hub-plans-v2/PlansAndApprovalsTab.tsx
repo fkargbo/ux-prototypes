@@ -5860,25 +5860,12 @@ export const RemediationBlueprintPanel: React.FC<{
       <>
       <Stack style={{ gap: '24px' }}>
           <StackItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             <AiExperienceIcon size={20} />
             <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
               Agentic run details
-                  </Title>
-                </Flex>
-          <Content component="p" className="ols-ai-hub-page-disclaimer">
-                          <InfoCircleIcon
-              style={{
-                color: 'var(--pf-t--global--icon--color--status--info--default)',
-                marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
-                verticalAlign: 'middle',
-                flexShrink: 0,
-              }}
-                            aria-hidden
-            />
-            The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
-            review AI-generated content prior to use.
-          </Content>
+            </Title>
+          </Flex>
         </StackItem>
 
         <StackItem>
@@ -6062,26 +6049,14 @@ export const RemediationBlueprintPanel: React.FC<{
   return (
     <>
     <Stack style={{ gap: '24px' }}>
-      {/* ── Page heading + AI disclaimer ────────────────────────────────── */}
+      {/* ── Page heading ──────────────────────────────────────────────── */}
       <StackItem>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
           <AiExperienceIcon size={20} />
           <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
             Agentic run details
-                      </Title>
+          </Title>
         </Flex>
-        <Content component="p" className="ols-ai-hub-page-disclaimer">
-          <InfoCircleIcon
-                          style={{
-              color: 'var(--pf-t--global--icon--color--status--info--default)',
-              marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
-              verticalAlign: 'middle',
-              flexShrink: 0,
-            }}
-            aria-hidden
-          />
-          OpenShift Lightspeed uses AI technology. Always review AI-generated content prior to taking action.
-                        </Content>
       </StackItem>
 
       <StackItem>
