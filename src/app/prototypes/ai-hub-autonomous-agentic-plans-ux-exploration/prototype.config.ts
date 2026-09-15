@@ -16,7 +16,8 @@ export const config: PrototypeConfig = {
     name: 'SRE / Platform engineer',
     role: 'Reviewing and approving autonomous agent remediation plans',
   },
-  perspectives: ['core-platforms', 'fleet-management'],
+  /** UX exploration — Core platforms only; Fleet management / Fleet virtualization shown disabled in switcher. */
+  perspectives: ['core-platforms'],
   tags: ['AI Hub', 'Agents', 'Autonomous', 'Remediation', 'UX Audit', 'Draft'],
   createdAt: '2026-08-31',
   updatedAt: '2026-08-31',
