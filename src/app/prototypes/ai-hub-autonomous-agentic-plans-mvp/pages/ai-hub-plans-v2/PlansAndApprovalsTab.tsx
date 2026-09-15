@@ -69,8 +69,10 @@ import {
   AGENTIC_STATUS_FILTER_OPTIONS,
   PlansFilterToolbar,
   resolveDisplayDomain,
+  resolvePlanTargetCluster,
   usePlansFilterState,
 } from './PlansFilterToolbar';
+import { useMulticlusterDevMode } from '../../context/MulticlusterDevContext';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import {
   SC_PLAN_ROW_PATCHES,
@@ -152,6 +154,8 @@ export interface PlanRow {
   name?: string;
   /** Fleet cluster label for the plans table. */
   cluster?: string;
+  /** Managed spoke cluster for hub multicluster agentic runs (HPUX-2155). */
+  targetCluster?: string;
   /** Core platforms namespace label for the plans table. */
   namespace?: string;
   /** Perspective-aware scope cell (cluster or namespace). */
@@ -3292,9 +3296,26 @@ interface PlansTableCoreProps {
   mapObservabilityDomains?: boolean;
   /** Global Agentic runs list only — domain-scoped lists (e.g. Agentic runs) omit this column. */
   showTriggerDomainColumn?: boolean;
+  /** Hub multicluster: target spoke column (HPUX-2155). */
+  showTargetClusterColumn?: boolean;
   activeSortIndex?: number;
   activeSortDirection?: 'asc' | 'desc';
   onSort?: (columnIndex: number, direction: 'asc' | 'desc') => void;
+}
+
+function getPlansTableSortColumnMap(options: {
+  showTargetClusterColumn: boolean;
+  showTriggerDomainColumn: boolean;
+}) {
+  let index = 0;
+  const name = index++;
+  const targetCluster = options.showTargetClusterColumn ? index++ : null;
+  const scope = index++;
+  const triggerDomain = options.showTriggerDomainColumn ? index++ : null;
+  const status = index++;
+  index += 1; // Tokens consumed — not sortable
+  const created = index++;
+  return { name, targetCluster, scope, triggerDomain, status, created };
 }
 
 export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
@@ -3306,12 +3327,15 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   isAgenticAutomationEnabled,
   mapObservabilityDomains = false,
   showTriggerDomainColumn = true,
+  showTargetClusterColumn = false,
   activeSortIndex,
   activeSortDirection,
   onSort,
 }) => {
-  const statusColIndex = showTriggerDomainColumn ? 3 : 2;
-  const createdColIndex = showTriggerDomainColumn ? 5 : 4;
+  const sortColumns = useMemo(
+    () => getPlansTableSortColumnMap({ showTargetClusterColumn, showTriggerDomainColumn }),
+    [showTargetClusterColumn, showTriggerDomainColumn],
+  );
   const getSortProps = (colIndex: number) =>
     !onSort
       ? {}
@@ -3322,6 +3346,14 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             columnIndex: colIndex,
           },
         };
+
+  const nameWidth = showTriggerDomainColumn
+    ? showTargetClusterColumn
+      ? '18%'
+      : '22%'
+    : showTargetClusterColumn
+      ? '22%'
+      : '28%';
 
   return (
   <Table
@@ -3334,14 +3366,25 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   >
     <Thead>
       <Tr>
-        <Th style={{ width: showTriggerDomainColumn ? '22%' : '28%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(0)}>Name</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '14%' : '16%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(1)}>{scopeColumnLabel}</Th>
-        {showTriggerDomainColumn ? (
-          <Th style={{ width: '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(2)}>Trigger domain</Th>
+        <Th style={{ width: nameWidth, ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(sortColumns.name)}>Name</Th>
+        {showTargetClusterColumn ? (
+          <Th style={{ width: '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(sortColumns.targetCluster!)}>Cluster</Th>
         ) : null}
-        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(statusColIndex)}>Status</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(createdColIndex)}>Created</Th>
+        <Th
+          style={{
+            width: showTriggerDomainColumn ? (showTargetClusterColumn ? '12%' : '14%') : showTargetClusterColumn ? '14%' : '16%',
+            ...PLANS_TABLE_HEADER_TH_STYLE,
+          }}
+          {...getSortProps(sortColumns.scope)}
+        >
+          {scopeColumnLabel}
+        </Th>
+        {showTriggerDomainColumn ? (
+          <Th style={{ width: showTargetClusterColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(sortColumns.triggerDomain!)}>Trigger domain</Th>
+        ) : null}
+        <Th style={{ width: showTargetClusterColumn ? '10%' : showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(sortColumns.status)}>Status</Th>
+        <Th style={{ width: showTargetClusterColumn ? '10%' : showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
+        <Th style={{ width: showTargetClusterColumn ? '10%' : showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(sortColumns.created)}>Created</Th>
         <Th screenReaderText="Actions" />
       </Tr>
     </Thead>
@@ -3369,6 +3412,10 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
               </FlexItem>
             </Flex>
           </Td>
+
+          {showTargetClusterColumn ? (
+            <Td dataLabel="Cluster">{resolvePlanTargetCluster(row)}</Td>
+          ) : null}
 
           <Td dataLabel={scopeColumnLabel}>
             <PlanScopeCell
@@ -3443,7 +3490,31 @@ const PlansTable: React.FC<PlansTableProps> = ({
   isSingleCluster,
   isAgenticAutomationEnabled,
 }) => {
-  const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true, mapObservabilityDomains: true });
+  const { isMultiClusterMode } = useMulticlusterDevMode();
+  const plansFilter = usePlansFilterState({
+    includeTriggerDomainFilter: true,
+    mapObservabilityDomains: true,
+    includeClusterFilter: isMultiClusterMode,
+  });
+
+  const clusterFilterOptions = useMemo(() => {
+    if (!isMultiClusterMode) {
+      return [];
+    }
+    const clusters = new Set<string>();
+    for (const row of rows) {
+      const target = resolvePlanTargetCluster(row);
+      if (target !== '—') {
+        clusters.add(target);
+      }
+    }
+    return [...clusters].sort((a, b) => a.localeCompare(b));
+  }, [isMultiClusterMode, rows]);
+
+  const sortColumnMap = useMemo(
+    () => getPlansTableSortColumnMap({ showTargetClusterColumn: isMultiClusterMode, showTriggerDomainColumn: true }),
+    [isMultiClusterMode],
+  );
 
   // ── Delete confirmation modal state ──────────────────────────────────────
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
@@ -3478,15 +3549,26 @@ const PlansTable: React.FC<PlansTableProps> = ({
   }, []);
 
   const getSortValue = useCallback((row: PlanRow, colIndex: number): string => {
-    switch (colIndex) {
-      case 0: return (row.name ?? row.id).toLowerCase();
-      case 1: return (row.scope ?? '').toLowerCase();
-      case 2: return resolveDisplayDomain(row.triggerDomain ?? '').toLowerCase();
-      case 3: return (row.status ?? '').toLowerCase();
-      case 5: return row.createdAt ?? '';
-      default: return '';
+    if (colIndex === sortColumnMap.name) {
+      return (row.name ?? row.id).toLowerCase();
     }
-  }, []);
+    if (sortColumnMap.targetCluster !== null && colIndex === sortColumnMap.targetCluster) {
+      return resolvePlanTargetCluster(row).toLowerCase();
+    }
+    if (colIndex === sortColumnMap.scope) {
+      return (row.scope ?? '').toLowerCase();
+    }
+    if (sortColumnMap.triggerDomain !== null && colIndex === sortColumnMap.triggerDomain) {
+      return resolveDisplayDomain(row.triggerDomain ?? '').toLowerCase();
+    }
+    if (colIndex === sortColumnMap.status) {
+      return (row.status ?? '').toLowerCase();
+    }
+    if (colIndex === sortColumnMap.created) {
+      return row.createdAt ?? '';
+    }
+    return '';
+  }, [sortColumnMap]);
 
   const sortedRows = useMemo(() => {
     if (activeSortIndex === undefined || activeSortDirection === undefined) return filteredRows;
@@ -3505,6 +3587,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
     plansFilter.searchInputValue,
     plansFilter.statusFilters,
     plansFilter.triggerDomainFilters,
+    plansFilter.clusterFilters,
     activeSortIndex,
     activeSortDirection,
   ]);
@@ -3556,6 +3639,8 @@ const PlansTable: React.FC<PlansTableProps> = ({
         filterAriaLabel="Filter plans"
         statusOptions={AGENTIC_STATUS_FILTER_OPTIONS}
         includeTriggerDomainFilter
+        includeClusterFilter={isMultiClusterMode}
+        clusterFilterOptions={clusterFilterOptions}
         rows={rows}
         pagination={<Pagination isCompact {...paginationProps} style={{ margin: 0 }} />}
         {...plansFilter}
@@ -3591,6 +3676,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
             onDeletePlan={requestDelete}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
             mapObservabilityDomains
+            showTargetClusterColumn={isMultiClusterMode}
             activeSortIndex={activeSortIndex}
             activeSortDirection={activeSortDirection}
             onSort={onSort}
@@ -6650,6 +6736,9 @@ export function buildPlansForPerspective(
         planKind: row.id === 'cp4' ? 'analysis-only' : 'remediation',
         cluster: isSingleCluster
           ? CORE_PLATFORMS_CLUSTER_ID
+          : identity?.fleetCluster ?? normalizedRow.drawerTargets[0] ?? '—',
+        targetCluster: isSingleCluster
+          ? identity?.fleetCluster ?? CORE_PLATFORMS_CLUSTER_ID
           : identity?.fleetCluster ?? normalizedRow.drawerTargets[0] ?? '—',
         scope: isSingleCluster
           ? identity?.namespace ?? '—'

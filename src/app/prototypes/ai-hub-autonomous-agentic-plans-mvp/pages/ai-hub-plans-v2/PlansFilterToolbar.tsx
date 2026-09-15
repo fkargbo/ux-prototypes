@@ -87,11 +87,19 @@ function planMatchesAttributeFilters(
   plan: PlanRow,
   statusFilters: PlanRow['status'][],
   triggerDomainFilters: string[],
+  clusterFilters: string[],
   includeTriggerDomainFilter: boolean,
+  includeClusterFilter: boolean,
   mapObservabilityDomains: boolean,
 ): boolean {
   if (statusFilters.length > 0 && !statusFilters.includes(plan.status)) {
     return false;
+  }
+  if (includeClusterFilter && clusterFilters.length > 0) {
+    const target = resolvePlanTargetCluster(plan);
+    if (!clusterFilters.includes(target)) {
+      return false;
+    }
   }
   if (includeTriggerDomainFilter && triggerDomainFilters.length > 0) {
     const effectiveDomain = mapObservabilityDomains
@@ -104,12 +112,18 @@ function planMatchesAttributeFilters(
   return true;
 }
 
+export function resolvePlanTargetCluster(plan: PlanRow): string {
+  return plan.targetCluster ?? plan.cluster ?? '—';
+}
+
 export function filterPlanRows(
   rows: PlanRow[],
   options: {
     statusFilters: PlanRow['status'][];
     triggerDomainFilters: string[];
+    clusterFilters: string[];
     includeTriggerDomainFilter: boolean;
+    includeClusterFilter: boolean;
     mapObservabilityDomains: boolean;
     searchInputValue: string;
   },
@@ -120,7 +134,9 @@ export function filterPlanRows(
         plan,
         options.statusFilters,
         options.triggerDomainFilters,
+        options.clusterFilters,
         options.includeTriggerDomainFilter,
+        options.includeClusterFilter,
         options.mapObservabilityDomains,
       )
     ) {
@@ -132,6 +148,8 @@ export function filterPlanRows(
 
 export interface UsePlansFilterStateOptions {
   includeTriggerDomainFilter?: boolean;
+  /** Hub multicluster toolbar filter (HPUX-2155). */
+  includeClusterFilter?: boolean;
   /** When true, granular observability telemetry domains (Prometheus, Thanos, etc.)
    *  are coalesced to "Observability" for filtering. Use in fleet/Agentic Plans view. */
   mapObservabilityDomains?: boolean;
@@ -139,10 +157,12 @@ export interface UsePlansFilterStateOptions {
 
 export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
   const includeTriggerDomainFilter = options.includeTriggerDomainFilter ?? false;
+  const includeClusterFilter = options.includeClusterFilter ?? false;
   const mapObservabilityDomains = options.mapObservabilityDomains ?? false;
 
   const [statusFilters, setStatusFilters] = useState<PlanRow['status'][]>([]);
   const [triggerDomainFilters, setTriggerDomainFilters] = useState<string[]>([]);
+  const [clusterFilters, setClusterFilters] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [searchInputValue, setSearchInputValue] = useState('');
 
@@ -153,6 +173,7 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
   const clearAllFilters = useCallback(() => {
     setStatusFilters([]);
     setTriggerDomainFilters([]);
+    setClusterFilters([]);
     setSearchInputValue('');
   }, []);
 
@@ -161,8 +182,17 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
     if (includeTriggerDomainFilter) {
       count += triggerDomainFilters.length;
     }
+    if (includeClusterFilter) {
+      count += clusterFilters.length;
+    }
     return count;
-  }, [includeTriggerDomainFilter, statusFilters.length, triggerDomainFilters.length]);
+  }, [
+    includeClusterFilter,
+    includeTriggerDomainFilter,
+    statusFilters.length,
+    triggerDomainFilters.length,
+    clusterFilters.length,
+  ]);
 
   const hasActiveAttributeFilters = activeFilterCount > 0;
   const hasActiveTextSearch = searchInputValue.trim().length > 0;
@@ -173,11 +203,15 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
       filterPlanRows(rows, {
         statusFilters,
         triggerDomainFilters,
+        clusterFilters,
         includeTriggerDomainFilter,
+        includeClusterFilter,
         mapObservabilityDomains,
         searchInputValue,
       }),
     [
+      clusterFilters,
+      includeClusterFilter,
       includeTriggerDomainFilter,
       mapObservabilityDomains,
       searchInputValue,
@@ -191,6 +225,8 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
     setStatusFilters,
     triggerDomainFilters,
     setTriggerDomainFilters,
+    clusterFilters,
+    setClusterFilters,
     filterMenuOpen,
     setFilterMenuOpen,
     searchInputValue,
@@ -207,6 +243,10 @@ export interface PlansFilterToolbarProps {
   filterAriaLabel: string;
   statusOptions: { label: string; value: PlanRow['status'] }[];
   includeTriggerDomainFilter?: boolean;
+  /** Hub multicluster filter section (HPUX-2155). */
+  includeClusterFilter?: boolean;
+  /** Distinct target cluster values for the Cluster filter section. */
+  clusterFilterOptions?: readonly string[];
   /** Override the default trigger-domain option list. Defaults to TRIGGER_DOMAIN_FILTER_OPTIONS. */
   triggerDomainOptions?: readonly string[];
   /** Full unfiltered row set — used to compute per-option counts in the filter dropdowns. */
@@ -214,6 +254,7 @@ export interface PlansFilterToolbarProps {
   pagination?: React.ReactNode;
   statusFilters: PlanRow['status'][];
   triggerDomainFilters: string[];
+  clusterFilters: string[];
   filterMenuOpen: boolean;
   setFilterMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
   searchInputValue: string;
@@ -224,17 +265,21 @@ export interface PlansFilterToolbarProps {
   hasActiveFilters: boolean;
   setStatusFilters: React.Dispatch<React.SetStateAction<PlanRow['status'][]>>;
   setTriggerDomainFilters: React.Dispatch<React.SetStateAction<string[]>>;
+  setClusterFilters: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   filterAriaLabel,
   statusOptions,
   includeTriggerDomainFilter = false,
+  includeClusterFilter = false,
+  clusterFilterOptions = [],
   triggerDomainOptions = TRIGGER_DOMAIN_FILTER_OPTIONS,
   pagination,
   rows = [],
   statusFilters,
   triggerDomainFilters,
+  clusterFilters,
   filterMenuOpen,
   setFilterMenuOpen,
   searchInputValue,
@@ -245,6 +290,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   hasActiveFilters,
   setStatusFilters,
   setTriggerDomainFilters,
+  setClusterFilters,
 }) => {
   /** Count of runs per status across the full unfiltered dataset. */
   const countsByStatus = useMemo<Record<string, number>>(() => {
@@ -265,6 +311,20 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
     return counts;
   }, [rows]);
 
+  const countsByCluster = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = {};
+    for (const row of rows) {
+      const cluster = resolvePlanTargetCluster(row);
+      if (cluster === '—') {
+        continue;
+      }
+      counts[cluster] = (counts[cluster] ?? 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
+  const clusterOptionSet = useMemo(() => new Set(clusterFilterOptions), [clusterFilterOptions]);
+
   const handleFilterSelect = useCallback(
     (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
       if (typeof value !== 'string') {
@@ -276,13 +336,20 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
       }
       if (includeTriggerDomainFilter && (triggerDomainOptions as readonly string[]).includes(value)) {
         toggleFilterValue(value, setTriggerDomainFilters);
+        return;
+      }
+      if (includeClusterFilter && clusterOptionSet.has(value)) {
+        toggleFilterValue(value, setClusterFilters);
       }
     },
     [
+      clusterOptionSet,
+      includeClusterFilter,
       includeTriggerDomainFilter,
       triggerDomainOptions,
       setStatusFilters,
       setTriggerDomainFilters,
+      setClusterFilters,
       statusOptions,
       toggleFilterValue,
     ],
@@ -383,6 +450,28 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                       })}
                     </>
                   )}
+
+                  {includeClusterFilter && clusterFilterOptions.length > 0 && (
+                    <>
+                      <div style={FILTER_SECTION_TITLE_STYLE}>Cluster</div>
+                      {clusterFilterOptions.map((cluster) => {
+                        const count = countsByCluster[cluster] ?? 0;
+                        return (
+                          <SelectOption
+                            key={cluster}
+                            hasCheckbox
+                            value={cluster}
+                            isSelected={clusterFilters.includes(cluster)}
+                          >
+                            <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                              <span>{cluster}</span>
+                              {count > 0 && <Badge isRead>{count}</Badge>}
+                            </span>
+                          </SelectOption>
+                        );
+                      })}
+                    </>
+                  )}
                 </SelectList>
               </Select>
             </FlexItem>
@@ -451,6 +540,15 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
               {triggerDomainFilters.map((domain) => (
                 <Label key={domain} isCompact onClose={() => toggleFilterValue(domain, setTriggerDomainFilters)}>
                   {domain}
+                </Label>
+              ))}
+            </LabelGroup>
+          )}
+          {includeClusterFilter && clusterFilters.length > 0 && (
+            <LabelGroup categoryName="Cluster" isClosable onClick={() => setClusterFilters([])}>
+              {clusterFilters.map((cluster) => (
+                <Label key={cluster} isCompact onClose={() => toggleFilterValue(cluster, setClusterFilters)}>
+                  {cluster}
                 </Label>
               ))}
             </LabelGroup>
