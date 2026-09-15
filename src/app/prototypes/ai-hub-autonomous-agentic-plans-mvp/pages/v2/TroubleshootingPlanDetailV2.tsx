@@ -5,22 +5,20 @@ import {
   BreadcrumbItem,
   Flex,
   FlexItem,
-  Label,
   Title,
 } from '@patternfly/react-core';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
-  NamespaceResourceLink,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
   WaitingApprovalPlanMeta,
   type PlanRow,
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
-import { resolvePlanTargetCluster } from '../ai-hub-plans-v2/PlansFilterToolbar';
-import { useMulticlusterDevMode } from '../../context/MulticlusterDevContext';
+import { withAgenticRunTargetCluster } from '../ai-hub-plans-v2/PlansFilterToolbar';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
+import { AgenticRunDetailMetadataLabels } from '../../components/AgenticRunDetailMetadataLabels';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import {
   buildPrototypeHref,
@@ -56,7 +54,6 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
     : activePerspective === 'Core platforms';
 
   const planExecutionRuntime = usePlanBuildRuntime();
-  const { isMultiClusterMode } = useMulticlusterDevMode();
   const navigationState = location.state as TroubleshootingPlanDetailLocationState | null;
 
   /** Local denial override — transitions a Proposed plan to Denied without mutating mock data. */
@@ -77,15 +74,11 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
     if (!planId) return null;
     const decoded = decodeURIComponent(planId);
     const catalogPlan = buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find(
-      (p) => p.id === decoded,
+      (p) => p.id === decoded || p.name === decoded,
     );
-    if (catalogPlan) return catalogPlan;
-    if (navigationState?.plan?.id === decoded) {
-      const fromNav = navigationState.plan;
-      return {
-        ...fromNav,
-        targetCluster: fromNav.targetCluster ?? resolvePlanTargetCluster(fromNav),
-      };
+    if (catalogPlan) return withAgenticRunTargetCluster(catalogPlan);
+    if (navigationState?.plan?.id === decoded || navigationState?.plan?.name === decoded) {
+      return withAgenticRunTargetCluster(navigationState.plan);
     }
     return null;
   }, [isSingleCluster, navigationState?.plan, planExecutionRuntime, planId]);
@@ -132,7 +125,6 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
     : plan;
 
   const planDisplayName = plan.name ?? plan.id;
-  const targetCluster = resolvePlanTargetCluster(effectivePlan);
 
   return (
     <div className="ols-ai-hub-page ols-ai-hub-page--v3" data-exp-lab-annotation-root>
@@ -166,21 +158,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
                 </FlexItem>
               </Flex>
             </FlexItem>
-            {isMultiClusterMode ? (
-              <FlexItem>
-                <Label color="grey" variant="outline" isCompact>
-                  Target cluster: {targetCluster}
-                </Label>
-              </FlexItem>
-            ) : null}
-            {plan.namespace ? (
-              <FlexItem>
-                <NamespaceResourceLink name={plan.namespace} />
-              </FlexItem>
-            ) : null}
-            <FlexItem>
-              <Label color="grey" variant="outline" isCompact>Trigger domain: {plan.triggerDomain}</Label>
-            </FlexItem>
+            <AgenticRunDetailMetadataLabels plan={plan} />
           </Flex>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}

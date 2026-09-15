@@ -19,6 +19,10 @@ const TARGET_CLUSTER_BY_PLAN_ID: Record<string, AgenticRunTargetClusterName> = (
   return assignments;
 })();
 
+/** Explicit MVP plan → spoke mapping (every MVP run has a non-null targetCluster). */
+export const AGENTIC_RUN_TARGET_CLUSTER_BY_PLAN_ID: Readonly<Record<string, AgenticRunTargetClusterName>> =
+  TARGET_CLUSTER_BY_PLAN_ID;
+
 /** Stable per-run target cluster for hub multicluster UI (filter + table column). */
 export function assignAgenticRunTargetCluster(planId: string): AgenticRunTargetClusterName {
   return TARGET_CLUSTER_BY_PLAN_ID[planId] ?? AGENTIC_RUN_TARGET_CLUSTER_NAMES[0];

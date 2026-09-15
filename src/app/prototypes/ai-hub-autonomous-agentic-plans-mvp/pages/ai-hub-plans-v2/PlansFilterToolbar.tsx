@@ -124,6 +124,14 @@ export function resolvePlanTargetCluster(plan: PlanRow): string {
   return assignAgenticRunTargetCluster(plan.id);
 }
 
+/** Normalizes drill-down rows so targetCluster is always set for multicluster UI. */
+export function withAgenticRunTargetCluster(plan: PlanRow): PlanRow {
+  return {
+    ...plan,
+    targetCluster: resolvePlanTargetCluster(plan),
+  };
+}
+
 export function filterPlanRows(
   rows: PlanRow[],
   options: {

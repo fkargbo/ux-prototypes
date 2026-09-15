@@ -71,6 +71,7 @@ import {
   resolveDisplayDomain,
   resolvePlanTargetCluster,
   usePlansFilterState,
+  withAgenticRunTargetCluster,
 } from './PlansFilterToolbar';
 import { useMulticlusterDevMode } from '../../context/MulticlusterDevContext';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
@@ -6760,25 +6761,23 @@ export function buildPlansForPerspective(
 
       if (abortedPlans[row.id]) {
         const abortEntry = abortedPlans[row.id];
-        // 'analysis' phase abort → analysis was stopped before execution began → 'Run aborted'
-        // 'execution' phase abort → execution was halted mid-flight → 'Plan aborted'
         const abortStatus = abortEntry.phase === 'analysis' ? 'Run aborted' : 'Plan aborted';
-        return {
+        return withAgenticRunTargetCluster({
           ...baseRow,
           status: abortStatus,
           terminatedAt: abortEntry.terminatedAt,
-        };
+        });
       }
 
       const workflowPhase = workflowByPlanId[row.id]?.runtimePhase;
       if (workflowPhase) {
-        return {
+        return withAgenticRunTargetCluster({
           ...baseRow,
           status: workflowPhase,
-        };
+        });
       }
 
-      return baseRow;
+      return withAgenticRunTargetCluster(baseRow);
     });
 }
 
@@ -6815,7 +6814,7 @@ export const PlansAndApprovalsTab: React.FC = () => {
       perspectiveKeyFromShellName(activePerspective)
       ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
     writePlanRemediationDrillSession({ perspectiveKey });
-    navigate(getPlanDetailHref(plan, perspectiveKey));
+    navigate(getPlanDetailHref(plan, perspectiveKey), { state: { plan: withAgenticRunTargetCluster(plan) } });
   }, [activePerspective, isSingleCluster, navigate]);
 
   return (

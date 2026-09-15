@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Breadcrumb,
@@ -14,7 +14,6 @@ import {
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
-  NamespaceResourceLink,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
@@ -28,15 +27,18 @@ import {
   resolveDrillPerspectiveKey,
   writePlanRemediationDrillSession,
 } from '../v2PlanRemediationDrillSession';
+import { withAgenticRunTargetCluster } from '../ai-hub-plans-v2/PlansFilterToolbar';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
+import { AgenticRunDetailMetadataLabels } from '../../components/AgenticRunDetailMetadataLabels';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 import '../ai-hub-page.css';
 
 export const AcsPlanDetailPageV2: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { planSlug } = useParams<{ planSlug: string }>();
   const [searchParams] = useSearchParams();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
@@ -52,13 +54,20 @@ export const AcsPlanDetailPageV2: React.FC = () => {
     : activePerspective === 'Core platforms';
 
   const planExecutionRuntime = usePlanBuildRuntime();
+  const navigationState = location.state as { plan?: PlanRow } | null;
 
   const plan = useMemo(() => {
     if (!planSlug) return null;
-    return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find(
-      (row) => row.name === planSlug,
-    ) ?? null;
-  }, [isSingleCluster, planSlug, planExecutionRuntime]);
+    const decoded = decodeURIComponent(planSlug);
+    const catalogPlan = buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find(
+      (row) => row.name === decoded || row.id === decoded,
+    );
+    if (catalogPlan) return withAgenticRunTargetCluster(catalogPlan);
+    if (navigationState?.plan && (navigationState.plan.name === decoded || navigationState.plan.id === decoded)) {
+      return withAgenticRunTargetCluster(navigationState.plan);
+    }
+    return null;
+  }, [isSingleCluster, navigationState?.plan, planExecutionRuntime, planSlug]);
 
   const navigateBackToPlans = useCallback(() => {
     const key =
@@ -142,17 +151,14 @@ export const AcsPlanDetailPageV2: React.FC = () => {
                 </FlexItem>
               </Flex>
             </FlexItem>
-            {plan.namespace ? (
-              <FlexItem>
-                <NamespaceResourceLink name={plan.namespace} />
-              </FlexItem>
-            ) : null}
-            <FlexItem>
-              <Label color="grey" variant="outline" isCompact>Trigger domain: {plan.triggerDomain}</Label>
-            </FlexItem>
-            <FlexItem>
-              <Label color="purple" variant="outline" isCompact>ACS console</Label>
-            </FlexItem>
+            <AgenticRunDetailMetadataLabels
+              plan={plan}
+              trailingLabels={(
+                <FlexItem>
+                  <Label color="purple" variant="outline" isCompact>ACS console</Label>
+                </FlexItem>
+              )}
+            />
           </Flex>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}

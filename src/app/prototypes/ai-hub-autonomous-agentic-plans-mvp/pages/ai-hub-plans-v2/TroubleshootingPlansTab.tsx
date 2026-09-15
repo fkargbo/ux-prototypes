@@ -19,6 +19,7 @@ import {
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
 import { getPlanDetailHref } from './domainPlanNavigation';
+import { withAgenticRunTargetCluster } from './PlansFilterToolbar';
 import {
   PlansTableCore,
   buildPlansForPerspective,
@@ -112,7 +113,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
         perspectiveKeyFromShellName(activePerspective)
         ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
       writePlanRemediationDrillSession({ perspectiveKey });
-      navigate(getPlanDetailHref(plan, perspectiveKey));
+      navigate(getPlanDetailHref(plan, perspectiveKey), { state: { plan: withAgenticRunTargetCluster(plan) } });
     },
     [activePerspective, isSingleCluster, navigate],
   );
