@@ -3,10 +3,6 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import {
   Breadcrumb,
   BreadcrumbItem,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
   Flex,
   FlexItem,
   Label,
@@ -84,7 +80,13 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
       (p) => p.id === decoded,
     );
     if (catalogPlan) return catalogPlan;
-    if (navigationState?.plan?.id === decoded) return navigationState.plan;
+    if (navigationState?.plan?.id === decoded) {
+      const fromNav = navigationState.plan;
+      return {
+        ...fromNav,
+        targetCluster: fromNav.targetCluster ?? resolvePlanTargetCluster(fromNav),
+      };
+    }
     return null;
   }, [isSingleCluster, navigationState?.plan, planExecutionRuntime, planId]);
 
@@ -164,6 +166,13 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
                 </FlexItem>
               </Flex>
             </FlexItem>
+            {isMultiClusterMode ? (
+              <FlexItem>
+                <Label color="grey" variant="outline" isCompact>
+                  Target cluster: {targetCluster}
+                </Label>
+              </FlexItem>
+            ) : null}
             {plan.namespace ? (
               <FlexItem>
                 <NamespaceResourceLink name={plan.namespace} />
@@ -182,16 +191,6 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
             <FlexItem>
               <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
             </FlexItem>
-            {isMultiClusterMode && targetCluster !== '—' ? (
-              <FlexItem>
-                <DescriptionList isCompact isHorizontal>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Target cluster</DescriptionListTerm>
-                    <DescriptionListDescription>{targetCluster}</DescriptionListDescription>
-                  </DescriptionListGroup>
-                </DescriptionList>
-              </FlexItem>
-            ) : null}
           </Flex>
           <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
             <WaitingApprovalPlanMeta plan={effectivePlan} />

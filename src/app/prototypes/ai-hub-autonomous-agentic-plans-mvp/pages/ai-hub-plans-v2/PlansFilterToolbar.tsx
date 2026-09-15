@@ -15,6 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import type { PlanRow } from './PlansAndApprovalsTab';
+import { assignAgenticRunTargetCluster } from './agenticRunTargetClusters';
 
 export type PlansSearchCategory = 'name';
 
@@ -113,7 +114,14 @@ function planMatchesAttributeFilters(
 }
 
 export function resolvePlanTargetCluster(plan: PlanRow): string {
-  return plan.targetCluster ?? plan.cluster ?? '—';
+  if (plan.targetCluster?.trim()) {
+    return plan.targetCluster.trim();
+  }
+  const cluster = plan.cluster?.trim();
+  if (cluster && cluster !== '—') {
+    return cluster;
+  }
+  return assignAgenticRunTargetCluster(plan.id);
 }
 
 export function filterPlanRows(
