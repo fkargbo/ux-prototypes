@@ -118,6 +118,7 @@ import {
   normalizeTriggerDomain,
   resolveOptionRollbackPlan,
 } from './plansMvpConstants';
+import { assignAgenticRunTargetCluster } from './agenticRunTargetClusters';
 import { getPlanDetailHref, resolvePlanDomainAnnotations } from './domainPlanNavigation';
 import { downloadAnalysisReportMarkdown, downloadRemediationPlanMarkdown } from '../../utils/downloadRemediationPlan';
 import { ExpandableCodeBlock } from '../../components/ExpandableCodeBlock';
@@ -6737,9 +6738,7 @@ export function buildPlansForPerspective(
         cluster: isSingleCluster
           ? CORE_PLATFORMS_CLUSTER_ID
           : identity?.fleetCluster ?? normalizedRow.drawerTargets[0] ?? '—',
-        targetCluster: isSingleCluster
-          ? identity?.fleetCluster ?? CORE_PLATFORMS_CLUSTER_ID
-          : identity?.fleetCluster ?? normalizedRow.drawerTargets[0] ?? '—',
+        targetCluster: assignAgenticRunTargetCluster(row.id),
         scope: isSingleCluster
           ? identity?.namespace ?? '—'
           : identity?.fleetCluster ?? normalizedRow.drawerTargets[0] ?? '—',

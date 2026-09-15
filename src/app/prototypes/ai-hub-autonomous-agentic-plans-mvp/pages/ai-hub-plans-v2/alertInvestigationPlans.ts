@@ -1,6 +1,7 @@
 import type { ConfidenceTier } from '../../types/confidenceTier';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { PlanRow } from './PlansAndApprovalsTab';
+import { assignAgenticRunTargetCluster } from './agenticRunTargetClusters';
 
 /** Shared session key with observability alerting handoff. */
 export const ALERT_INVESTIGATION_CREATED_ALERTS_KEY =
@@ -86,25 +87,25 @@ export const NEW_ALERT_INVESTIGATION_PLAN_IDENTITY: Record<
     name: 'investigate-node-not-ready',
     synopsis: 'Investigate NodeNotReady — node lost Ready condition on prod-east-2',
     namespace: 'openshift-node',
-    fleetCluster: 'prod-east-2',
+    fleetCluster: assignAgenticRunTargetCluster('inv-alert-node-not-ready'),
   },
   'inv-alert-mds-cache-high': {
     name: 'investigate-mds-cache-usage-high',
-    synopsis: 'Investigate MDSCacheUsageHigh — Ceph MDS cache pressure on prod-east-2',
+    synopsis: 'Investigate MDSCacheUsageHigh — Ceph MDS cache pressure on staging-eu-1',
     namespace: 'openshift-storage',
-    fleetCluster: 'prod-east-2',
+    fleetCluster: assignAgenticRunTargetCluster('inv-alert-mds-cache-high'),
   },
   'inv-alert-vm-cannot-evict': {
     name: 'investigate-vm-cannot-be-evicted',
-    synopsis: 'Investigate VMCannotBeEvicted — blocked VM eviction on prod-east-2',
+    synopsis: 'Investigate VMCannotBeEvicted — blocked VM eviction on dev-us-west',
     namespace: 'openshift-virtualization',
-    fleetCluster: 'prod-east-2',
+    fleetCluster: assignAgenticRunTargetCluster('inv-alert-vm-cannot-evict'),
   },
   'inv-alert-node-cpu-high': {
     name: 'investigate-node-cpu-high',
     synopsis: 'Investigate NodeCPUHigh — sustained CPU utilization on prod-east-2',
     namespace: 'kube-system',
-    fleetCluster: 'prod-east-2',
+    fleetCluster: assignAgenticRunTargetCluster('inv-alert-node-cpu-high'),
   },
 };
 
