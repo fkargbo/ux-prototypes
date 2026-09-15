@@ -3,6 +3,10 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import {
   Breadcrumb,
   BreadcrumbItem,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
   Flex,
   FlexItem,
   Label,
@@ -18,6 +22,8 @@ import {
   WaitingApprovalPlanMeta,
   type PlanRow,
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
+import { resolvePlanTargetCluster } from '../ai-hub-plans-v2/PlansFilterToolbar';
+import { useMulticlusterDevMode } from '../../context/MulticlusterDevContext';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import {
@@ -54,6 +60,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
     : activePerspective === 'Core platforms';
 
   const planExecutionRuntime = usePlanBuildRuntime();
+  const { isMultiClusterMode } = useMulticlusterDevMode();
   const navigationState = location.state as TroubleshootingPlanDetailLocationState | null;
 
   /** Local denial override — transitions a Proposed plan to Denied without mutating mock data. */
@@ -123,6 +130,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
     : plan;
 
   const planDisplayName = plan.name ?? plan.id;
+  const targetCluster = resolvePlanTargetCluster(effectivePlan);
 
   return (
     <div className="ols-ai-hub-page ols-ai-hub-page--v3" data-exp-lab-annotation-root>
@@ -174,6 +182,16 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
             <FlexItem>
               <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
             </FlexItem>
+            {isMultiClusterMode && targetCluster !== '—' ? (
+              <FlexItem>
+                <DescriptionList isCompact isHorizontal>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Target cluster</DescriptionListTerm>
+                    <DescriptionListDescription>{targetCluster}</DescriptionListDescription>
+                  </DescriptionListGroup>
+                </DescriptionList>
+              </FlexItem>
+            ) : null}
           </Flex>
           <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
             <WaitingApprovalPlanMeta plan={effectivePlan} />
