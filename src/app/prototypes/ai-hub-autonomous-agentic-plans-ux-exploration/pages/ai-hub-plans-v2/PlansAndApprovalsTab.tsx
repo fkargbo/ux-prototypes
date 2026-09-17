@@ -48,7 +48,7 @@ import { AngleDownIcon, AngleUpIcon, ColumnsIcon, EllipsisVIcon, ExternalLinkAlt
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { AgenticRunTimeline, type AgenticRunTimelineEvidenceContext } from '../../components/AgenticRunTimeline';
+import { AgenticRunTimeline, type AgenticRunTimelineEvidenceContext, type MeldedTimelineSlots } from '../../components/AgenticRunTimeline';
 import { NamespaceResourceLink } from '../../components/NamespaceResourceLink';
 import {
   buildAgenticRunRequest,
@@ -6095,210 +6095,116 @@ export const RemediationBlueprintPanel: React.FC<{
     approvedOptionId ? selectedOptionId === approvedOptionId : selectedOptionIndex === 0
   );
 
-  return (
+  const meldedAnalysisPhaseContent = (
     <>
-    <Stack style={{ gap: '24px' }}>
-      {/* ── Page heading ──────────────────────────────────────────────── */}
-      <StackItem>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <AiExperienceIcon size={20} />
-          <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
-            Agentic run details
-          </Title>
-        </Flex>
-      </StackItem>
-
-      <StackItem>
-        <TriggerRequestSection
-          request={plan.request}
-          planId={plan.id}
-          logsLifecycle={analysisLogsLifecycle}
-          logFinding={analysisLogFinding}
-          logNarrative={analysisLogNarrative}
-          analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
-          traceId={plan.traceId}
-          runStatus={status}
-          showAnalysisLogs={false}
-        />
-      </StackItem>
-
-      {/* ── Status alerts (below heading) ────────────────────────────── */}
-      {isEscalating && (
-        <StackItem>
-          <Alert
-            isInline
-            variant="danger"
-            title="Automated remediation retries exhausted"
-          >
-            The autonomous agent failed to resolve this issue after {configMaxRetryAttempts} retry attempt{configMaxRetryAttempts !== 1 ? 's' : ''}.{' '}
-            {escalationPolicy === 'auto'
-              ? 'Routing incident to configured external channels (PagerDuty / ITSM).'
-              : 'Escalation handoff is in progress, and human intervention is now required.'}
-          </Alert>
-        </StackItem>
-      )}
-      {isEscalating && escalationPolicy === 'manual' && (
-        <StackItem>
-          <Flex gap={{ default: 'gapSm' }}>
-            <FlexItem>
-              <Button
-                variant="danger"
-                isDisabled={!isAgenticAutomationEnabled}
-                onClick={handleAcknowledgePlan}
-              >
-                Escalate manually
-              </Button>
-            </FlexItem>
-            <FlexItem>
-              <Button
-                variant="secondary"
-                isDisabled={!isAgenticAutomationEnabled}
-                onClick={() => {
-                  if (selectedOption) {
-                    executeRemediation(plan.id, {
-                      optionIndex: selectedOptionIndex,
-                      optionId: selectedOption.id,
-                      optionTitle: selectedOption.title,
-                      maxAttempts: configMaxRetryAttempts,
-                    });
-                  }
-                }}
-              >
-                Retry execution
-              </Button>
-            </FlexItem>
-          </Flex>
-        </StackItem>
-      )}
-      {isEscalated && (
-        <StackItem>
-          <Alert
-            isInline
-            variant="warning"
-            title="Remediation action required"
-          >
-            Automated execution failed after reaching the maximum retry limit. Manual operator
-            intervention is required to resolve this escalation.
-          </Alert>
-        </StackItem>
-      )}
-      {isDenied && (
-        <StackItem>
-          <DeniedPlanBanner onStartNewInvestigation={isAgenticAutomationEnabled ? onStartNewInvestigation : undefined} />
-        </StackItem>
-      )}
-      {isEmergencyStopped && (
-        <StackItem>
-          <Alert
-            isInline
-            variant="warning"
-            title="Execution halted mid-flight"
-          >
-            This agentic run was stopped while execution was in progress. The cluster may be in a
-            partially modified state. Review the proposed agent commands below and complete or roll
-            back the operation manually during a scheduled maintenance window.
-          </Alert>
-        </StackItem>
-      )}
-
-      {/* ── Section A: Root cause analysis (top-level; OLS-3724 mutual exclusivity) ── */}
+      <TriggerRequestSection
+        request={plan.request}
+        planId={plan.id}
+        logsLifecycle={analysisLogsLifecycle}
+        logFinding={analysisLogFinding}
+        logNarrative={analysisLogNarrative}
+        analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
+        traceId={plan.traceId}
+        runStatus={status}
+        showAnalysisLogs
+      />
       {showTopLevelRca && (
-      <StackItem>
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapSm' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-        >
-          <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-            Root cause analysis
-          </Title>
-          <Label color="grey" isCompact>AI-generated</Label>
-        </Flex>
+        <>
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            gap={{ default: 'gapSm' }}
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)', marginTop: 'var(--pf-t--global--spacer--lg)' }}
+          >
+            <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+              Root cause analysis
+            </Title>
+            <Label color="grey" isCompact>AI-generated</Label>
+          </Flex>
           {isPendingReadyForAnalysis ? (
             <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} isPendingApproval />
           ) : isAnalyzing ? (
-            <>
-              <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
-            </>
+            <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
           ) : (
-          <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              <span className="ols-aio-text-overline">Detected root cause</span>
+            <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
+              <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                <span className="ols-aio-text-overline">Detected root cause</span>
+              </div>
+              <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                {drawer!.aggregatedFinding}
+              </Content>
+              <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                {drawer!.rootCauseNarrative}
+              </Content>
             </div>
-            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              {drawer!.aggregatedFinding}
-            </Content>
-            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              {drawer!.rootCauseNarrative}
-            </Content>
-          </div>
           )}
-      </StackItem>
+        </>
       )}
+    </>
+  );
 
-      {/* ── Section C: Remediation Hub (or investigation-only) ─────────── */}
-      <StackItem>
-        {isAnalysisOnly ? (
-          <>
-            <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              Investigation findings
-            </Title>
-            <Alert
-              variant="info"
-              isInline
-              title="Investigation-only proposal"
-              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-            >
+  const meldedHumanApprovalContent = (
+    <>
+      {isAnalysisOnly ? (
+        <>
+          <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            Investigation findings
+          </Title>
+          <Alert
+            variant="info"
+            isInline
+            title="Investigation-only proposal"
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+          >
+            <Content component="p" style={{ margin: 0 }}>
+              This cluster update controller proposal gathered structured health data only. No remediation
+              options were generated — acknowledge after review to clear it from your active runs list.
+            </Content>
+          </Alert>
+          {isAcknowledged ? (
+            <Alert variant="success" isInline title="Plan acknowledged">
               <Content component="p" style={{ margin: 0 }}>
-                This cluster update controller proposal gathered structured health data only. No remediation
-                options were generated — acknowledge after review to clear it from your active runs list.
+                This investigation-only proposal has been marked as reviewed. No further action is required.
               </Content>
             </Alert>
-            {isAcknowledged ? (
-              <Alert variant="success" isInline title="Plan acknowledged">
-                <Content component="p" style={{ margin: 0 }}>
-                  This investigation-only proposal has been marked as reviewed. No further action is required.
-                </Content>
-              </Alert>
-            ) : (
-              <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-                <Button
-                  variant="primary"
-                  isDisabled={!isAgenticAutomationEnabled}
-                  onClick={handleAcknowledgePlan}
-                >
-                  Acknowledge
-                </Button>
-                <Button
-                  variant="link"
-                  icon={<RhUiDownloadIcon />}
-                  iconPosition="start"
-                  onClick={() =>
-                    downloadAnalysisReportMarkdown(plan, {
-                      aggregatedFinding: drawer!.aggregatedFinding,
-                      rootCauseNarrative: drawer!.rootCauseNarrative,
-                    })
-                  }
-                >
-                  Download analysis report
-                </Button>
-              </Flex>
-            )}
-          </>
-        ) : (
+          ) : (
+            <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+              <Button
+                variant="primary"
+                isDisabled={!isAgenticAutomationEnabled}
+                onClick={handleAcknowledgePlan}
+              >
+                Acknowledge
+              </Button>
+              <Button
+                variant="link"
+                icon={<RhUiDownloadIcon />}
+                iconPosition="start"
+                onClick={() =>
+                  downloadAnalysisReportMarkdown(plan, {
+                    aggregatedFinding: drawer!.aggregatedFinding,
+                    rootCauseNarrative: drawer!.rootCauseNarrative,
+                  })
+                }
+              >
+                Download analysis report
+              </Button>
+            </Flex>
+          )}
+        </>
+      ) : (
         <>
-        <Flex
-          direction={{ default: 'column' }}
-          alignItems={{ default: 'alignItemsFlexStart' }}
-          gap={{ default: 'gapXs' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-        >
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-            <Title headingLevel="h4" size="md">Remediation plans</Title>
-            <Label color="grey" isCompact>AI-generated</Label>
+          <Flex
+            direction={{ default: 'column' }}
+            alignItems={{ default: 'alignItemsFlexStart' }}
+            gap={{ default: 'gapXs' }}
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+          >
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+              <Title headingLevel="h4" size="md">Remediation plans</Title>
+              <Label color="grey" isCompact>AI-generated</Label>
+            </Flex>
+            <WaitingApprovalPlanMeta plan={plan} />
           </Flex>
-          <WaitingApprovalPlanMeta plan={plan} />
-        </Flex>
           {(isPendingReadyForAnalysis || isAnalyzing) ? (
             <HubLockedPlaceholder
               isSuspended={!isAgenticAutomationEnabled}
@@ -6453,7 +6359,6 @@ export const RemediationBlueprintPanel: React.FC<{
                 </Stack>
               </div>
 
-              {/* ── Execution policy: auto-queued status ─────────────────────── */}
               {isProposed && isAutoExecuteQueued && (
                 <Flex
                   alignItems={{ default: 'alignItemsCenter' }}
@@ -6471,7 +6376,6 @@ export const RemediationBlueprintPanel: React.FC<{
                 </Flex>
               )}
 
-              {/* ── Reversibility circuit breaker warning ────────────────────── */}
               {isProposed && reversibilityCircuitBreakerActive && (
                 <Alert
                   variant="warning"
@@ -6485,182 +6389,309 @@ export const RemediationBlueprintPanel: React.FC<{
                   Review the proposed commands and approve manually.
                 </Alert>
               )}
-
-
-              {/* ── Deny run confirmation modal ────────────────────────────── */}
-              <Modal
-                variant={ModalVariant.small}
-                isOpen={isDenyModalOpen}
-                onClose={() => { setIsDenyModalOpen(false); setIsDenySelectOpen(false); setDenyReason(''); }}
-                aria-labelledby="deny-run-confirm-title"
-              >
-                <ModalHeader title="Confirm remediation denial" labelId="deny-run-confirm-title" />
-                <ModalBody>
-                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                    Denying this run will cancel all proposed automated actions. The associated alerts
-                    must then be investigated and resolved manually.
-                  </Content>
-                  <Content
-                    component="p"
-                    style={{
-                      marginBottom: 'var(--pf-t--global--spacer--xs)',
-                      fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                    }}
-                  >
-                    Reason for denial (optional)
-                  </Content>
-                  <Dropdown
-                    isOpen={isDenySelectOpen}
-                    onOpenChange={setIsDenySelectOpen}
-                    onSelect={(_e, val) => {
-                      setDenyReason(val as string);
-                      setIsDenySelectOpen(false);
-                    }}
-                    toggle={(ref) => (
-                      <MenuToggle
-                        ref={ref}
-                        onClick={() => setIsDenySelectOpen(!isDenySelectOpen)}
-                        isExpanded={isDenySelectOpen}
-                        style={{ width: '100%' }}
-                      >
-                        {({
-                          'incorrect-rca': 'Incorrect root cause diagnosis',
-                          'too-risky': 'Remediation too risky',
-                          'prefer-manual': 'Prefer manual fix',
-                          'false-positive': 'False positive',
-                          'other': 'Other',
-                        } as Record<string, string>)[denyReason] ?? 'Select a reason'}
-                      </MenuToggle>
-                    )}
-                  >
-                    <DropdownList>
-                      <DropdownItem value="incorrect-rca">Incorrect root cause diagnosis</DropdownItem>
-                      <DropdownItem value="too-risky">Remediation too risky</DropdownItem>
-                      <DropdownItem value="prefer-manual">Prefer manual fix</DropdownItem>
-                      <DropdownItem value="false-positive">False positive</DropdownItem>
-                      <DropdownItem value="other">Other</DropdownItem>
-                    </DropdownList>
-                  </Dropdown>
-                </ModalBody>
-                <ModalFooter>
-                  <Button
-                    variant="danger"
-                    onClick={() => {
-                      setIsDenyModalOpen(false);
-                      setIsDenySelectOpen(false);
-                      setDenyReason('');
-                      onRejectPlan?.();
-                    }}
-                  >
-                    Deny run
-                  </Button>
-                  <Button
-                    variant="link"
-                    onClick={() => { setIsDenyModalOpen(false); setIsDenySelectOpen(false); setDenyReason(''); }}
-                  >
-                    Cancel
-                  </Button>
-                </ModalFooter>
-              </Modal>
-
-              <Modal
-                variant={ModalVariant.small}
-                isOpen={isExecuteConfirmModalOpen}
-                onClose={() => setIsExecuteConfirmModalOpen(false)}
-                aria-labelledby="execute-remediation-confirm-title"
-              >
-                <ModalHeader title="Execute remediation?" labelId="execute-remediation-confirm-title" />
-                <ModalBody>
-                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                    You&apos;re about to run the automated script for Option {selectedOptionIndex + 1}:{' '}
-                    <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
-                  </Content>
-                  {selectedOption?.reversible === 'Irreversible' && (
-                    <Alert
-                      isInline
-                      variant="warning"
-                      title="This action is irreversible"
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-                    >
-                      You will not be able to roll back or automatically undo this remediation once
-                      execution begins. Ensure you have taken a full cluster backup if required.
-                    </Alert>
-                  )}
-                  <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                    OpenShift Lightspeed uses AI technology to help generate this remediation plan.
-                  </Content>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                    <FlexItem>
-                      <InfoCircleIcon
-                        style={{
-                          color: 'var(--pf-t--global--icon--color--status--info--default)',
-                          fontSize: '12px',
-                        }}
-                        aria-hidden
-                      />
-                    </FlexItem>
-                    <FlexItem>
-                      <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', margin: 0 }}>
-                        Always review AI-generated content prior to use.
-                      </Content>
-                    </FlexItem>
-                  </Flex>
-                </ModalBody>
-                <ModalFooter>
-                  <Button
-                    variant={selectedOption?.reversible === 'Irreversible' ? 'danger' : 'primary'}
-                    isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
-                    isLoading={isExecutionRunning}
-                    onClick={() => {
-                      setIsExecuteConfirmModalOpen(false);
-                      handleExecuteRemediation();
-                    }}
-                  >
-                    Execute remediation
-                  </Button>
-                  <Button variant="link" onClick={() => setIsExecuteConfirmModalOpen(false)}>
-                    Cancel
-                  </Button>
-                </ModalFooter>
-              </Modal>
             </>
           )}
         </>
-        )}
+      )}
+    </>
+  );
+
+  const remediationConfirmModals = (
+    <>
+      <Modal
+        variant={ModalVariant.small}
+        isOpen={isDenyModalOpen}
+        onClose={() => { setIsDenyModalOpen(false); setIsDenySelectOpen(false); setDenyReason(''); }}
+        aria-labelledby="deny-run-confirm-title"
+      >
+        <ModalHeader title="Confirm remediation denial" labelId="deny-run-confirm-title" />
+        <ModalBody>
+          <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            Denying this run will cancel all proposed automated actions. The associated alerts
+            must then be investigated and resolved manually.
+          </Content>
+          <Content
+            component="p"
+            style={{
+              marginBottom: 'var(--pf-t--global--spacer--xs)',
+              fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+            }}
+          >
+            Reason for denial (optional)
+          </Content>
+          <Dropdown
+            isOpen={isDenySelectOpen}
+            onOpenChange={setIsDenySelectOpen}
+            onSelect={(_e, val) => {
+              setDenyReason(val as string);
+              setIsDenySelectOpen(false);
+            }}
+            toggle={(ref) => (
+              <MenuToggle
+                ref={ref}
+                onClick={() => setIsDenySelectOpen(!isDenySelectOpen)}
+                isExpanded={isDenySelectOpen}
+                style={{ width: '100%' }}
+              >
+                {({
+                  'incorrect-rca': 'Incorrect root cause diagnosis',
+                  'too-risky': 'Remediation too risky',
+                  'prefer-manual': 'Prefer manual fix',
+                  'false-positive': 'False positive',
+                  'other': 'Other',
+                } as Record<string, string>)[denyReason] ?? 'Select a reason'}
+              </MenuToggle>
+            )}
+          >
+            <DropdownList>
+              <DropdownItem value="incorrect-rca">Incorrect root cause diagnosis</DropdownItem>
+              <DropdownItem value="too-risky">Remediation too risky</DropdownItem>
+              <DropdownItem value="prefer-manual">Prefer manual fix</DropdownItem>
+              <DropdownItem value="false-positive">False positive</DropdownItem>
+              <DropdownItem value="other">Other</DropdownItem>
+            </DropdownList>
+          </Dropdown>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="danger"
+            onClick={() => {
+              setIsDenyModalOpen(false);
+              setIsDenySelectOpen(false);
+              setDenyReason('');
+              onRejectPlan?.();
+            }}
+          >
+            Deny run
+          </Button>
+          <Button
+            variant="link"
+            onClick={() => { setIsDenyModalOpen(false); setIsDenySelectOpen(false); setDenyReason(''); }}
+          >
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      <Modal
+        variant={ModalVariant.small}
+        isOpen={isExecuteConfirmModalOpen}
+        onClose={() => setIsExecuteConfirmModalOpen(false)}
+        aria-labelledby="execute-remediation-confirm-title"
+      >
+        <ModalHeader title="Execute remediation?" labelId="execute-remediation-confirm-title" />
+        <ModalBody>
+          <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+            You&apos;re about to run the automated script for Option {selectedOptionIndex + 1}:{' '}
+            <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
+          </Content>
+          {selectedOption?.reversible === 'Irreversible' && (
+            <Alert
+              isInline
+              variant="warning"
+              title="This action is irreversible"
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+            >
+              You will not be able to roll back or automatically undo this remediation once
+              execution begins. Ensure you have taken a full cluster backup if required.
+            </Alert>
+          )}
+          <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+            OpenShift Lightspeed uses AI technology to help generate this remediation plan.
+          </Content>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+            <FlexItem>
+              <InfoCircleIcon
+                style={{
+                  color: 'var(--pf-t--global--icon--color--status--info--default)',
+                  fontSize: '12px',
+                }}
+                aria-hidden
+              />
+            </FlexItem>
+            <FlexItem>
+              <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', margin: 0 }}>
+                Always review AI-generated content prior to use.
+              </Content>
+            </FlexItem>
+          </Flex>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant={selectedOption?.reversible === 'Irreversible' ? 'danger' : 'primary'}
+            isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
+            isLoading={isExecutionRunning}
+            onClick={() => {
+              setIsExecuteConfirmModalOpen(false);
+              handleExecuteRemediation();
+            }}
+          >
+            Execute remediation
+          </Button>
+          <Button variant="link" onClick={() => setIsExecuteConfirmModalOpen(false)}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </>
+  );
+
+  const meldedTimelineSlots: MeldedTimelineSlots = {
+    analysisPhaseStarted: meldedAnalysisPhaseContent,
+    humanApprovalRequested: meldedHumanApprovalContent,
+    executionPhaseCompleted: (isVerifying || isTerminal || isEscalating || isEscalated) ? (
+      <ExecutionSummaryCard
+        plan={plan}
+        executionLog={summaryExecutionLog}
+        isExecuting={false}
+        isCompleted
+        selectedOptionTitle={selectedOption?.title}
+        maxAttempts={configMaxRetryAttempts}
+        approval={workflow.executionApproval}
+      />
+    ) : undefined,
+    verificationPhaseStarted: isVerifying ? (
+      <VerificationSummaryCard
+        plan={plan}
+        verificationLog={summaryVerificationLog}
+        verification={workflow.verification ?? verificationState}
+        isVerifyingActive
+        isLive={Boolean(workflow.verification) && isAgenticAutomationEnabled}
+        verificationPolicy={verificationPolicy}
+        onApproveVerification={handleVerificationComplete}
+      />
+    ) : undefined,
+    verificationPhaseCompleted: isTerminal ? (
+      <VerificationSummaryCard
+        plan={plan}
+        verificationLog={summaryVerificationLog}
+        verification={workflow.verification ?? verificationState}
+        isVerifyingActive={false}
+        isLive={false}
+        verificationPolicy={verificationPolicy}
+      />
+    ) : undefined,
+    terminal: (
+      <StatusLabel status={status} terminatedAt={plan.terminatedAt} />
+    ),
+  };
+
+  const meldedDefaultExpandedEvents: readonly string[] = isProposed
+    ? ['agenticrun.human_approval']
+    : isPendingReadyForAnalysis
+      ? ['agenticrun.human_approval']
+      : isVerifying
+        ? ['agenticrun.verify']
+        : [];
+
+  return (
+    <>
+    <Stack style={{ gap: '24px' }}>
+      {/* ── Page heading ──────────────────────────────────────────────── */}
+      <StackItem>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <AiExperienceIcon size={20} />
+          <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
+            Agentic run details
+          </Title>
+        </Flex>
       </StackItem>
 
-
-      {/* ── Execution Summary Card ─────────────────────────────────────── */}
-      {(isExecuting || isVerifying || isTerminal) && (
+      {/* ── Status alerts (below heading) ────────────────────────────── */}
+      {isEscalating && (
         <StackItem>
-          <ExecutionSummaryCard
-            plan={plan}
-            executionLog={summaryExecutionLog}
-            isExecuting={isExecuting}
-            isCompleted={isVerifying || isTerminal}
-            selectedOptionTitle={selectedOption?.title}
-            maxAttempts={configMaxRetryAttempts}
-            approval={workflow.executionApproval}
-          />
+          <Alert
+            isInline
+            variant="danger"
+            title="Automated remediation retries exhausted"
+          >
+            The autonomous agent failed to resolve this issue after {configMaxRetryAttempts} retry attempt{configMaxRetryAttempts !== 1 ? 's' : ''}.{' '}
+            {escalationPolicy === 'auto'
+              ? 'Routing incident to configured external channels (PagerDuty / ITSM).'
+              : 'Escalation handoff is in progress, and human intervention is now required.'}
+          </Alert>
+        </StackItem>
+      )}
+      {isEscalating && escalationPolicy === 'manual' && (
+        <StackItem>
+          <Flex gap={{ default: 'gapSm' }}>
+            <FlexItem>
+              <Button
+                variant="danger"
+                isDisabled={!isAgenticAutomationEnabled}
+                onClick={handleAcknowledgePlan}
+              >
+                Escalate manually
+              </Button>
+            </FlexItem>
+            <FlexItem>
+              <Button
+                variant="secondary"
+                isDisabled={!isAgenticAutomationEnabled}
+                onClick={() => {
+                  if (selectedOption) {
+                    executeRemediation(plan.id, {
+                      optionIndex: selectedOptionIndex,
+                      optionId: selectedOption.id,
+                      optionTitle: selectedOption.title,
+                      maxAttempts: configMaxRetryAttempts,
+                    });
+                  }
+                }}
+              >
+                Retry execution
+              </Button>
+            </FlexItem>
+          </Flex>
+        </StackItem>
+      )}
+      {isEscalated && (
+        <StackItem>
+          <Alert
+            isInline
+            variant="warning"
+            title="Remediation action required"
+          >
+            Automated execution failed after reaching the maximum retry limit. Manual operator
+            intervention is required to resolve this escalation.
+          </Alert>
+        </StackItem>
+      )}
+      {isDenied && (
+        <StackItem>
+          <DeniedPlanBanner onStartNewInvestigation={isAgenticAutomationEnabled ? onStartNewInvestigation : undefined} />
+        </StackItem>
+      )}
+      {isEmergencyStopped && (
+        <StackItem>
+          <Alert
+            isInline
+            variant="warning"
+            title="Execution halted mid-flight"
+          >
+            This agentic run was stopped while execution was in progress. The cluster may be in a
+            partially modified state. Review the proposed agent commands below and complete or roll
+            back the operation manually during a scheduled maintenance window.
+          </Alert>
         </StackItem>
       )}
 
-      {/* ── Verification Summary Card ───────────────────────────────────── */}
-      {(isVerifying || isTerminal) && (
-        <StackItem>
-          <VerificationSummaryCard
-            plan={plan}
-            verificationLog={summaryVerificationLog}
-            verification={workflow.verification ?? verificationState}
-            isVerifyingActive={isVerifying}
-            isLive={isVerifying && Boolean(workflow.verification) && isAgenticAutomationEnabled}
-            verificationPolicy={verificationPolicy}
-            onApproveVerification={isVerifying ? handleVerificationComplete : undefined}
-          />
-        </StackItem>
+      <StackItem>
+        <AgenticRunTimeline
+          status={status}
+          createdAt={plan.createdAt}
+          retryCount={Math.max(0, (workflow.verification?.attempt ?? 1) - 1)}
+          isCapabilitiesDisabled={!isAgenticAutomationEnabled}
+          isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
+          evidence={timelineEvidence}
+          meldedSlots={meldedTimelineSlots}
+          defaultExpandedEvents={meldedDefaultExpandedEvents}
+        />
+      </StackItem>
+      {(isProposed || isEscalated) && (
+        <StackItem>{remediationConfirmModals}</StackItem>
       )}
 
-      {/* ── Escalation Summary Card ─────────────────────────────────────── */}
       {isEscalated && (
         <StackItem>
           <EscalationSummaryCard
@@ -6670,17 +6701,6 @@ export const RemediationBlueprintPanel: React.FC<{
           />
         </StackItem>
       )}
-
-      {/* ── Section E: Timeline (always last) ────────────────────────── */}
-      <StackItem>
-        <AgenticRunTimeline
-          status={status}
-          createdAt={plan.createdAt}
-          isCapabilitiesDisabled={!isAgenticAutomationEnabled}
-          isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
-          evidence={timelineEvidence}
-        />
-      </StackItem>
     </Stack>
 
     {/* ── Sticky action bar ─────────────────────────────────────────────────

@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import {
   Content,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
   ExpandableSection,
   Title,
 } from '@patternfly/react-core';
@@ -58,6 +54,17 @@ export interface AgenticRunTimelineEvidenceContext {
   runStatus: PlanStatus;
   isAwaitingAnalysisApproval?: boolean;
 }
+
+/** Inline phase bodies for melded Agentic Run Details (HPUX-2106). */
+export type MeldedTimelineSlots = {
+  analysisPhaseStarted?: React.ReactNode;
+  humanApprovalRequested?: React.ReactNode;
+  executionPhaseCompleted?: React.ReactNode;
+  verificationPhaseStarted?: React.ReactNode;
+  verificationPhaseCompleted?: React.ReactNode;
+  /** Extra content below terminal timestamp (e.g. status badge). */
+  terminal?: React.ReactNode;
+};
 
 type TimelinePhaseEvidence = {
   toggleCollapsed: string;
@@ -120,8 +127,11 @@ function stepIndicatorIcon(variant: TimelineStepVariant, isCurrent?: boolean): R
 const TimelineItem: React.FC<{
   step: TimelineStep;
   evidence: TimelinePhaseEvidence | null;
-}> = ({ step, evidence }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  meldedBody?: React.ReactNode;
+  defaultExpanded?: boolean;
+  terminalExtra?: React.ReactNode;
+}> = ({ step, evidence, meldedBody, defaultExpanded = false, terminalExtra }) => {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const contentId = `timeline-evidence-${step.id}`;
 
   return (
@@ -147,7 +157,24 @@ const TimelineItem: React.FC<{
             {step.description}
           </Content>
         )}
-        {evidence && (
+        {terminalExtra && (
+          <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>{terminalExtra}</div>
+        )}
+        {meldedBody && (
+          <ExpandableSection
+            toggleId={`${contentId}-toggle`}
+            contentId={contentId}
+            isExpanded={isExpanded}
+            onToggle={(_event, expanded) => setIsExpanded(expanded)}
+            toggleTextCollapsed="Show phase details"
+            toggleTextExpanded="Hide phase details"
+          >
+            <div id={contentId} style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+              {meldedBody}
+            </div>
+          </ExpandableSection>
+        )}
+        {!meldedBody && evidence && (
           <ExpandableSection
             toggleId={`${contentId}-toggle`}
             contentId={contentId}
@@ -163,6 +190,33 @@ const TimelineItem: React.FC<{
     </li>
   );
 };
+
+function resolveMeldedBody(step: TimelineStep, slots: MeldedTimelineSlots | undefined): React.ReactNode | undefined {
+  if (!slots) return undefined;
+  const { event } = step;
+  if (event === 'agenticrun.analyze' && slots.analysisPhaseStarted) return slots.analysisPhaseStarted;
+  if (event === 'agenticrun.human_approval' && slots.humanApprovalRequested) return slots.humanApprovalRequested;
+  if (
+    (event === 'agenticrun.execution.completed' || event.startsWith('sr-exec-'))
+    && slots.executionPhaseCompleted
+  ) {
+    return slots.executionPhaseCompleted;
+  }
+  if (
+    (event === 'agenticrun.verification.completed' || event === 'agenticrun.verification.retry')
+    && slots.verificationPhaseCompleted
+  ) {
+    return slots.verificationPhaseCompleted;
+  }
+  if (event === 'agenticrun.verify' && slots.verificationPhaseStarted) {
+    return slots.verificationPhaseStarted;
+  }
+  return undefined;
+}
+
+function shouldDefaultExpandStep(step: TimelineStep, defaultExpandedEvents: readonly string[]): boolean {
+  return defaultExpandedEvents.includes(step.event);
+}
 
 function resolveTimelinePhaseEvidence(
   step: TimelineStep,
@@ -194,28 +248,7 @@ function resolveTimelinePhaseEvidence(
   }
 
   if (event === 'agenticrun.analysis.completed') {
-    if (!ctx.aggregatedFinding?.trim() && !ctx.rootCauseNarrative?.trim()) return null;
-    if (step.variant !== 'success' && step.variant !== 'warning') return null;
-    return {
-      toggleCollapsed: 'View analysis summary',
-      toggleExpanded: 'Hide analysis summary',
-      content: () => (
-        <DescriptionList isCompact>
-          {ctx.aggregatedFinding && (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Aggregated finding</DescriptionListTerm>
-              <DescriptionListDescription>{ctx.aggregatedFinding}</DescriptionListDescription>
-            </DescriptionListGroup>
-          )}
-          {ctx.rootCauseNarrative && (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Root cause narrative</DescriptionListTerm>
-              <DescriptionListDescription>{ctx.rootCauseNarrative}</DescriptionListDescription>
-            </DescriptionListGroup>
-          )}
-        </DescriptionList>
-      ),
-    };
+    return null;
   }
 
   if (event === 'agenticrun.execution.completed' || event.startsWith('sr-exec-')) {
@@ -360,9 +393,9 @@ export function buildTimelineSteps(
           waiting('s3', 'agenticrun.analyze',             'Analysis phase started'),
           waiting('s4', 'agenticrun.analysis.completed',  'Analysis completed'),
           waiting('s5', 'agenticrun.execute',             'Execution phase started'),
-          waiting('s6', 'agenticrun.execution.completed', 'Execution completed'),
+          waiting('s6', 'agenticrun.execution.completed', 'Execution phase completed'),
           waiting('s7', 'agenticrun.verify',              'Verification phase started'),
-          waiting('s8', 'agenticrun.verification.completed', 'Verification completed'),
+          waiting('s8', 'agenticrun.verification.completed', 'Verification phase completed'),
           waiting('s9', 'agenticrun.terminal',            'Terminal state reached'),
         ];
       }
@@ -372,9 +405,9 @@ export function buildTimelineSteps(
         waiting('s3', 'agenticrun.analysis.completed', 'Analysis completed'),
         waiting('s4', 'agenticrun.human_approval',     'Human approval recorded'),
         waiting('s5', 'agenticrun.execute',            'Execution phase started'),
-        waiting('s6', 'agenticrun.execution.completed','Execution completed'),
+        waiting('s6', 'agenticrun.execution.completed','Execution phase completed'),
         waiting('s7', 'agenticrun.verify',             'Verification phase started'),
-        waiting('s8', 'agenticrun.verification.completed', 'Verification completed'),
+        waiting('s8', 'agenticrun.verification.completed', 'Verification phase completed'),
         waiting('s9', 'agenticrun.terminal',           'Terminal state reached'),
       ];
 
@@ -385,9 +418,9 @@ export function buildTimelineSteps(
         waiting('s3', 'agenticrun.analysis.completed', 'Analysis completed'),
         waiting('s4', 'agenticrun.human_approval',     'Human approval recorded'),
         waiting('s5', 'agenticrun.execute',            'Execution phase started'),
-        waiting('s6', 'agenticrun.execution.completed','Execution completed'),
+        waiting('s6', 'agenticrun.execution.completed','Execution phase completed'),
         waiting('s7', 'agenticrun.verify',             'Verification phase started'),
-        waiting('s8', 'agenticrun.verification.completed', 'Verification completed'),
+        waiting('s8', 'agenticrun.verification.completed', 'Verification phase completed'),
         waiting('s9', 'agenticrun.terminal',           'Terminal state reached'),
       ];
 
@@ -399,9 +432,9 @@ export function buildTimelineSteps(
         done  ('s3', 'agenticrun.analysis.completed',  'Analysis completed', 4),
         active('s4', 'agenticrun.human_approval',      'Human approval requested', 5),
         waiting('s5', 'agenticrun.execute',             'Execution phase started'),
-        waiting('s6', 'agenticrun.execution.completed', 'Execution completed'),
+        waiting('s6', 'agenticrun.execution.completed', 'Execution phase completed'),
         waiting('s7', 'agenticrun.verify',              'Verification phase started'),
-        waiting('s8', 'agenticrun.verification.completed', 'Verification completed'),
+        waiting('s8', 'agenticrun.verification.completed', 'Verification phase completed'),
         waiting('s9', 'agenticrun.terminal',            'Terminal state reached'),
       ];
 
@@ -412,7 +445,7 @@ export function buildTimelineSteps(
         done  ('s2', 'agenticrun.analyze',            'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed', 'Analysis completed', 4),
         failed('s4', 'agenticrun.human_approval',     'Human approval — denied by operator', 6),
-        failed('s5', 'agenticrun.terminal',           'Terminal state reached — Denied', 6),
+        failed('s5', 'agenticrun.terminal',           'Terminal state reached', 6),
       ];
 
     // ── Execution ─────────────────────────────────────────────────────────────
@@ -426,18 +459,20 @@ export function buildTimelineSteps(
             `Execution phase started (retry ${i + 1})`, 20 + i * 8),
         );
       }
+      const execLabel = retryCount > 0
+        ? `Execution phase started (retry ${retryCount + 1})`
+        : 'Execution phase started';
       return [
         done  ('s1', 'agenticrun.received',           'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',             'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed',  'Analysis completed', 4),
-        done  ('s4', 'agenticrun.human_approval',      'Human approval — approved', 6),
-        done  ('s5', 'agenticrun.execute',             'Execution phase started', 7),
+        done  ('s4', 'agenticrun.human_approval',      'Human approval requested', 6),
         ...retrySteps,
-        active('s6', 'agenticrun.execute',             retryCount > 0 ? `Execution phase started (retry ${retryCount})` : 'Execution phase started', 7 + retryCount * 8),
-        waiting('s7', 'agenticrun.execution.completed', 'Execution completed'),
-        waiting('s8', 'agenticrun.verify',              'Verification phase started'),
-        waiting('s9', 'agenticrun.verification.completed', 'Verification completed'),
-        waiting('s10', 'agenticrun.terminal',           'Terminal state reached'),
+        active('s5', 'agenticrun.execute',             execLabel, 7 + retryCount * 8),
+        waiting('s6', 'agenticrun.execution.completed', 'Execution phase completed'),
+        waiting('s7', 'agenticrun.verify',              'Verification phase started'),
+        waiting('s8', 'agenticrun.verification.completed', 'Verification phase completed'),
+        waiting('s9', 'agenticrun.terminal',           'Terminal state reached'),
       ];
     }
 
@@ -447,11 +482,11 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',            'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',              'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed',   'Analysis completed', 4),
-        done  ('s4', 'agenticrun.human_approval',       'Human approval — approved', 6),
+        done  ('s4', 'agenticrun.human_approval',       'Human approval requested', 6),
         done  ('s5', 'agenticrun.execute',              'Execution phase started', 7),
-        done  ('s6', 'agenticrun.execution.completed',  'Execution completed', 14),
+        done  ('s6', 'agenticrun.execution.completed',  'Execution phase completed', 14),
         active('s7', 'agenticrun.verify',               'Verification phase started', 15),
-        waiting('s8', 'agenticrun.verification.completed', 'Verification completed'),
+        waiting('s8', 'agenticrun.verification.completed', 'Verification phase completed'),
         waiting('s9', 'agenticrun.terminal',            'Terminal state reached'),
       ];
 
@@ -461,12 +496,12 @@ export function buildTimelineSteps(
         done('s1', 'agenticrun.received',             'Run created — controller dispatched', 0),
         done('s2', 'agenticrun.analyze',               'Analysis phase started', 1),
         done('s3', 'agenticrun.analysis.completed',    'Analysis completed', 4),
-        done('s4', 'agenticrun.human_approval',        'Human approval — approved', 6),
+        done('s4', 'agenticrun.human_approval',        'Human approval requested', 6),
         done('s5', 'agenticrun.execute',               'Execution phase started', 7),
-        done('s6', 'agenticrun.execution.completed',   'Execution completed', 14),
+        done('s6', 'agenticrun.execution.completed',   'Execution phase completed', 14),
         done('s7', 'agenticrun.verify',                'Verification phase started', 15),
-        done('s8', 'agenticrun.verification.completed','Verification completed', 19),
-        done('s9', 'agenticrun.terminal',              'Terminal state reached — Completed', 20),
+        done('s8', 'agenticrun.verification.completed','Verification phase completed', 19),
+        done('s9', 'agenticrun.terminal',              'Terminal state reached', 20),
       ];
 
     // ── Failed ────────────────────────────────────────────────────────────────
@@ -475,14 +510,14 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',            'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',              'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed',   'Analysis completed', 4),
-        done  ('s4', 'agenticrun.human_approval',       'Human approval — approved', 6),
+        done  ('s4', 'agenticrun.human_approval',       'Human approval requested', 6),
         done  ('s5', 'agenticrun.execute',              'Execution phase started', 7),
-        done  ('s6', 'agenticrun.execution.completed',  'Execution completed', 14),
+        done  ('s6', 'agenticrun.execution.completed',  'Execution phase completed', 14),
         done  ('s7', 'agenticrun.verify',               'Verification phase started', 15),
         warn  ('s8', 'agenticrun.verification.retry',   'Verification failed — execution retry 1', 18),
         warn  ('sr2', 'agenticrun.verification.retry',  'Verification failed — execution retry 2', 26),
         warn  ('sr3', 'agenticrun.verification.retry',  'Verification failed — execution retry 3', 34),
-        failed('s9', 'agenticrun.terminal',             'Terminal state reached — retries exhausted', 36),
+        failed('s9', 'agenticrun.terminal',             'Terminal state reached', 36),
       ];
 
     // ── Escalating ────────────────────────────────────────────────────────────
@@ -491,9 +526,9 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',            'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',              'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed',   'Analysis completed', 4),
-        done  ('s4', 'agenticrun.human_approval',       'Human approval — approved', 6),
+        done  ('s4', 'agenticrun.human_approval',       'Human approval requested', 6),
         done  ('s5', 'agenticrun.execute',              'Execution phase started', 7),
-        done  ('s6', 'agenticrun.execution.completed',  'Execution completed', 14),
+        done  ('s6', 'agenticrun.execution.completed',  'Execution phase completed', 14),
         done  ('s7', 'agenticrun.verify',               'Verification phase started', 15),
         warn  ('s8', 'agenticrun.verification.retry',   'Verification failed — execution retries exhausted', 34),
         active('s9', 'agenticrun.escalate',             'Escalation phase started', 36),
@@ -507,7 +542,7 @@ export function buildTimelineSteps(
         done('s1', 'agenticrun.received',              'Run created — controller dispatched', 0),
         done('s2', 'agenticrun.analyze',                'Analysis phase started', 1),
         done('s3', 'agenticrun.analysis.completed',     'Analysis completed', 4),
-        done('s4', 'agenticrun.human_approval',         'Human approval — approved', 6),
+        done('s4', 'agenticrun.human_approval',         'Human approval requested', 6),
         done('s5', 'agenticrun.execute',                'Execution phase started', 7),
         done('s6', 'agenticrun.execution.completed',    'Execution completed', 14),
         done('s7', 'agenticrun.verify',                 'Verification phase started', 15),
@@ -536,7 +571,7 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',  'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',    'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed', 'Analysis completed', 4),
-        done  ('s4', 'agenticrun.human_approval',     'Human approval — approved', 6),
+        done  ('s4', 'agenticrun.human_approval',     'Human approval requested', 6),
         done  ('s5', 'agenticrun.execute',            'Execution phase started', 7),
         failed('s6', 'agenticrun.terminal',           'Execution stopped — cluster may be in partial state', 11),
       ];
@@ -547,11 +582,11 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',           'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',             'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed',  'Analysis completed', 4),
-        done  ('s4', 'agenticrun.human_approval',      'Human approval — approved', 6),
+        done  ('s4', 'agenticrun.human_approval',      'Human approval requested', 6),
         active('s5', 'agenticrun.execute',             'Execution phase started', 7),
-        waiting('s6', 'agenticrun.execution.completed','Execution completed'),
+        waiting('s6', 'agenticrun.execution.completed','Execution phase completed'),
         waiting('s7', 'agenticrun.verify',             'Verification phase started'),
-        waiting('s8', 'agenticrun.verification.completed', 'Verification completed'),
+        waiting('s8', 'agenticrun.verification.completed', 'Verification phase completed'),
         waiting('s9', 'agenticrun.terminal',           'Terminal state reached'),
       ];
 
@@ -588,8 +623,12 @@ interface AgenticRunTimelineProps {
    * active step, reflecting that the run is gated on manual analysis approval.
    */
   isAwaitingAnalysisApproval?: boolean;
-  /** Mock evidence payloads keyed by audit event — drives per-phase expandables. */
+  /** Mock evidence payloads keyed by audit event — drives per-phase expandables (legacy / non-melded). */
   evidence?: AgenticRunTimelineEvidenceContext;
+  /** Melded run-details bodies nested under chronological phases (HPUX-2106). */
+  meldedSlots?: MeldedTimelineSlots;
+  /** Audit events whose expandable section starts expanded (e.g. human approval while Proposed). */
+  defaultExpandedEvents?: readonly string[];
 }
 
 /**
@@ -602,6 +641,8 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   isCapabilitiesDisabled = false,
   isAwaitingAnalysisApproval = false,
   evidence,
+  meldedSlots,
+  defaultExpandedEvents = [],
 }) => {
   const [isTimelineExpanded, setIsTimelineExpanded] = useState(true);
 
@@ -634,13 +675,25 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
       }
     >
       <Timeline aria-label="Agentic run timeline">
-        {steps.map((step) => (
-          <TimelineItem
-            key={step.id}
-            step={step}
-            evidence={resolveTimelinePhaseEvidence(step, evidence, status)}
-          />
-        ))}
+        {steps.map((step) => {
+          const meldedBody = resolveMeldedBody(step, meldedSlots);
+          const evidenceResolved =
+            meldedBody ? null : resolveTimelinePhaseEvidence(step, evidence, status);
+          const terminalExtra =
+            step.event === 'agenticrun.terminal'
+              ? (meldedSlots?.terminal ?? null)
+              : undefined;
+          return (
+            <TimelineItem
+              key={step.id}
+              step={step}
+              evidence={evidenceResolved}
+              meldedBody={meldedBody}
+              defaultExpanded={shouldDefaultExpandStep(step, defaultExpandedEvents)}
+              terminalExtra={terminalExtra}
+            />
+          );
+        })}
       </Timeline>
     </ExpandableSection>
   );
