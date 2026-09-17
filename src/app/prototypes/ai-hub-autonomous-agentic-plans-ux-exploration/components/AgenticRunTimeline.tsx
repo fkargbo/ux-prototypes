@@ -1,12 +1,29 @@
 import React, { useState } from 'react';
 import {
+  CodeBlock,
+  CodeBlockCode,
+  Content,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
   ExpandableSection,
-  Flex,
-  ProgressStep,
-  ProgressStepper,
   Title,
 } from '@patternfly/react-core';
+import {
+  RhUiCheckCircleFillIcon,
+  RhUiErrorFillIcon,
+  RhUiInProgressIcon,
+  RhUiPendingIcon,
+  RhUiWarningFillIcon,
+} from '@patternfly/react-icons';
 import type { PlanStatus } from '../types/planStatus';
+import {
+  AnalysisLogsExpandable,
+  type AnalysisLogsLifecycle,
+} from './AnalysisLogsExpandable';
+import { ExpandableCodeBlock } from './ExpandableCodeBlock';
+import './agenticRunTimeline.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,6 +42,303 @@ export interface TimelineStep {
   variant: TimelineStepVariant;
   /** Whether this is the currently active step (shows spinner-style emphasis) */
   isCurrent?: boolean;
+}
+
+/** Contextual evidence surfaced inline on expandable timeline phases (HPUX-2106). */
+export interface AgenticRunTimelineEvidenceContext {
+  planId: string;
+  request?: string | null;
+  analysisLogsLifecycle: AnalysisLogsLifecycle;
+  logFinding: string;
+  logNarrative: string;
+  aggregatedFinding?: string;
+  rootCauseNarrative?: string;
+  executionLogText?: string;
+  verificationLogText?: string;
+  escalationLogText?: string;
+  traceId?: string;
+  runStatus: PlanStatus;
+  isAwaitingAnalysisApproval?: boolean;
+}
+
+type TimelinePhaseEvidence = {
+  toggleCollapsed: string;
+  toggleExpanded: string;
+  content: (isExpanded: boolean) => React.ReactNode;
+};
+
+// ─── PatternFly Timeline (semantic list + PF tokens; HPUX-2106) ───────────────
+
+const Timeline: React.FC<{ 'aria-label': string; children: React.ReactNode }> = ({
+  'aria-label': ariaLabel,
+  children,
+}) => (
+  <ol className="ols-agentic-run-timeline" aria-label={ariaLabel}>
+    {children}
+  </ol>
+);
+
+function stepIndicatorIcon(variant: TimelineStepVariant, isCurrent?: boolean): React.ReactNode {
+  if (isCurrent || variant === 'info') {
+    return (
+      <RhUiInProgressIcon
+        style={{ color: 'var(--pf-t--global--icon--color--status--info--default)' }}
+        aria-hidden
+      />
+    );
+  }
+  switch (variant) {
+    case 'success':
+      return (
+        <RhUiCheckCircleFillIcon
+          style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }}
+          aria-hidden
+        />
+      );
+    case 'warning':
+      return (
+        <RhUiWarningFillIcon
+          style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)' }}
+          aria-hidden
+        />
+      );
+    case 'danger':
+      return (
+        <RhUiErrorFillIcon
+          style={{ color: 'var(--pf-t--global--icon--color--status--danger--default)' }}
+          aria-hidden
+        />
+      );
+    default:
+      return (
+        <RhUiPendingIcon
+          style={{ color: 'var(--pf-t--global--icon--color--subtle)' }}
+          aria-hidden
+        />
+      );
+  }
+}
+
+const TimelineItem: React.FC<{
+  step: TimelineStep;
+  evidence: TimelinePhaseEvidence | null;
+}> = ({ step, evidence }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const contentId = `timeline-evidence-${step.id}`;
+
+  return (
+    <li className="ols-agentic-run-timeline__item">
+      <div className="ols-agentic-run-timeline__indicator" aria-hidden>
+        {stepIndicatorIcon(step.variant, step.isCurrent)}
+      </div>
+      <div className="ols-agentic-run-timeline__content">
+        <Content
+          component="p"
+          style={{
+            fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
+            marginBottom: step.description ? 'var(--pf-t--global--spacer--xs)' : 0,
+          }}
+        >
+          {step.label}
+        </Content>
+        {step.description && (
+          <Content
+            component="small"
+            style={{ display: 'block', color: 'var(--pf-t--global--text--color--subtle)' }}
+          >
+            {step.description}
+          </Content>
+        )}
+        {evidence && (
+          <ExpandableSection
+            toggleId={`${contentId}-toggle`}
+            contentId={contentId}
+            isExpanded={isExpanded}
+            onToggle={(_event, expanded) => setIsExpanded(expanded)}
+            toggleTextCollapsed={evidence.toggleCollapsed}
+            toggleTextExpanded={evidence.toggleExpanded}
+          >
+            <div id={contentId}>{evidence.content(isExpanded)}</div>
+          </ExpandableSection>
+        )}
+      </div>
+    </li>
+  );
+};
+
+function resolveTimelinePhaseEvidence(
+  step: TimelineStep,
+  ctx: AgenticRunTimelineEvidenceContext | undefined,
+  status: PlanStatus,
+): TimelinePhaseEvidence | null {
+  if (!ctx) return null;
+
+  const { event } = step;
+
+  if (event === 'agenticrun.received') {
+    if (!ctx.request?.trim()) return null;
+    return {
+      toggleCollapsed: 'View API payload',
+      toggleExpanded: 'Hide API payload',
+      content: () => (
+        <CodeBlock>
+          <CodeBlockCode>{ctx.request}</CodeBlockCode>
+        </CodeBlock>
+      ),
+    };
+  }
+
+  if (event === 'agenticrun.analyze') {
+    if (ctx.isAwaitingAnalysisApproval && status === 'Pending') return null;
+    if (step.variant === 'pending') return null;
+    return {
+      toggleCollapsed: 'View analysis logs',
+      toggleExpanded: 'Hide analysis logs',
+      content: (isExpanded) => (
+        <AnalysisLogsExpandable
+          planId={ctx.planId}
+          finding={ctx.logFinding}
+          narrative={ctx.logNarrative}
+          lifecycle={ctx.analysisLogsLifecycle}
+          idPrefix={`timeline-analysis-${ctx.planId}`}
+          embedded
+          embeddedExpanded={isExpanded}
+        />
+      ),
+    };
+  }
+
+  if (event === 'agenticrun.analysis.completed') {
+    if (!ctx.aggregatedFinding?.trim() && !ctx.rootCauseNarrative?.trim()) return null;
+    if (step.variant !== 'success' && step.variant !== 'warning') return null;
+    return {
+      toggleCollapsed: 'View analysis summary',
+      toggleExpanded: 'Hide analysis summary',
+      content: () => (
+        <DescriptionList isCompact>
+          {ctx.aggregatedFinding && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Aggregated finding</DescriptionListTerm>
+              <DescriptionListDescription>{ctx.aggregatedFinding}</DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+          {ctx.rootCauseNarrative && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Root cause narrative</DescriptionListTerm>
+              <DescriptionListDescription>{ctx.rootCauseNarrative}</DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+        </DescriptionList>
+      ),
+    };
+  }
+
+  if (event === 'agenticrun.human_approval') {
+    if (step.variant === 'pending') return null;
+    return {
+      toggleCollapsed: 'View approval record',
+      toggleExpanded: 'Hide approval record',
+      content: () => (
+        <DescriptionList isCompact>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Event</DescriptionListTerm>
+            <DescriptionListDescription>{step.label}</DescriptionListDescription>
+          </DescriptionListGroup>
+          {step.description && (
+            <DescriptionListGroup>
+              <DescriptionListTerm>Recorded at</DescriptionListTerm>
+              <DescriptionListDescription>{step.description}</DescriptionListDescription>
+            </DescriptionListGroup>
+          )}
+          <DescriptionListGroup>
+            <DescriptionListTerm>Permissions</DescriptionListTerm>
+            <DescriptionListDescription>
+              Scoped RBAC for this run is fixed upon approval and cannot be expanded mid-flight.
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+        </DescriptionList>
+      ),
+    };
+  }
+
+  if (event === 'agenticrun.execution.completed' || event.startsWith('sr-exec-')) {
+    if (!ctx.executionLogText?.trim()) return null;
+    return {
+      toggleCollapsed: 'View execution evidence',
+      toggleExpanded: 'Hide execution evidence',
+      content: () => (
+        <ExpandableCodeBlock
+          id={`timeline-exec-${ctx.planId}-${step.id}`}
+          code={ctx.executionLogText ?? ''}
+          codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto' }}
+        />
+      ),
+    };
+  }
+
+  if (event === 'agenticrun.execute') {
+    if (!ctx.executionLogText?.trim()) return null;
+    if (!step.isCurrent) return null;
+    return {
+      toggleCollapsed: 'View execution evidence',
+      toggleExpanded: 'Hide execution evidence',
+      content: () => (
+        <ExpandableCodeBlock
+          id={`timeline-exec-active-${ctx.planId}-${step.id}`}
+          code={ctx.executionLogText ?? ''}
+          codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto' }}
+        />
+      ),
+    };
+  }
+
+  if (event === 'agenticrun.verification.completed' || event === 'agenticrun.verification.retry') {
+    if (!ctx.verificationLogText?.trim()) return null;
+    return {
+      toggleCollapsed: 'View verification evidence',
+      toggleExpanded: 'Hide verification evidence',
+      content: () => (
+        <ExpandableCodeBlock
+          id={`timeline-verify-${ctx.planId}-${step.id}`}
+          code={ctx.verificationLogText ?? ''}
+          codeStyle={{ fontSize: '12px', maxHeight: '240px', overflowY: 'auto' }}
+        />
+      ),
+    };
+  }
+
+  if (event === 'agenticrun.verify') {
+    if (!ctx.verificationLogText?.trim()) return null;
+    if (!step.isCurrent) return null;
+    return {
+      toggleCollapsed: 'View verification evidence',
+      toggleExpanded: 'Hide verification evidence',
+      content: () => (
+        <ExpandableCodeBlock
+          id={`timeline-verify-active-${ctx.planId}-${step.id}`}
+          code={ctx.verificationLogText ?? ''}
+          codeStyle={{ fontSize: '12px', maxHeight: '240px', overflowY: 'auto' }}
+        />
+      ),
+    };
+  }
+
+  if (event === 'agenticrun.escalate' || event === 'agenticrun.escalation.completed') {
+    if (!ctx.escalationLogText?.trim()) return null;
+    return {
+      toggleCollapsed: 'View escalation evidence',
+      toggleExpanded: 'Hide escalation evidence',
+      content: () => (
+        <ExpandableCodeBlock
+          id={`timeline-escalation-${ctx.planId}`}
+          code={ctx.escalationLogText ?? ''}
+          codeStyle={{ fontSize: '12px', maxHeight: '240px', overflowY: 'auto' }}
+        />
+      ),
+    };
+  }
+
+  return null;
 }
 
 // ─── Step builder ─────────────────────────────────────────────────────────────
@@ -317,11 +631,12 @@ interface AgenticRunTimelineProps {
    * active step, reflecting that the run is gated on manual analysis approval.
    */
   isAwaitingAnalysisApproval?: boolean;
+  /** Mock evidence payloads keyed by audit event — drives per-phase expandables. */
+  evidence?: AgenticRunTimelineEvidenceContext;
 }
 
 /**
- * Lightweight timestamped event markers for the Agentic Run lifecycle.
- * Analysis logs live on the Analysis request section, not on Timeline steps.
+ * Chronological agentic-run phases with inline contextual evidence (HPUX-2106).
  */
 export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   status,
@@ -329,17 +644,11 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   retryCount = 0,
   isCapabilitiesDisabled = false,
   isAwaitingAnalysisApproval = false,
+  evidence,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
-
-  // Only surface steps that have been processed or are currently in progress.
-  // Pending (unreached) steps are intentionally excluded — not all runs pass
-  // through every phase (e.g. Denied runs never reach execution).
   const steps = buildTimelineSteps(status, createdAt, retryCount, isAwaitingAnalysisApproval)
     .filter((s) => s.variant !== 'pending')
     .map((s) => {
-      // When the kill switch is engaged, demote the active (blue) step to
-      // warning (yellow) and append a suspension note to its description.
       if (isCapabilitiesDisabled && s.variant === 'info') {
         return {
           ...s,
@@ -355,35 +664,19 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   if (steps.length === 0) return null;
 
   return (
-    <ExpandableSection
-      toggleText=""
-      isExpanded={isExpanded}
-      onToggle={(_e, expanded) => setIsExpanded(expanded)}
-      toggleContent={
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <Title headingLevel="h4" size="md">
-            Timeline
-          </Title>
-        </Flex>
-      }
-    >
-      <ProgressStepper
-        isVertical
-        aria-label="Agentic run timeline"
-        style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
-      >
-        {steps.map((s) => (
-          <ProgressStep
-            key={s.id}
-            variant={s.variant}
-            description={s.description}
-            titleId={s.id}
-            aria-label={s.label}
-          >
-            {s.label}
-          </ProgressStep>
+    <div>
+      <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+        Timeline
+      </Title>
+      <Timeline aria-label="Agentic run timeline">
+        {steps.map((step) => (
+          <TimelineItem
+            key={step.id}
+            step={step}
+            evidence={resolveTimelinePhaseEvidence(step, evidence, status)}
+          />
         ))}
-      </ProgressStepper>
-    </ExpandableSection>
+      </Timeline>
+    </div>
   );
 };

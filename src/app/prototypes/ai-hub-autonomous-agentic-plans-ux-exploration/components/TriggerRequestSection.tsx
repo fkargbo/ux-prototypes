@@ -44,6 +44,8 @@ export type TriggerRequestSectionProps = {
   traceId?: string;
   /** Current run status — combined with `traceId` to decide whether to show "View trace". */
   runStatus?: PlanStatus;
+  /** When false, analysis logs render only on the Timeline (Agentic run details). */
+  showAnalysisLogs?: boolean;
 };
 
 // ─── Builder (mock spec.request from plan metadata) ───────────────────────────
@@ -96,6 +98,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   analysisFailedToInitialize = false,
   traceId,
   runStatus,
+  showAnalysisLogs = true,
 }) => {
   const hasRequest = Boolean(request?.trim());
   const emptyMessage = analysisFailedToInitialize
@@ -179,6 +182,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
           </EmptyState>
         )}
 
+        {showAnalysisLogs && (
         <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
           <AnalysisLogsExpandable
             planId={planId}
@@ -188,6 +192,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
             idPrefix="analysis-request-log"
           />
         </div>
+        )}
 
       </div>
     </div>

@@ -48,7 +48,7 @@ import { AngleDownIcon, AngleUpIcon, ColumnsIcon, EllipsisVIcon, ExternalLinkAlt
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { AgenticRunTimeline } from '../../components/AgenticRunTimeline';
+import { AgenticRunTimeline, type AgenticRunTimelineEvidenceContext } from '../../components/AgenticRunTimeline';
 import { NamespaceResourceLink } from '../../components/NamespaceResourceLink';
 import {
   buildAgenticRunRequest,
@@ -5672,6 +5672,51 @@ export const RemediationBlueprintPanel: React.FC<{
   );
   const summaryEscalationLog = (isEscalated || isEscalating) ? generateEscalationLogs(plan.id) : '';
 
+  const timelineEvidence = useMemo((): AgenticRunTimelineEvidenceContext => {
+    const execOption = options.find((opt) => opt.id === approvedOptionId) ?? options[0];
+    const executionLog =
+      execOption && (isExecutionPhase || isTerminal || isVerifying || isEscalating || isEscalated)
+        ? buildActiveExecutionLogLines(plan, execOption).join('\n')
+        : '';
+    const verificationLog =
+      isVerifying || isTerminal || isEscalating || isEscalated
+        ? (workflow.verification?.checks.join('\n') ?? generateVerificationLogs(plan.id))
+        : '';
+    return {
+      planId: plan.id,
+      request: plan.request,
+      analysisLogsLifecycle,
+      logFinding: analysisLogFinding,
+      logNarrative: analysisLogNarrative,
+      aggregatedFinding: drawer?.aggregatedFinding,
+      rootCauseNarrative: drawer?.rootCauseNarrative,
+      executionLogText: executionLog,
+      verificationLogText: verificationLog,
+      escalationLogText: summaryEscalationLog || undefined,
+      traceId: plan.traceId,
+      runStatus: status,
+      isAwaitingAnalysisApproval: isPendingReadyForAnalysis,
+    };
+  }, [
+    analysisLogFinding,
+    analysisLogNarrative,
+    analysisLogsLifecycle,
+    approvedOptionId,
+    drawer?.aggregatedFinding,
+    drawer?.rootCauseNarrative,
+    isEscalated,
+    isEscalating,
+    isExecutionPhase,
+    isPendingReadyForAnalysis,
+    isTerminal,
+    isVerifying,
+    options,
+    plan,
+    status,
+    summaryEscalationLog,
+    workflow.verification?.checks,
+  ]);
+
   // ── Sticky action bar derived state ─────────────────────────────────────
   /**
    * Stop button phases (Position 1, conditionally rendered):
@@ -5764,12 +5809,13 @@ export const RemediationBlueprintPanel: React.FC<{
           <TriggerRequestSection
             request={plan.request}
             planId={plan.id}
-            logsLifecycle="completed"
+            logsLifecycle="cancelled"
             logFinding={abortedAnalysisLog}
             logNarrative="Analysis stopped before root cause could be confirmed."
             analysisFailedToInitialize={false}
             traceId={plan.traceId}
             runStatus={status}
+            showAnalysisLogs={false}
           />
         </StackItem>
 
@@ -5848,6 +5894,7 @@ export const RemediationBlueprintPanel: React.FC<{
             status={status}
             createdAt={plan.createdAt}
             isCapabilitiesDisabled={!isAgenticAutomationEnabled}
+            evidence={timelineEvidence}
           />
         </StackItem>
       </Stack>
@@ -5878,6 +5925,7 @@ export const RemediationBlueprintPanel: React.FC<{
             analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
             traceId={plan.traceId}
             runStatus={status}
+            showAnalysisLogs={false}
           />
         </StackItem>
 
@@ -5980,6 +6028,7 @@ export const RemediationBlueprintPanel: React.FC<{
             createdAt={plan.createdAt}
             isCapabilitiesDisabled={!isAgenticAutomationEnabled}
             isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
+            evidence={timelineEvidence}
           />
         </StackItem>
       </Stack>
@@ -6069,6 +6118,7 @@ export const RemediationBlueprintPanel: React.FC<{
           analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
           traceId={plan.traceId}
           runStatus={status}
+          showAnalysisLogs={false}
         />
       </StackItem>
 
@@ -6628,6 +6678,7 @@ export const RemediationBlueprintPanel: React.FC<{
           createdAt={plan.createdAt}
           isCapabilitiesDisabled={!isAgenticAutomationEnabled}
           isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
+          evidence={timelineEvidence}
         />
       </StackItem>
     </Stack>
