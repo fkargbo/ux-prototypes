@@ -226,11 +226,35 @@
 /*
  * Agentic run details: document scroll in the console main area; actions bar is in-flow
  * `position: sticky; bottom: 0` (matches published prototype). No viewport-fixed footer.
+ *
+ * Phantom scroll: app.css forces min-height:calc(100vh - 200px) on `.pf-v6-c-page__main-section`
+ * and `div.template-page-content`. Collapse those on drilldown routes so scroll height equals
+ * content + footer only (same fix pattern as Audit & logs inline min-height:0).
  */
+.pf-v6-c-page__main .pf-v6-c-page__main-section:has(.ols-plan-remediation-drilldown) {
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+.pf-v6-c-page__main-section:has(.ols-plan-remediation-drilldown) > .ols-ai-hub-page--v3 {
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+.ols-ai-hub-page--v3:has(.ols-plan-remediation-drilldown) {
+  min-height: 0 !important;
+  height: auto !important;
+}
+
 .ols-ai-hub-page--v3 div.template-page-content:has(.ols-plan-remediation-drilldown) {
   min-height: 0 !important;
+  height: auto !important;
   padding-block-start: var(--pf-t--global--spacer--md) !important;
   padding-block-end: 0 !important;
+}
+
+:root.pf-v6-theme-glass .pf-v6-c-page__main-section:has(.ols-plan-remediation-drilldown) {
+  min-height: 0 !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content:has(.ols-plan-remediation-drilldown) {
