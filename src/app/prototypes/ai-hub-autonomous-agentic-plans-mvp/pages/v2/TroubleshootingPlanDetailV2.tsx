@@ -5,20 +5,20 @@ import {
   BreadcrumbItem,
   Flex,
   FlexItem,
-  Label,
   Title,
 } from '@patternfly/react-core';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
-  NamespaceResourceLink,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
   WaitingApprovalPlanMeta,
   type PlanRow,
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
+import { withAgenticRunTargetCluster } from '../ai-hub-plans-v2/PlansFilterToolbar';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
+import { AgenticRunDetailMetadataLabels } from '../../components/AgenticRunDetailMetadataLabels';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import {
   buildPrototypeHref,
@@ -63,14 +63,23 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
     setLocallyDenied(false);
   }, [planId]);
 
+  /**
+   * Tracks whether RemediationBlueprintPanel is in its 5-second INITIALIZING phase.
+   * Driven by the panel's onPendingInitializingChange callback — no duplicated timer needed.
+   * Full-width layout only during INITIALIZING; READY_FOR_ANALYSIS uses the default 60% CSS width.
+   */
+  const [isInitializingPhase, setIsInitializingPhase] = useState(false);
+
   const plan = useMemo(() => {
     if (!planId) return null;
     const decoded = decodeURIComponent(planId);
     const catalogPlan = buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find(
-      (p) => p.id === decoded,
+      (p) => p.id === decoded || p.name === decoded,
     );
-    if (catalogPlan) return catalogPlan;
-    if (navigationState?.plan?.id === decoded) return navigationState.plan;
+    if (catalogPlan) return withAgenticRunTargetCluster(catalogPlan);
+    if (navigationState?.plan?.id === decoded || navigationState?.plan?.name === decoded) {
+      return withAgenticRunTargetCluster(navigationState.plan);
+    }
     return null;
   }, [isSingleCluster, navigationState?.plan, planExecutionRuntime, planId]);
 
@@ -149,14 +158,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
                 </FlexItem>
               </Flex>
             </FlexItem>
-            {plan.namespace ? (
-              <FlexItem>
-                <NamespaceResourceLink name={plan.namespace} />
-              </FlexItem>
-            ) : null}
-            <FlexItem>
-              <Label color="grey" variant="outline" isCompact>Trigger domain: {plan.triggerDomain}</Label>
-            </FlexItem>
+            <AgenticRunDetailMetadataLabels plan={plan} />
           </Flex>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
@@ -182,7 +184,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
       >
         <div
           className="ols-plan-remediation-drilldown"
-          style={effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
+          style={isInitializingPhase && effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
         >
           <AgenticKillSwitchBanner />
           <RemediationBlueprintPanel
@@ -190,6 +192,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
             plan={effectivePlan}
             onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
             onStartNewInvestigation={navigateBackToPlans}
+            onPendingInitializingChange={setIsInitializingPhase}
           />
         </div>
       </div>

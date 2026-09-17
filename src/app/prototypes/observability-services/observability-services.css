@@ -19,30 +19,17 @@
   margin: 0;
 }
 
-/* Card appearance (background, border, radius, hover/focus states) intentionally left
-   to PF6's default Card styling per https://www.patternfly.org/components/card. Since
-   the summary cards are plain (non-clickable) cards, their border already matches the
-   capability cards below without any override. */
+/* ─── Operational KPI ribbon ──────────────────────────────────────────────── */
 
-/* The KPI value is a `Button variant="link" isInline` (only the number is clickable,
-   not the whole card). Styled blue at rest to match the standard OCP console
-   status/inventory-card number pattern (e.g. the "Virtual machine statuses" card),
-   with a darker brand blue + underline on hover/focus for affordance. `!important` is
-   used because PF6's own `.pf-m-link.pf-m-inline` rule shares the same selector
-   specificity, so declaration order alone can't be relied on to win the cascade. */
-.ols-obs-services-stat-card__value {
-  font-size: var(--pf-t--global--font--size--3xl) !important;
-  font-weight: var(--pf-t--global--font--weight--heading--bold) !important;
-  line-height: var(--pf-t--global--font--line-height--heading) !important;
-  margin: var(--pf-t--global--spacer--sm) 0 0 0;
-  color: var(--pf-t--global--text--color--brand--default) !important;
-  text-decoration: none !important;
+/* Top margin for the metric value Title, separating it from the category heading above. */
+.ols-obs-kpi-card__value {
+  margin-top: var(--pf-t--global--spacer--sm);
 }
 
-.ols-obs-services-stat-card__value:hover,
-.ols-obs-services-stat-card__value:focus {
-  color: var(--pf-t--global--text--color--brand--hover) !important;
-  text-decoration: underline !important;
+/* Secondary label below the value (e.g. "Critical alerts") — muted via token. */
+.ols-obs-kpi-card__label {
+  color: var(--pf-t--global--text--color--subtle);
+  margin-top: var(--pf-t--global--spacer--xs);
 }
 
 /* PF6's default HelperTextItem text color ("regular"/near-black) is meant for form
@@ -55,6 +42,16 @@
   --pf-v6-c-helper-text__item-text--Color: var(--pf-t--global--text--color--subtle);
 }
 
+/*
+ * Keep card subtitles (e.g. "COO · Tempo · OpenTelemetry") on a single line.
+ * Scoped to this page only so it doesn't affect other prototypes.
+ */
+.ols-obs-services-page .pf-v6-c-card__subtitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .ols-obs-services-capability-card__summary {
   margin: 0 0 var(--pf-t--global--spacer--md) 0;
 }
@@ -62,25 +59,56 @@
 .ols-obs-services-capability-card__deps-heading {
   margin: 0 0 var(--pf-t--global--spacer--sm) 0;
   font-size: var(--pf-t--global--font--size--sm);
-  font-weight: var(--pf-t--global--font--weight--heading--bold);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  line-height: var(--pf-t--global--font--line-height--body);
+  color: var(--pf-t--global--text--color--subtle);
+}
+
+.ols-obs-services-capability-card__deps-heading--spaced {
+  margin-top: var(--pf-t--global--spacer--md);
 }
 
 .ols-obs-services-capability-card__deps {
   margin: 0;
 }
 
-.ols-obs-services-capability-card__dep-detail {
-  color: var(--pf-t--global--text--color--subtle);
+.ols-obs-services-capability-card__ops-health-label {
+  margin-bottom: var(--pf-t--global--spacer--sm);
 }
 
+/*
+ * Consistent section-heading bottom margin used by both the KPI ribbon heading
+ * and the capability section headings ("Installed operators", "Recommended operators").
+ * Replaces the former hardcoded 16px and the scattered pf-v6-u-mb-md utility class.
+ */
 .ols-obs-services-section-title {
-  margin-bottom: 16px;
+  margin-bottom: var(--pf-t--global--spacer--md);
 }
 
-/* Doubles the default Stack gutter below each capability card grid, so the
-   "Installed" and "Recommended" sections read as clearly separated groups. */
+/* Collapsible sections (installed + recommended) — flush left, and gap from
+   toggle title to card grid matches the KPI ribbon's section-title margin-bottom (md).
+   Directly zero the link button's block-end padding so the only contribution to the
+   gap is content padding-top: md, matching the static section title spacing exactly. */
+.ols-obs-services-installed-section .pf-v6-c-expandable-section__toggle .pf-v6-c-button {
+  padding-block-end: 0;
+}
+
+.ols-obs-services-installed-section .pf-v6-c-expandable-section__content {
+  padding-inline-start: 0;
+  padding-top: var(--pf-t--global--spacer--md);
+}
+
+/*
+ * Adds extra breathing room after the KPI ribbon so it reads as a distinct
+ * summary band, clearly separated from the capability card sections below.
+ */
+.ols-obs-kpi-ribbon {
+  margin-bottom: var(--pf-t--global--spacer--xl);
+}
+
+/* Space between the "Installed" and "Recommended" card grids. */
 .ols-obs-services-section-cards {
-  margin-bottom: var(--pf-t--global--spacer--gutter--default);
+  margin-bottom: var(--pf-t--global--spacer--xl);
 }
 
 .ols-obs-services-alert {

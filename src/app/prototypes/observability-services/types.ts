@@ -1,10 +1,22 @@
+/**
+ * Runtime health of the backend pods/CSVs for an installed capability.
+ * Drives <OperationalHealthLabel /> independently of the macro enablement badge.
+ *
+ *   HEALTHY  → label is suppressed (null)
+ *   DEGRADED → red "Operational health: Degraded" label renders below Dependencies heading
+ *
+ * Recommended (not-installed) cards omit this field entirely.
+ */
+export type RuntimeHealthState = 'HEALTHY' | 'DEGRADED';
+
 /** Capability readiness — not live health / telemetry severity. */
 export type CapabilityStatusKind =
   | 'fully-enabled'
   | 'configuration-required'
+  | 'degraded'
   | 'available-addon';
 
-export type LabelColor = 'green' | 'yellow' | 'grey' | 'blue' | 'orange' | 'teal' | 'purple';
+export type LabelColor = 'green' | 'yellow' | 'grey' | 'blue' | 'orange' | 'red' | 'teal' | 'purple';
 
 export interface CapabilityStatus {
   kind: CapabilityStatusKind;
@@ -16,13 +28,34 @@ export interface CapabilityStatus {
   srText: string;
 }
 
-export type DependencyState = 'ready' | 'attention' | 'missing';
+export type DependencyState = 'ready' | 'attention' | 'degraded' | 'missing';
+
+/**
+ * Groups a dependency into one of two rendered sub-sections:
+ *  - OPERATOR  → "Required operators"  (OLM-installed operators + backend workloads)
+ *  - CONFIGURATION → "Required configurations" (Custom Resources, UI Plugin CRs, secrets)
+ *
+ * Optional — omit on v1 cards to preserve the legacy "Required components" single section.
+ */
+export type DependencyCategory = 'OPERATOR' | 'CONFIGURATION';
 
 export interface CapabilityDependency {
   id: string;
   label: string;
   state: DependencyState;
   detail?: string;
+  /** Optional inline action rendered below the dependency label. */
+  action?: {
+    label: string;
+    href?: string;
+    isExternal?: boolean;
+  };
+  /**
+   * When set, the card body splits into "Required operators" / "Required configurations"
+   * sub-sections instead of the generic "Required components" heading.
+   * Leave unset for v1 data to preserve backward compatibility.
+   */
+  category?: DependencyCategory;
 }
 
 export type CapabilityActionVariant = 'primary' | 'secondary' | 'tertiary' | 'link' | 'control';
@@ -51,21 +84,71 @@ export interface CapabilityCardData {
   category: CapabilityCategory;
   /** Free-text tokens for search */
   searchTerms: string[];
+  /**
+   * Runtime health of backend pods/CSVs for this capability.
+   * Omit (or default HEALTHY) for recommended cards — the label won't render.
+   * Set DEGRADED when backend resources are failing independently of enablement.
+   */
+  runtimeHealth?: RuntimeHealthState;
 }
 
-export type StackSummaryTarget =
-  | 'global-dashboards'
-  | 'project-dashboards'
-  | 'alerting-rules'
-  | 'firing-alerts'
-  | 'active-targets'
-  | 'unique-metrics';
+/** Visual severity tint applied to an operational KPI card. */
+export type OperationalKpiVariant = 'danger' | 'success' | 'warning' | 'neutral';
 
-export interface StackSummaryStat {
-  id: StackSummaryTarget;
+/** State of a single capability item shown inside the Capabilities ready popover. */
+export type KpiPopoverItemState = 'ready' | 'partial-setup' | 'not-installed';
+
+export interface KpiPopoverItem {
+  id: string;
+  /** Capability name shown in the popover row (e.g. "Logs"). */
+  title: string;
+  /** Drives the status label colour in the popover row. */
+  state: KpiPopoverItemState;
+  /** Optional action label (retained for forward-compatibility). */
+  actionLabel?: string;
+  /** Target URL for an optional action. */
+  href?: string;
+  /** When true the href opens in a new tab. */
+  isExternal?: boolean;
+}
+
+export interface OperationalKpiStat {
+  id: string;
+  /** Small category label rendered above the metric (e.g. "Alert posture"). */
+  category: string;
+  /**
+   * Metric value as a display string — may be a plain integer ("27") or a
+   * fraction ("3/7"). Zero-state logic parses integers only.
+   */
+  value: string;
+  /** Short noun that follows the value (e.g. "Critical alerts"). */
   label: string;
-  /** Inventory / readiness count — not live severity */
-  value: number;
-  href: string;
-  description: string;
+  /** Secondary helper copy below the metric (e.g. "Active firing alerts"). */
+  subtext: string;
+  /** Severity tint for icon and top-border accent. */
+  variant: OperationalKpiVariant;
+  /**
+   * Variant to use when the numeric value parses to 0 (e.g. show success
+   * icon when there are zero critical alerts). Only evaluated for integer values.
+   */
+  zeroVariant?: OperationalKpiVariant;
+  /**
+   * When set, renders a status icon immediately before the metric value using
+   * the matching severity colour (e.g. red ExclamationCircleIcon for 'danger').
+   */
+  valueIconVariant?: OperationalKpiVariant;
+  /**
+   * Renders the metric value as a link-styled element (blue, underline on hover)
+   * without wiring up navigation. Use when the target page isn't ready yet.
+   */
+  valueIsLink?: boolean;
+  /**
+   * When provided, clicking the value opens a Popover listing these items.
+   * Takes precedence over `valueIsLink` for rendering the trigger.
+   */
+  popoverItems?: KpiPopoverItem[];
+  /** In-app path to navigate to on click. */
+  href?: string;
+  /** DOM element ID to smooth-scroll to on click (used instead of href). */
+  scrollTargetId?: string;
 }

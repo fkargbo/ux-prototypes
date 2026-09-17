@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kubernetes Operators</title>
+  <link href="https://cdn.jsdelivr.net/npm/@rhds/tokens@3.0.2/css/global.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700;900&family=Red+Hat+Text:wght@400;500;700&family=Red+Hat+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f2f2f2;
+      --bg-surface: #e0e0e0;
+      --text-primary: #151515;
+      --text-secondary: #4d4d4d;
+      --text-muted: #707070;
+      --accent: #ee0000;
+      --accent-dark: #a60000;
+      --accent-light: #f56e6e;
+      --tag-border: #c7c7c7;
+      --icon-filter: none;
+      --icon-filter-accent: invert(12%) sepia(100%) saturate(10000%) hue-rotate(0deg) brightness(95%);
+      --font-display: var(--rh-font-family-heading, 'Red Hat Display', sans-serif);
+      --font-body: var(--rh-font-family-body-text, 'Red Hat Text', sans-serif);
+      --font-mono: var(--rh-font-family-code, 'Red Hat Mono', monospace);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      background: var(--bg-primary);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      padding: var(--rh-space-4xl, 80px) var(--rh-space-3xl, 64px);
+      background: var(--bg-primary);
+      overflow: hidden;
+      gap: var(--rh-space-lg, 24px);
+    }
+    .slide.active { display: flex; }
+    .slide:nth-child(even) { background: var(--bg-secondary); }
+
+    .slide::before {
+      content: '';
+      position: absolute;
+      top: -20%;
+      right: -10%;
+      width: 60%;
+      height: 60%;
+      background: radial-gradient(ellipse, rgba(238,0,0,0.04) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .slide:nth-child(even)::before {
+      top: auto;
+      bottom: -20%;
+      right: auto;
+      left: -10%;
+    }
+    .slide.title-slide::before,
+    .slide.thank-you-slide::before {
+      width: 70%;
+      height: 70%;
+      background: radial-gradient(ellipse, rgba(238,0,0,0.08) 0%, transparent 70%);
+    }
+    .slide > * { position: relative; z-index: 1; }
+
+    .rh-logo { height: 28px; width: auto; }
+    .rh-logo.small { height: 20px; }
+    .rh-logo.large { height: 40px; }
+
+    .rh-icon {
+      height: 48px;
+      width: 48px;
+      filter: var(--icon-filter);
+      vertical-align: middle;
+    }
+    .rh-icon.small  { height: 24px; width: 24px; }
+    .rh-icon.medium { height: 48px; width: 48px; }
+    .rh-icon.large  { height: 64px; width: 64px; }
+    .rh-icon.xl     { height: 96px; width: 96px; }
+    .rh-icon.accent { filter: var(--icon-filter-accent); }
+
+    .breadcrumb {
+      position: absolute;
+      top: var(--rh-space-xl, 32px);
+      left: var(--rh-space-3xl, 64px);
+      display: flex;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: var(--rh-font-size-body-text-xs, 0.75rem);
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .breadcrumb svg + span { margin-left: var(--rh-space-sm, 8px); }
+
+    .slide-label {
+      font-family: var(--font-mono);
+      font-size: var(--rh-font-size-body-text-xs, 0.75rem);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .slide-label::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 2px;
+      background: var(--accent);
+      margin-right: var(--rh-space-sm, 8px);
+      vertical-align: middle;
+    }
+
+    .headline-xl {
+      font-family: var(--font-display);
+      font-size: var(--rh-font-size-heading-2xl, 3rem);
+      font-weight: 900;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      max-width: 16ch;
+    }
+    .headline-lg {
+      font-family: var(--font-display);
+      font-size: var(--rh-font-size-heading-lg, 2rem);
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      max-width: 22ch;
+    }
+    .headline-md {
+      font-family: var(--font-display);
+      font-size: var(--rh-font-size-heading-md, 1.5rem);
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+    h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; }
+
+    .subtitle {
+      font-size: var(--rh-font-size-body-text-xl, 1.25rem);
+      color: var(--text-secondary);
+      max-width: 42rem;
+      line-height: 1.45;
+    }
+    .body-text {
+      font-size: var(--rh-font-size-body-text-lg, 1.125rem);
+      color: var(--text-secondary);
+      max-width: 42rem;
+      line-height: 1.5;
+    }
+    .accent { color: var(--accent); }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--rh-space-sm, 8px);
+      margin-top: var(--rh-space-md, 16px);
+    }
+    .tag {
+      display: inline-block;
+      padding: var(--rh-space-xs, 4px) var(--rh-space-md, 16px);
+      border: var(--rh-border-width-sm, 1px) solid var(--tag-border);
+      border-radius: var(--rh-border-radius-pill, 64px);
+      font-family: var(--font-mono);
+      font-size: var(--rh-font-size-body-text-xs, 0.75rem);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .tag.accent {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .attribution {
+      position: absolute;
+      bottom: var(--rh-space-xl, 32px);
+      left: var(--rh-space-3xl, 64px);
+      font-size: var(--rh-font-size-body-text-sm, 0.875rem);
+      color: var(--text-muted);
+    }
+    .source {
+      font-family: var(--font-mono);
+      font-size: var(--rh-font-size-body-text-xs, 0.75rem);
+      color: var(--text-muted);
+      margin-top: auto;
+    }
+
+    .bullet-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--rh-space-md, 16px);
+      max-width: 42rem;
+    }
+    .bullet-list li {
+      position: relative;
+      padding-left: 18px;
+      font-size: var(--rh-font-size-body-text-lg, 1.125rem);
+      line-height: 1.45;
+      color: var(--text-secondary);
+    }
+    .bullet-list li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.7em;
+      width: 10px;
+      height: 2px;
+      background: var(--accent);
+    }
+    .bullet-list li strong { color: var(--text-primary); font-weight: 700; }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--rh-space-lg, 24px);
+      margin-top: var(--rh-space-md, 16px);
+    }
+    .compare-col {
+      padding: var(--rh-space-lg, 24px);
+      background: rgba(242,242,242,0.8);
+      border: var(--rh-border-width-sm, 1px) solid var(--tag-border);
+      border-radius: var(--rh-border-radius-default, 3px);
+      display: flex;
+      flex-direction: column;
+      gap: var(--rh-space-md, 16px);
+    }
+    .compare-col.winner {
+      border-color: var(--accent);
+      background: rgba(238,0,0,0.04);
+    }
+    .compare-col .lead {
+      font-family: var(--font-mono);
+      font-size: var(--rh-font-size-body-text-xs, 0.75rem);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .compare-col.winner .lead { color: var(--accent); }
+    .compare-col h3 { font-size: var(--rh-font-size-heading-sm, 1.25rem); }
+    .compare-col p, .compare-col li {
+      font-size: var(--rh-font-size-body-text-md, 1rem);
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .compare-col ul { list-style: none; display: flex; flex-direction: column; gap: var(--rh-space-sm, 8px); }
+    .compare-col li { padding-left: 14px; position: relative; }
+    .compare-col li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.65em;
+      width: 8px;
+      height: 2px;
+      background: var(--tag-border);
+    }
+    .compare-col.winner li::before { background: var(--accent); }
+
+    .stat-block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--rh-space-md, 16px);
+    }
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: var(--rh-space-xl, 32px);
+    }
+    .big-number {
+      font-family: var(--font-display);
+      font-size: clamp(5rem, 12vw, 8rem);
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -0.03em;
+      color: var(--accent);
+    }
+    .big-number-context {
+      font-size: var(--rh-font-size-body-text-xl, 1.25rem);
+      color: var(--text-secondary);
+      max-width: 22rem;
+      line-height: 1.4;
+    }
+
+    .quote-slide { justify-content: center; }
+    .quote {
+      font-family: var(--font-display);
+      font-size: var(--rh-font-size-heading-lg, 2rem);
+      font-weight: 500;
+      line-height: 1.25;
+      max-width: 18ch;
+      color: var(--text-primary);
+    }
+    .quote::before {
+      content: '\201C';
+      display: block;
+      font-size: 4rem;
+      line-height: 0.6;
+      color: var(--accent);
+      opacity: 0.35;
+      margin-bottom: var(--rh-space-md, 16px);
+    }
+    .quote-attribution {
+      margin-top: var(--rh-space-lg, 24px);
+      font-size: var(--rh-font-size-body-text-sm, 0.875rem);
+      color: var(--text-muted);
+    }
+
+    .arch-stack {
+      display: flex;
+      flex-direction: column;
+      gap: var(--rh-space-sm, 8px);
+      margin-top: var(--rh-space-md, 16px);
+      max-width: 720px;
+    }
+    .arch-layer {
+      display: flex;
+      align-items: center;
+      gap: var(--rh-space-md, 16px);
+      padding: var(--rh-space-md, 16px) var(--rh-space-lg, 24px);
+      background: rgba(242,242,242,0.8);
+      border: var(--rh-border-width-sm, 1px) solid var(--tag-border);
+      border-radius: var(--rh-border-radius-sharp, 0);
+      box-shadow: var(--rh-box-shadow-sm, 0 2px 4px 0 rgba(21, 21, 21, 0.2));
+    }
+    .arch-layer.os-added {
+      border-color: var(--accent);
+      background: rgba(238,0,0,0.04);
+    }
+    .arch-layer .arch-tag {
+      font-family: var(--font-mono);
+      font-size: var(--rh-font-size-body-text-xs, 0.75rem);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      min-width: 5.5rem;
+    }
+    .arch-layer.os-added .arch-tag { color: var(--accent); }
+    .arch-layer h4 {
+      font-size: var(--rh-font-size-heading-sm, 1.25rem);
+      margin-bottom: 2px;
+    }
+    .arch-layer p {
+      font-size: var(--rh-font-size-body-text-sm, 0.875rem);
+      color: var(--text-secondary);
+      line-height: 1.35;
+    }
+    .arch-arrow {
+      text-align: center;
+      color: var(--accent);
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    .code-block {
+      font-family: var(--font-mono);
+      font-size: var(--rh-font-size-body-text-sm, 0.875rem);
+      line-height: 1.55;
+      background: var(--bg-secondary);
+      border: var(--rh-border-width-sm, 1px) solid var(--tag-border);
+      border-left: var(--rh-border-width-lg, 3px) solid var(--accent);
+      border-radius: var(--rh-border-radius-default, 3px);
+      padding: var(--rh-space-lg, 24px);
+      overflow: hidden;
+      color: var(--text-primary);
+      max-width: 640px;
+    }
+    .code-block .cm { color: var(--text-muted); }
+    .code-block .ky { color: var(--accent-dark); }
+    .code-block .st { color: var(--text-secondary); }
+
+    .cap-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--rh-space-sm, 8px);
+      margin-top: var(--rh-space-md, 16px);
+      max-width: 800px;
+    }
+    .cap-row {
+      display: grid;
+      grid-template-columns: 2.5rem 9.5rem 1fr;
+      gap: var(--rh-space-md, 16px);
+      align-items: center;
+      padding: var(--rh-space-sm, 8px) var(--rh-space-md, 16px);
+      background: rgba(242,242,242,0.8);
+      border: var(--rh-border-width-sm, 1px) solid var(--tag-border);
+      border-radius: var(--rh-border-radius-default, 3px);
+    }
+    .cap-row.hot {
+      border-color: var(--accent);
+      background: rgba(238,0,0,0.04);
+    }
+    .cap-lvl {
+      font-family: var(--font-mono);
+      font-size: var(--rh-font-size-body-text-sm, 0.875rem);
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .cap-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: var(--rh-font-size-body-text-md, 1rem);
+    }
+    .cap-desc {
+      font-size: var(--rh-font-size-body-text-sm, 0.875rem);
+      color: var(--text-secondary);
+    }
+
+    .sdk-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--rh-space-lg, 24px);
+      margin-top: var(--rh-space-md, 16px);
+    }
+    .proof-card {
+      padding: var(--rh-space-lg, 24px);
+      background: rgba(242,242,242,0.8);
+      border: var(--rh-border-width-sm, 1px) solid var(--tag-border);
+      border-left: var(--rh-border-width-lg, 3px) solid var(--accent);
+      border-radius: var(--rh-border-radius-default, 3px);
+      display: flex;
+      flex-direction: column;
+      gap: var(--rh-space-sm, 8px);
+    }
+    .proof-card .proof-title {
+      font-family: var(--font-mono);
+      font-size: var(--rh-font-size-body-text-xs, 0.75rem);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .proof-card h4 { font-size: var(--rh-font-size-heading-sm, 1.25rem); }
+    .proof-card p {
+      font-size: var(--rh-font-size-body-text-md, 1rem);
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .thank-you-slide {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .thank-you-slide .headline-xl { max-width: none; }
+    .thank-you-slide .author-block {
+      margin-top: var(--rh-space-lg, 24px);
+      color: var(--text-secondary);
+      font-size: var(--rh-font-size-body-text-lg, 1.125rem);
+    }
+    .thank-you-slide .author-block .name {
+      color: var(--text-primary);
+      font-family: var(--font-display);
+      font-weight: 700;
+    }
+    .logo-footer { margin-top: var(--rh-space-2xl, 48px); }
+    .contact-muted {
+      margin-top: var(--rh-space-md, 16px);
+      font-size: var(--rh-font-size-body-text-sm, 0.875rem);
+      color: var(--text-muted);
+    }
+
+    .video-container {
+      position: relative;
+      width: 100%;
+      max-width: 960px;
+      aspect-ratio: 16 / 9;
+      border-radius: var(--rh-border-radius-default, 3px);
+      overflow: hidden;
+      box-shadow: var(--rh-box-shadow-lg, 0 6px 8px 2px rgba(21, 21, 21, 0.3));
+      background: var(--bg-secondary);
+      align-self: center;
+    }
+    .video-container iframe,
+    .video-container video {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border: none;
+    }
+    .video-thumbnail {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
+    }
+    .video-play-btn {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 80px; height: 80px; background: rgba(238,0,0,0.9); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; z-index: 2;
+      transition: background 0.2s ease;
+    }
+    .video-play-btn::after {
+      content: ''; display: block; width: 0; height: 0;
+      border-style: solid; border-width: 14px 0 14px 24px;
+      border-color: transparent transparent transparent #fff; margin-left: 4px;
+    }
+    .video-container:hover .video-play-btn { background: rgba(238,0,0,1); }
+
+    .media-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex: 1;
+      width: 100%;
+      max-height: 65vh;
+      padding: var(--rh-space-md, 16px) 0;
+      align-self: center;
+    }
+    .slide-media {
+      display: block;
+      max-width: 90%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: var(--rh-border-radius-default, 3px);
+      box-shadow: var(--rh-box-shadow-lg, 0 6px 8px 2px rgba(21, 21, 21, 0.3));
+    }
+    .media-caption {
+      font-family: var(--font-body);
+      font-size: var(--rh-font-size-body-text-lg, 1.125rem);
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: var(--rh-space-md, 16px);
+      max-width: 720px;
+      align-self: center;
+    }
+
+    .controls {
+      position: fixed;
+      right: var(--rh-space-lg, 24px);
+      bottom: var(--rh-space-lg, 24px);
+      display: flex;
+      align-items: center;
+      gap: var(--rh-space-lg, 24px);
+      z-index: 20;
+      font-family: var(--font-mono);
+      font-size: var(--rh-font-size-body-text-xs, 0.75rem);
+      color: var(--text-muted);
+    }
+    .progress .current { color: var(--accent); font-weight: 700; }
+    .nav-hint { letter-spacing: 0.04em; }
+
+    .notes-panel {
+      position: fixed;
+      right: var(--rh-space-lg, 24px);
+      bottom: 72px;
+      width: min(460px, calc(100vw - 48px));
+      max-height: 50vh;
+      overflow: auto;
+      display: none;
+      padding: var(--rh-space-lg, 24px);
+      border: var(--rh-border-width-sm, 1px) solid var(--tag-border);
+      border-radius: var(--rh-border-radius-default, 3px);
+      background: var(--bg-primary);
+      box-shadow: var(--rh-box-shadow-xl, 0 8px 24px 3px rgba(21, 21, 21, 0.35));
+      z-index: 15;
+      font-size: var(--rh-font-size-body-text-sm, 0.875rem);
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .notes-panel.visible { display: block; }
+
+    .animate-in { opacity: 0; }
+    .slide.active .animate-in {
+      animation: fadeSlideUp 0.6s ease-out forwards;
+    }
+    .slide.active .animate-in:nth-child(2) { animation-delay: 0.1s; }
+    .slide.active .animate-in:nth-child(3) { animation-delay: 0.2s; }
+    .slide.active .animate-in:nth-child(4) { animation-delay: 0.3s; }
+    .slide.active .animate-in:nth-child(5) { animation-delay: 0.4s; }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 820px) {
+      body { overflow: auto; }
+      .deck { height: auto; min-height: 100vh; }
+      .slide {
+        position: relative;
+        min-height: 100vh;
+        padding: var(--rh-space-xl, 32px) var(--rh-space-lg, 24px);
+      }
+      .breadcrumb, .attribution { position: static; }
+      .compare-grid, .sdk-grid { grid-template-columns: 1fr; }
+      .cap-row { grid-template-columns: 2.5rem 1fr; }
+      .cap-desc { grid-column: 1 / -1; }
+      .headline-xl { font-size: 2.2rem; max-width: none; }
+      .headline-lg { font-size: 1.6rem; max-width: none; }
+      .stat-row { flex-direction: column; align-items: flex-start; }
+    }
+
+    body.printing .deck { visibility: hidden; }
+
+    @media print {
+      body.printing .deck,
+      body.printing .slide { visibility: visible !important; }
+
+      @page { size: 13.33in 7.5in; margin: 0; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+      html, body {
+        height: auto !important;
+        width: auto !important;
+        overflow: visible !important;
+        background: #fff !important;
+      }
+      .deck {
+        height: auto !important; width: auto !important;
+        position: static !important; overflow: visible !important;
+      }
+      .slide {
+        display: flex !important;
+        position: relative !important;
+        inset: auto !important;
+        width: 13.33in !important;
+        height: 7.5in !important;
+        padding: 0.55in 0.85in !important;
+        gap: 0.14in !important;
+        box-sizing: border-box !important;
+        break-after: page;
+        page-break-after: always;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        overflow: hidden !important;
+      }
+      .slide:last-child { break-after: auto; page-break-after: auto; }
+      .slide::before, .slide::after { display: none !important; }
+
+      .headline-xl { font-size: 60pt !important; line-height: 1.05 !important; letter-spacing: -0.02em; }
+      .headline-lg { font-size: 42pt !important; line-height: 1.05 !important; letter-spacing: -0.02em; }
+      .headline-md { font-size: 28pt !important; line-height: 1.1 !important; }
+      .subtitle, .body-text { font-size: 14pt !important; line-height: 1.45 !important; }
+      .big-number { font-size: 150pt !important; line-height: 0.9 !important; letter-spacing: -0.03em; }
+      .quote { font-size: 30pt !important; line-height: 1.2 !important; }
+      .slide-label, .breadcrumb { font-size: 10pt !important; letter-spacing: 0.1em; }
+      .attribution, .source, .nav-hint,
+      .arch-layer .arch-tag, .compare-col .lead, .proof-card .proof-title,
+      .quote-attribution, .tag { font-size: 9pt !important; }
+
+      .bullet-list { gap: 10pt !important; max-width: none !important; }
+      .bullet-list li {
+        padding-left: 18pt !important;
+        font-size: 12pt !important;
+        line-height: 1.45 !important;
+      }
+      .bullet-list li::before {
+        content: '' !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0.7em !important;
+        width: 10pt !important;
+        height: 2pt !important;
+        background: #ee0000 !important;
+        border-radius: 0 !important;
+      }
+
+      .compare-grid, .sdk-grid { gap: 0.18in !important; }
+      .compare-col, .proof-card { padding: 0.2in !important; }
+      .arch-layer { padding: 0.12in 0.2in !important; }
+      .arch-stack { gap: 2pt !important; margin-top: 0.1in !important; }
+      .arch-layer .arch-tag { margin-bottom: 0 !important; }
+      .arch-layer h4 { font-size: 11pt !important; line-height: 1.15 !important; margin-bottom: 2pt !important; }
+      .arch-layer p { font-size: 9pt !important; line-height: 1.3 !important; }
+      .arch-arrow { font-size: 11pt !important; line-height: 1 !important; }
+      .cap-row { padding: 6pt 10pt !important; }
+      .cap-name, .cap-desc, .cap-lvl { font-size: 9pt !important; }
+
+      .code-block {
+        font-size: 9pt !important;
+        line-height: 1.45 !important;
+        padding: 0.16in !important;
+        overflow: visible !important;
+      }
+
+      .breadcrumb { top: 0.4in !important; left: 0.85in !important; }
+      .attribution { bottom: 0.4in !important; left: 0.85in !important; }
+
+      .slide .animate-in,
+      .slide.active .animate-in {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+
+      .controls, .nav-hint, .notes-panel { display: none !important; }
+      .ambient-glow, .bg-glow, [class*="glow"] { display: none !important; }
+
+      .video-container .video-play-btn,
+      .video-container .play-button,
+      .video-container iframe { display: none !important; }
+      .video-container { aspect-ratio: auto; max-height: 4.5in; }
+      .video-container img { max-height: 4.5in; object-fit: contain; }
+      .video-container[data-video-url]::after {
+        content: "▶ " attr(data-video-url);
+        display: block;
+        font-family: var(--rh-font-family-code, 'Red Hat Mono', monospace);
+        font-size: 10pt;
+        color: #6a6e73;
+        margin-top: 6pt;
+        word-break: break-all;
+      }
+      .media-container { max-height: 5in !important; page-break-inside: avoid; }
+      .media-container img, .slide-media { max-height: 5in; object-fit: contain; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck">
+
+    <!-- SLIDE 1: TITLE -->
+    <div class="slide title-slide" data-notes="Tips: Arrow keys or click to navigate. Press N to toggle contextual notes. Works in any modern browser. Use fullscreen (F11) when presenting. This deck is Core Light, so Cmd/Ctrl+P Save as PDF keeps the white palette. The operator pattern was published by CoreOS in November 2016. Red Hat acquired CoreOS in 2018 and later contributed Operator Framework to CNCF (incubating, July 2020). [IMAGE OPPORTUNITY] Prompt for Nano Banana Pro 2: Abstract Kubernetes control loop on a light gray field. Thin dark-gray boxes for pods and a Custom Resource, one box outlined in Red Hat red-50 (#ee0000) labeled only by shape not text, arrows forming a closed reconcile cycle. No text in the image. Soft red glow upper-right. 16:9, print-friendly, no fedora, no logo.">
+      <div class="breadcrumb">
+        <svg class="rh-logo small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 613 145" role="img" aria-label="Red Hat">
+          <title>Red Hat</title>
+          <path d="M127.47,83.49c12.51,0,30.61-2.58,30.61-17.46a14,14,0,0,0-.31-3.42l-7.45-32.36c-1.72-7.12-3.23-10.35-15.73-16.6C124.89,8.69,103.76.5,97.51.5,91.69.5,90,8,83.06,8c-6.68,0-11.64-5.6-17.89-5.6-6,0-9.91,4.09-12.93,12.5,0,0-8.41,23.72-9.49,27.16A6.43,6.43,0,0,0,42.53,44c0,9.22,36.3,39.45,84.94,39.45M160,72.07c1.73,8.19,1.73,9.05,1.73,10.13,0,14-15.74,21.77-36.43,21.77C78.54,104,37.58,76.6,37.58,58.49a18.45,18.45,0,0,1,1.51-7.33C22.27,52,.5,55,.5,74.22c0,31.48,74.59,70.28,133.65,70.28,45.28,0,56.7-20.48,56.7-36.65,0-12.72-11-27.16-30.83-35.78" fill="#e00"/>
+          <path d="M160,72.07c1.73,8.19,1.73,9.05,1.73,10.13,0,14-15.74,21.77-36.43,21.77C78.54,104,37.58,76.6,37.58,58.49a18.45,18.45,0,0,1,1.51-7.33l3.66-9.06A6.43,6.43,0,0,0,42.53,44c0,9.22,36.3,39.45,84.94,39.45,12.51,0,30.61-2.58,30.61-17.46a14,14,0,0,0-.31-3.42Z"/>
+          <path d="M579.74,92.8c0,11.89,7.15,17.67,20.19,17.67a52.11,52.11,0,0,0,11.89-1.68V95a24.84,24.84,0,0,1-7.68,1.16c-5.37,0-7.36-1.68-7.36-6.73V68.3h15.56V54.1H596.78v-18l-17,3.68V54.1H568.49V68.3h11.25Zm-53,.32c0-3.68,3.69-5.47,9.26-5.47a43.12,43.12,0,0,1,10.1,1.26v7.15a21.51,21.51,0,0,1-10.63,2.63c-5.46,0-8.73-2.1-8.73-5.57m5.2,17.56c6,0,10.84-1.26,15.36-4.31v3.37h16.82V74.08c0-13.56-9.14-21-24.39-21-8.52,0-16.94,2-26,6.1l6.1,12.52c6.52-2.74,12-4.42,16.83-4.42,7,0,10.62,2.73,10.62,8.31v2.73a49.53,49.53,0,0,0-12.62-1.58c-14.31,0-22.93,6-22.93,16.73,0,9.78,7.78,17.24,20.19,17.24m-92.44-.94h18.09V80.92h30.29v28.82H506V36.12H487.93V64.41H457.64V36.12H439.55ZM370.62,81.87c0-8,6.31-14.1,14.62-14.1A17.22,17.22,0,0,1,397,72.09V91.54A16.36,16.36,0,0,1,385.24,96c-8.2,0-14.62-6.1-14.62-14.09m26.61,27.87h16.83V32.44l-17,3.68V57.05a28.3,28.3,0,0,0-14.2-3.68c-16.19,0-28.92,12.51-28.92,28.5a28.25,28.25,0,0,0,28.4,28.6,25.12,25.12,0,0,0,14.93-4.83ZM320,67c5.36,0,9.88,3.47,11.67,8.83H308.47C310.15,70.3,314.36,67,320,67M291.33,82c0,16.2,13.25,28.82,30.28,28.82,9.36,0,16.2-2.53,23.25-8.42l-11.26-10c-2.63,2.74-6.52,4.21-11.14,4.21a14.39,14.39,0,0,1-13.68-8.83h39.65V83.55c0-17.67-11.88-30.39-28.08-30.39a28.57,28.57,0,0,0-29,28.81M262,51.58c6,0,9.36,3.78,9.36,8.31S268,68.2,262,68.2H244.11V51.58Zm-36,58.16h18.09V82.92h13.77l13.89,26.82H292l-16.2-29.45a22.27,22.27,0,0,0,13.88-20.72c0-13.25-10.41-23.45-26-23.45H226Z" fill="#151515"/>
+        </svg>
+        <span>› Platform</span>
+      </div>
+      <div class="slide-label animate-in">Platform · Aug 26, 2026</div>
+      <h1 class="headline-xl animate-in">Kubernetes heals pods. <span class="accent">Operators</span> heal the application.</h1>
+      <p class="subtitle animate-in">How the cluster takes on day-2 work that still lives in runbooks: failover, backup, upgrade, and scale for stateful software.</p>
+      <div class="tag-row animate-in">
+        <span class="tag accent">Operators</span>
+        <span class="tag">CRDs</span>
+        <span class="tag">Reconcile loop</span>
+        <span class="tag">OLM</span>
+      </div>
+      <div class="attribution">Foday Kargbo · UX · Red Hat</div>
+    </div>
+
+    <!-- SLIDE 2: PAIN -->
+    <div class="slide" data-notes="A Deployment restarts a crashed container. It does not reconfigure Patroni after a node loss, take a consistent Postgres backup, or run an etcd member replacement. Those steps sit in a wiki or a pager rotation. CoreOS named this gap in 2016: Kubernetes abstractions cover stateless replica sets well, and leave application-specific ops to humans. [VIDEO OPPORTUNITY] A 60-second clip of a human following a failover runbook (tmux, kubectl, Slack) would land the pain before the definition slide.">
+      <div class="slide-label animate-in">The gap</div>
+      <h2 class="headline-lg animate-in">Day-1 is a YAML apply. Day-2 is still a page at 2am.</h2>
+      <ul class="bullet-list animate-in">
+        <li><strong>Install</strong> is a Helm chart or a manifest. Most teams already have that.</li>
+        <li><strong>Failover</strong> for a three-node etcd or Postgres still needs a person who knows the quorum rules.</li>
+        <li><strong>Upgrade</strong> means drain order, replica lag, and a rollback path written in a doc.</li>
+        <li><strong>Backup</strong> is a CronJob someone copied from a gist, until the restore is tested in anger.</li>
+      </ul>
+    </div>
+
+    <!-- SLIDE 3: STAT -->
+    <div class="slide" data-notes="CNCF Annual Survey 2025 (published January 2026): among container users, 82% run Kubernetes in production, up from 66% in 2023. The same report calls Kubernetes 'boring' as praise: stable APIs, known failure modes. Once the platform is boring, the remaining cost is operating the software on top of it. Operator Framework is listed among incubating projects that grow as organizations mature Kubernetes operations. Source: https://www.cncf.io/wp-content/uploads/2026/01/CNCF_Annual_Survey_Report_final.pdf">
+      <div class="slide-label animate-in">Adoption</div>
+      <div class="stat-block">
+        <img class="rh-icon xl accent animate-in" src="https://cdn.jsdelivr.net/npm/@rhds/icons@2.1.0/standard/graph-line-up.svg" alt="">
+        <div class="stat-row animate-in">
+          <div class="big-number">82%</div>
+          <p class="big-number-context">of container users run Kubernetes in production, up from 66% in 2023.</p>
+        </div>
+        <p class="body-text animate-in">The platform is settled. The remaining work is operating the databases, queues, and observability stacks that sit on it.</p>
+      </div>
+      <div class="source animate-in">Source: CNCF Annual Survey 2025 (Jan 2026)</div>
+    </div>
+
+    <!-- SLIDE 4: COMPARISON -->
+    <div class="slide" data-notes="Helm remains the dominant Kubernetes package manager (CNCF 2024 survey: 75% preferred it). Charts are the right tool for templated install. They do not watch the live object after apply. A controller does: it requeues on events and compares spec to status until they match. That is the Kubernetes control-loop model, applied to one application. [MEME OPPORTUNITY] A 'deployed it, walked away' reaction image after this slide would release the tension before the definition.">
+      <div class="slide-label animate-in">Install vs operate</div>
+      <h2 class="headline-lg animate-in">Charts stop after install. The operator keeps reconciling.</h2>
+      <div class="compare-grid animate-in">
+        <div class="compare-col">
+          <div class="lead">Package</div>
+          <h3>Helm chart / manifests</h3>
+          <ul>
+            <li>Renders YAML and applies it once</li>
+            <li>Upgrade is another helm upgrade</li>
+            <li>Drift after apply is your problem</li>
+            <li>Domain knowledge stays in the runbook</li>
+          </ul>
+        </div>
+        <div class="compare-col winner">
+          <div class="lead">Operator</div>
+          <h3>
+            <img class="rh-icon small accent" src="https://cdn.jsdelivr.net/npm/@rhds/icons@2.1.0/standard/operator.svg" alt="">
+            Controller in the cluster
+          </h3>
+          <ul>
+            <li>Watches a Custom Resource for desired state</li>
+            <li>Requeues until status matches spec</li>
+            <li>Encodes failover, backup, and resize in code</li>
+            <li>Users apply a CR, not a 40-step wiki</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: DEFINITION -->
+    <div class="slide" data-notes="Original CoreOS definition (Brandon Philips, 2016): an Operator is an application-specific controller that extends the Kubernetes API to create, configure, and manage instances of complex stateful applications. It builds on resources and controllers, and adds domain knowledge. A ReplicaSet controller knows how to keep N pods. A Postgres operator knows how to keep a primary and two replicas, including WAL, membership, and backup. Archived post: https://web.archive.org/web/20191125171801/https://coreos.com/blog/introducing-operators.html">
+      <div class="slide-label animate-in">Definition</div>
+      <h2 class="headline-lg animate-in">An operator is a controller that encodes one application's runbook.</h2>
+      <ul class="bullet-list animate-in">
+        <li>It extends the API with a <strong>Custom Resource Definition</strong> so desired state is an object, like a Deployment.</li>
+        <li>A <strong>controller</strong> in the cluster watches that object and reconciles spec against live state.</li>
+        <li>The difference from a generic controller is <strong>domain knowledge</strong>: quorum, backup, upgrade order, restore.</li>
+      </ul>
+    </div>
+
+    <!-- SLIDE 6: QUOTE -->
+    <div class="slide quote-slide" data-notes="Quoted from Philips speaking to The Register on the November 2016 launch. CoreOS shipped etcd Operator and Prometheus Operator as the first public examples. Red Hat later built Operator SDK, Operator Lifecycle Manager, and OperatorHub on this pattern. Source: https://www.theregister.com/2016/11/03/hello_operator_automate_my_kubernetes/">
+      <blockquote class="quote animate-in">What we're trying to do with Operators is to encode the operational knowledge people need to manage these distributed apps.</blockquote>
+      <div class="quote-attribution animate-in">Brandon Philips, then CTO, CoreOS · The Register, Nov 2016</div>
+    </div>
+
+    <!-- SLIDE 7: ARCHITECTURE -->
+    <div class="slide" data-notes="Reconcile is the same loop Kubernetes uses internally: observe, diff, act, requeue. The CR is the user-facing API. The operator Pod holds the controller. Downstream objects (StatefulSet, Service, Secret, PVC) are owned via ownerReferences so garbage collection works. Status on the CR is how the operator reports progress (Ready, degraded, backup last-success). [VIDEO OPPORTUNITY] A short Operator SDK demo that scaffolds a project and shows the generated Reconcile() method would make this concrete.">
+      <div class="slide-label animate-in">How it runs</div>
+      <h2 class="headline-lg animate-in">You put desired state on a Custom Resource. A loop makes it true.</h2>
+      <div class="arch-stack animate-in">
+        <div class="arch-layer">
+          <img class="rh-icon small" src="https://cdn.jsdelivr.net/npm/@rhds/icons@2.1.0/standard/paper-lined.svg" alt="">
+          <div>
+            <div class="arch-tag">User</div>
+            <h4>Custom Resource</h4>
+            <p>kind: Postgres · spec.replicas: 3 · spec.backup.schedule</p>
+          </div>
+        </div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-layer os-added">
+          <img class="rh-icon small accent" src="https://cdn.jsdelivr.net/npm/@rhds/icons@2.1.0/standard/operator.svg" alt="">
+          <div>
+            <div class="arch-tag">Operator</div>
+            <h4>Controller / reconcile</h4>
+            <p>Watch events. Diff spec vs cluster. Create, patch, or delete owned objects.</p>
+          </div>
+        </div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-layer">
+          <img class="rh-icon small" src="https://cdn.jsdelivr.net/npm/@rhds/icons@2.1.0/standard/kubernetes-pod.svg" alt="">
+          <div>
+            <div class="arch-tag">Cluster</div>
+            <h4>Owned resources</h4>
+            <p>StatefulSet, Services, Secrets, PVCs, CronJobs for backup</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 8: CODE -->
+    <div class="slide" data-notes="This CR is illustrative, not a live API. Production Postgres operators (Crunchy PGO, CloudNativePG, Zalando) each have their own CRDs. The point is the contract: the user edits spec, the operator owns implementation. CloudNativePG documents a similar Cluster spec with instances and backup. Resist stuffing install flags into the CR; keep spec at the level an SRE would speak.">
+      <div class="slide-label animate-in">The contract</div>
+      <h2 class="headline-lg animate-in">The user ships a CR. The operator owns the rest.</h2>
+      <pre class="code-block animate-in"><code><span class="ky">apiVersion</span>: example.com/v1
+<span class="ky">kind</span>: Postgres
+<span class="ky">metadata</span>:
+  <span class="ky">name</span>: shop-db
+<span class="ky">spec</span>:
+  <span class="ky">version</span>: <span class="st">"16"</span>
+  <span class="ky">replicas</span>: 3
+  <span class="ky">storage</span>: 200Gi
+  <span class="ky">backup</span>:
+    <span class="ky">schedule</span>: <span class="st">"0 2 * * *"</span>
+    <span class="ky">retention</span>: 14d</code></pre>
+      <p class="body-text animate-in">Three replicas, nightly backup, 14-day retention. Failover order is not in this file. That is the operator's job.</p>
+    </div>
+
+    <!-- SLIDE 9: STAT 2 -->
+    <div class="slide" data-notes="OperatorHub.io filter counts as of 26 Aug 2026: 447 items in the catalog. Capability filters: Basic Install 236, Upgrades 77, Full Lifecycle 67, Deep Insights 45, Auto Pilot 22. Filters overlap (an Auto Pilot operator also qualifies as Basic Install), so do not treat them as a partition of 447. The useful reading: most published operators stop at install. Few claim the full SRE loop. https://operatorhub.io/">
+      <div class="slide-label animate-in">The catalog</div>
+      <div class="stat-block">
+        <img class="rh-icon xl accent animate-in" src="https://cdn.jsdelivr.net/npm/@rhds/icons@2.1.0/standard/catalog.svg" alt="">
+        <div class="stat-row animate-in">
+          <div class="big-number">22</div>
+          <p class="big-number-context">operators on OperatorHub declare Auto Pilot, out of 447 listings.</p>
+        </div>
+        <p class="body-text animate-in">Most of the catalog installs the software. A small set takes the pager: scale, heal, and tune without a human in the loop.</p>
+      </div>
+      <div class="source animate-in">Source: OperatorHub.io capability filters, 26 Aug 2026</div>
+    </div>
+
+    <!-- SLIDE 10: CAPABILITY LEVELS -->
+    <div class="slide" data-notes="Operator Framework capability levels are a self-declared maturity model, not a certification grade. Level 2 is published as automated upgrades (the framework name uses a marketing adjective this deck drops). Level 5 Auto Pilot covers horizontal/vertical scaling, auto-healing, and tuning. Use the levels when shopping: if you need tested backup/restore, look for Full Lifecycle, not Basic Install. Docs: https://sdk.operatorframework.io/docs/overview/operator-capabilities/">
+      <div class="slide-label animate-in">Maturity</div>
+      <h2 class="headline-lg animate-in">Capability levels mark how much of the runbook is in software.</h2>
+      <div class="cap-list animate-in">
+        <div class="cap-row">
+          <span class="cap-lvl">L1</span>
+          <span class="cap-name">Basic Install</span>
+          <span class="cap-desc">Create, configure, and run the workload</span>
+        </div>
+        <div class="cap-row">
+          <span class="cap-lvl">L2</span>
+          <span class="cap-name">Upgrades</span>
+          <span class="cap-desc">Version upgrades with a rollback path and no data loss</span>
+        </div>
+        <div class="cap-row">
+          <span class="cap-lvl">L3</span>
+          <span class="cap-name">Full Lifecycle</span>
+          <span class="cap-desc">Backup, restore, failover, reconfigure, scale</span>
+        </div>
+        <div class="cap-row">
+          <span class="cap-lvl">L4</span>
+          <span class="cap-name">Deep Insights</span>
+          <span class="cap-desc">Metrics, alerts, and log analysis for that application</span>
+        </div>
+        <div class="cap-row hot">
+          <span class="cap-lvl">L5</span>
+          <span class="cap-name">Auto Pilot</span>
+          <span class="cap-desc">Autoscale, auto-heal, and tune without a ticket</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 11: SDK -->
+    <div class="slide" data-notes="Operator SDK project types: Go (kubebuilder-style, full client-go), Helm (wrap an existing chart; reconcile is helm upgrade), Ansible (watches CRs and runs roles). Java Operator SDK joined the framework in 2023. Pick Go when the reconcile body is real control logic (membership, fencing, split-brain). Pick Helm when you already ship a chart and want OLM packaging. Pick Ansible when the runbook is already playbooks. https://sdk.operatorframework.io/">
+      <div class="slide-label animate-in">How you build one</div>
+      <h2 class="headline-lg animate-in">Write Go when the logic is stateful. Helm or Ansible when a chart is enough.</h2>
+      <div class="sdk-grid animate-in">
+        <div class="proof-card">
+          <div class="proof-title">Go</div>
+          <h4>
+            <img class="rh-icon small" src="https://cdn.jsdelivr.net/npm/@rhds/icons@2.1.0/standard/code.svg" alt="">
+            Full control loop
+          </h4>
+          <p>Custom status, webhooks, and real failover code. Default when the application has a quorum.</p>
+        </div>
+        <div class="proof-card">
+          <div class="proof-title">Helm</div>
+          <h4>
+            <img class="rh-icon small" src="https://cdn.jsdelivr.net/npm/@rhds/icons@2.1.0/standard/catalog.svg" alt="">
+            Chart as operator
+          </h4>
+          <p>Reconcile is helm template plus apply. Use when install and values-driven upgrade are the work.</p>
+        </div>
+        <div class="proof-card">
+          <div class="proof-title">Ansible</div>
+          <h4>
+            <img class="rh-icon small" src="https://cdn.jsdelivr.net/npm/@rhds/icons@2.1.0/standard/automation.svg" alt="">
+            Role as reconcile
+          </h4>
+          <p>CR events run playbooks. Use when the existing ops path is already Ansible.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 12: CTA -->
+    <div class="slide" data-notes="OperatorHub.io is the public OLM catalog (community-operators on GitHub). OLM installs, upgrades, and resolves dependencies for operators on the cluster. OpenShift includes OLM by default; vanilla Kubernetes can install it. Next step is concrete: pick the service that still needs a human, check whether a Full Lifecycle operator exists, then either install it or scaffold the first reconcile for failover only. Resist boiling the ocean at L5 on day one. https://operatorhub.io/ · https://olm.operatorframework.io/">
+      <div class="slide-label animate-in">What to do Monday</div>
+      <h2 class="headline-lg animate-in">Start with the service that still needs a human at 2am.</h2>
+      <ul class="bullet-list animate-in">
+        <li>Search <strong>OperatorHub</strong> for that service. Prefer Full Lifecycle over Basic Install.</li>
+        <li>If a fit exists, install it with <strong>OLM</strong> and treat the CR as the new runbook.</li>
+        <li>If the catalog is thin, scaffold with <strong>operator-sdk</strong> and encode the first failover path only.</li>
+      </ul>
+      <div class="tag-row animate-in">
+        <span class="tag accent">operatorhub.io</span>
+        <span class="tag">olm.operatorframework.io</span>
+        <span class="tag">sdk.operatorframework.io</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 13: THANK YOU -->
+    <div class="slide thank-you-slide" data-notes="Closing. Optional follow-ups: Operator SDK getting-started, CloudNativePG or Crunchy PGO as a Postgres case study, OLM CatalogSource on vanilla Kubernetes.">
+      <h1 class="headline-xl animate-in">Thank <span class="accent">You</span></h1>
+      <div class="author-block animate-in">
+        <div class="name">Foday Kargbo</div>
+        <div>UX · Red Hat</div>
+      </div>
+      <div class="logo-footer animate-in">
+        <svg class="rh-logo large" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 613 145" role="img" aria-label="Red Hat">
+          <title>Red Hat</title>
+          <path d="M127.47,83.49c12.51,0,30.61-2.58,30.61-17.46a14,14,0,0,0-.31-3.42l-7.45-32.36c-1.72-7.12-3.23-10.35-15.73-16.6C124.89,8.69,103.76.5,97.51.5,91.69.5,90,8,83.06,8c-6.68,0-11.64-5.6-17.89-5.6-6,0-9.91,4.09-12.93,12.5,0,0-8.41,23.72-9.49,27.16A6.43,6.43,0,0,0,42.53,44c0,9.22,36.3,39.45,84.94,39.45M160,72.07c1.73,8.19,1.73,9.05,1.73,10.13,0,14-15.74,21.77-36.43,21.77C78.54,104,37.58,76.6,37.58,58.49a18.45,18.45,0,0,1,1.51-7.33C22.27,52,.5,55,.5,74.22c0,31.48,74.59,70.28,133.65,70.28,45.28,0,56.7-20.48,56.7-36.65,0-12.72-11-27.16-30.83-35.78" fill="#e00"/>
+          <path d="M160,72.07c1.73,8.19,1.73,9.05,1.73,10.13,0,14-15.74,21.77-36.43,21.77C78.54,104,37.58,76.6,37.58,58.49a18.45,18.45,0,0,1,1.51-7.33l3.66-9.06A6.43,6.43,0,0,0,42.53,44c0,9.22,36.3,39.45,84.94,39.45,12.51,0,30.61-2.58,30.61-17.46a14,14,0,0,0-.31-3.42Z"/>
+          <path d="M579.74,92.8c0,11.89,7.15,17.67,20.19,17.67a52.11,52.11,0,0,0,11.89-1.68V95a24.84,24.84,0,0,1-7.68,1.16c-5.37,0-7.36-1.68-7.36-6.73V68.3h15.56V54.1H596.78v-18l-17,3.68V54.1H568.49V68.3h11.25Zm-53,.32c0-3.68,3.69-5.47,9.26-5.47a43.12,43.12,0,0,1,10.1,1.26v7.15a21.51,21.51,0,0,1-10.63,2.63c-5.46,0-8.73-2.1-8.73-5.57m5.2,17.56c6,0,10.84-1.26,15.36-4.31v3.37h16.82V74.08c0-13.56-9.14-21-24.39-21-8.52,0-16.94,2-26,6.1l6.1,12.52c6.52-2.74,12-4.42,16.83-4.42,7,0,10.62,2.73,10.62,8.31v2.73a49.53,49.53,0,0,0-12.62-1.58c-14.31,0-22.93,6-22.93,16.73,0,9.78,7.78,17.24,20.19,17.24m-92.44-.94h18.09V80.92h30.29v28.82H506V36.12H487.93V64.41H457.64V36.12H439.55ZM370.62,81.87c0-8,6.31-14.1,14.62-14.1A17.22,17.22,0,0,1,397,72.09V91.54A16.36,16.36,0,0,1,385.24,96c-8.2,0-14.62-6.1-14.62-14.09m26.61,27.87h16.83V32.44l-17,3.68V57.05a28.3,28.3,0,0,0-14.2-3.68c-16.19,0-28.92,12.51-28.92,28.5a28.25,28.25,0,0,0,28.4,28.6,25.12,25.12,0,0,0,14.93-4.83ZM320,67c5.36,0,9.88,3.47,11.67,8.83H308.47C310.15,70.3,314.36,67,320,67M291.33,82c0,16.2,13.25,28.82,30.28,28.82,9.36,0,16.2-2.53,23.25-8.42l-11.26-10c-2.63,2.74-6.52,4.21-11.14,4.21a14.39,14.39,0,0,1-13.68-8.83h39.65V83.55c0-17.67-11.88-30.39-28.08-30.39a28.57,28.57,0,0,0-29,28.81M262,51.58c6,0,9.36,3.78,9.36,8.31S268,68.2,262,68.2H244.11V51.58Zm-36,58.16h18.09V82.92h13.77l13.89,26.82H292l-16.2-29.45a22.27,22.27,0,0,0,13.88-20.72c0-13.25-10.41-23.45-26-23.45H226Z" fill="#151515"/>
+        </svg>
+      </div>
+      <div class="contact-muted animate-in">fkargbo@redhat.com</div>
+    </div>
+
+  </div>
+
+  <div class="controls">
+    <div class="nav-hint">← → or click to navigate · N for additional context</div>
+    <div class="progress"><span class="current">1</span> / <span class="total">13</span></div>
+  </div>
+  <div class="notes-panel"></div>
+
+  <script>
+    (function() {
+      const slides = document.querySelectorAll('.slide');
+      const currentEl = document.querySelector('.current');
+      const totalEl = document.querySelector('.total');
+      const notesPanel = document.querySelector('.notes-panel');
+      let idx = 0;
+      let notesVisible = false;
+
+      totalEl.textContent = slides.length;
+
+      function pauseAllMedia() {
+        document.querySelectorAll('.slide:not(.active) video').forEach(v => v.pause());
+        document.querySelectorAll('.slide:not(.active) iframe').forEach(f => {
+          f.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+          f.contentWindow.postMessage('{"method":"pause"}', '*');
+        });
+      }
+
+      function playActiveMedia() {
+        document.querySelectorAll('.slide.active video').forEach(v => v.play());
+        document.querySelectorAll('.slide.active iframe').forEach(f => {
+          f.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+          f.contentWindow.postMessage('{"method":"play"}', '*');
+        });
+      }
+
+      function show(i) {
+        slides.forEach((s, j) => {
+          s.classList.toggle('active', j === i);
+          s.style.display = j === i ? 'flex' : 'none';
+        });
+        currentEl.textContent = i + 1;
+        pauseAllMedia();
+        playActiveMedia();
+        if (notesVisible && notesPanel) {
+          const note = slides[i].dataset.notes || '';
+          notesPanel.innerHTML = note;
+        }
+      }
+
+      function next() { if (idx < slides.length - 1) { idx++; show(idx); } }
+      function prev() { if (idx > 0) { idx--; show(idx); } }
+
+      document.addEventListener('click', (e) => {
+        const vc = e.target.closest('.video-container[data-video-id]');
+        if (vc) {
+          e.stopImmediatePropagation();
+          const vid = vc.dataset.videoId;
+          if (window.location.protocol === 'file:') {
+            window.open('https://www.youtube.com/watch?v=' + vid, '_blank');
+          } else {
+            const iframe = document.createElement('iframe');
+            iframe.src = 'https://www.youtube-nocookie.com/embed/' + vid + '?autoplay=1';
+            iframe.setAttribute('frameborder', '0');
+            iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+            iframe.setAttribute('allowfullscreen', '');
+            vc.innerHTML = '';
+            vc.appendChild(iframe);
+          }
+          return;
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+        if (e.key === 'ArrowLeft') { prev(); }
+        if (e.key === 'n' || e.key === 'N') {
+          notesVisible = !notesVisible;
+          if (notesPanel) notesPanel.classList.toggle('visible', notesVisible);
+          show(idx);
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('.controls') || e.target.closest('.notes-panel') || e.target.closest('.video-container') || e.target.closest('.media-container')) return;
+        const x = e.clientX / window.innerWidth;
+        x > 0.5 ? next() : prev();
+      });
+
+      let touchStartX = 0;
+      document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+      document.addEventListener('touchend', (e) => {
+        const diff = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(diff) > 50) { diff < 0 ? next() : prev(); }
+      });
+
+      window.addEventListener('beforeprint', () => {
+        slides.forEach(s => { s.style.display = ''; });
+        document.body.classList.add('printing');
+
+        slides.forEach(s => {
+          let fit = s.querySelector(':scope > .slide-fit');
+          if (!fit) {
+            fit = document.createElement('div');
+            fit.className = 'slide-fit';
+            while (s.firstChild) fit.appendChild(s.firstChild);
+            s.appendChild(fit);
+          }
+          const cs = window.getComputedStyle(s);
+          fit.style.cssText =
+            'display:flex;width:100%;height:100%;' +
+            'flex-direction:' + (cs.flexDirection || 'column') + ';' +
+            'justify-content:' + (cs.justifyContent || 'center') + ';' +
+            'align-items:' + (cs.alignItems || 'stretch') + ';' +
+            'text-align:' + (cs.textAlign || 'left') + ';' +
+            'gap:' + (cs.gap || '0') + ';' +
+            'transform-origin:top left;transform:none;';
+          for (let i = 0; i < fit.children.length; i++) {
+            fit.children[i].style.flexShrink = '0';
+          }
+
+          s._priorStyle = s.style.cssText;
+          s.style.cssText +=
+            ';display:flex !important;width:13.33in !important;height:7.5in !important;' +
+            'padding:0.55in 0.85in !important;box-sizing:border-box !important;' +
+            'overflow:hidden !important;';
+
+          const cw = fit.clientWidth, ch = fit.clientHeight;
+          const sw = fit.scrollWidth, sh = fit.scrollHeight;
+          if (sw > cw + 1 || sh > ch + 1) {
+            const k = Math.min(cw / sw, ch / sh);
+            fit.style.width  = (cw / k) + 'px';
+            fit.style.height = (ch / k) + 'px';
+            fit.style.transform = 'scale(' + k + ')';
+            fit.dataset.fitScale = k.toFixed(3);
+          }
+        });
+      });
+      window.addEventListener('afterprint', () => {
+        document.body.classList.remove('printing');
+        document.querySelectorAll('.slide > .slide-fit').forEach(fit => {
+          const s = fit.parentElement;
+          while (fit.firstChild) {
+            const child = fit.firstChild;
+            if (child.style && child.style.flexShrink) child.style.flexShrink = '';
+            s.appendChild(child);
+          }
+          fit.remove();
+          if (s._priorStyle !== undefined) {
+            s.style.cssText = s._priorStyle;
+            delete s._priorStyle;
+          }
+        });
+        show(idx);
+      });
+
+      show(0);
+    })();
+  </script>
+</body>
+</html>

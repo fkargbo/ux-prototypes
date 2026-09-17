@@ -41,8 +41,8 @@ export const routes: RouteConfig[] = [
   {
     path: '/core/observe/observability-services',
     element: <ObservabilityServicesPage />,
-    label: 'Overview',
-    title: 'Overview',
+    label: 'Observability services',
+    title: 'Observability services',
     navigation: {
       group: 'Observe',
       order: 0,

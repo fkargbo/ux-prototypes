@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as echarts from 'echarts';
+import type { EChartsOption } from 'echarts';
 import {
   Title,
   Content,
@@ -104,7 +104,7 @@ import {
   ChartContainer,
   ChartLabel,
 } from '@patternfly/react-charts/victory';
-import { Charts } from '@patternfly/react-charts/echarts';
+import { EchartsOptionChart } from '../components/EchartsOptionChart';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
 import ChatbotContent from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
 import ChatbotWelcomePrompt from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
@@ -460,8 +460,6 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
 
   // Treemap visualization: Root > Namespace > Pod
   const PodStatusTreemap: React.FC<{ onPodClick?: (podName: string) => void }> = ({ onPodClick }) => {
-    const containerRef = React.useRef<HTMLDivElement>(null);
-
     const treemapData = React.useMemo(() => {
       const namespaces = Object.keys(podStatusCounts);
       return [
@@ -526,28 +524,23 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
       [treemapData]
     );
 
-    React.useEffect(() => {
-      if (!containerRef.current) return;
-
-      const chart = echarts.init(containerRef.current, undefined, { renderer: 'svg' });
-      chart.setOption(option as any, { notMerge: true });
-
-      chart.on('click', (params: any) => {
+    const handleChartClick = React.useCallback(
+      (params: { data?: { children?: unknown; podName?: string } }) => {
         const d = params?.data;
         if (d && !d.children && d.podName) {
           onPodClick?.(d.podName);
         }
-      });
+      },
+      [onPodClick]
+    );
 
-      const onResize = () => chart.resize();
-      window.addEventListener('resize', onResize);
-      return () => {
-        window.removeEventListener('resize', onResize);
-        chart.dispose();
-      };
-    }, [option, onPodClick]);
-
-    return <div ref={containerRef} style={{ width: '100%', height: 420 }} />;
+    return (
+      <EchartsOptionChart
+        height={420}
+        option={option as EChartsOption}
+        onChartClick={handleChartClick}
+      />
+    );
   };
 
   const PodStatusHealthMapLegend: React.FC = () => (
@@ -817,10 +810,7 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
 
     return (
       <div ref={chartRef} style={{ width: '100%', height: '250px' }}>
-        <Charts
-          height={250}
-          option={option as any}
-        />
+        <EchartsOptionChart height={250} option={option as EChartsOption} />
       </div>
     );
   };
@@ -929,10 +919,7 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
 
     return (
       <div style={{ width: '100%', height: '250px' }}>
-        <Charts
-          height={250}
-          option={option as any}
-        />
+        <EchartsOptionChart height={250} option={option as EChartsOption} />
       </div>
     );
   };
