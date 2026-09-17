@@ -32,6 +32,7 @@ import {
   ModalFooter,
   ModalHeader,
   ModalVariant,
+  PageSection,
   Pagination,
   PaginationVariant,
   Popover,
@@ -50,7 +51,6 @@ import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AgenticRunTimeline, type AgenticRunTimelineEvidenceContext, type MeldedTimelineSlots } from '../../components/AgenticRunTimeline';
 import { AgenticRunDetailsSectionHeading } from '../../components/AgenticRunDetailsSectionHeading';
-import { AgenticRunDetailsShell } from '../../components/AgenticRunDetailsShell';
 import { NamespaceResourceLink } from '../../components/NamespaceResourceLink';
 import {
   buildAgenticRunRequest,
@@ -6508,140 +6508,160 @@ export const RemediationBlueprintPanel: React.FC<{
 
   return (
     <>
-    <AgenticRunDetailsShell actions={agenticRunActionsFooter}>
-    <Stack style={{ gap: '24px' }}>
-      {/* ── Page heading ──────────────────────────────────────────────── */}
-      <StackItem>
-        <AgenticRunDetailsSectionHeading showAiDisclaimer={isRunAborted} />
-      </StackItem>
-      {isRunAborted ? (
-        <StackItem>
-          <Alert
-            isInline
-            variant="info"
-            title="Analysis stopped"
-            actionLinks={
-              <Button
-                variant="link"
+      <PageSection padding={{ default: 'padding' }}>
+        <Stack style={{ gap: '24px' }}>
+          <StackItem>
+            <AgenticRunDetailsSectionHeading showAiDisclaimer={isRunAborted} />
+          </StackItem>
+          {isRunAborted ? (
+            <StackItem>
+              <Alert
                 isInline
-                onClick={() => {
-                  window.alert('Re-run analysis: In production this patches spec.revisionFeedback on the AgenticRun CR (OLS-3719). Not yet wired in prototype.');
-                }}
+                variant="info"
+                title="Analysis stopped"
+                actionLinks={
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={() => {
+                      window.alert('Re-run analysis: In production this patches spec.revisionFeedback on the AgenticRun CR (OLS-3719). Not yet wired in prototype.');
+                    }}
+                  >
+                    Re-run analysis
+                  </Button>
+                }
               >
-                Re-run analysis
-              </Button>
-            }
-          >
-            Analysis was stopped on {plan.terminatedAt ?? '—'} by user {plan.abortedBy ?? 'platform-admin'}.
-          </Alert>
-        </StackItem>
-      ) : null}
-
-      {/* ── Status alerts (below heading) ────────────────────────────── */}
-      {isEscalating && (
-        <StackItem>
-          <Alert
-            isInline
-            variant="danger"
-            title="Automated remediation retries exhausted"
-          >
-            The autonomous agent failed to resolve this issue after {configMaxRetryAttempts} retry attempt{configMaxRetryAttempts !== 1 ? 's' : ''}.{' '}
-            {escalationPolicy === 'auto'
-              ? 'Routing incident to configured external channels (PagerDuty / ITSM).'
-              : 'Escalation handoff is in progress, and human intervention is now required.'}
-          </Alert>
-        </StackItem>
-      )}
-      {isEscalating && escalationPolicy === 'manual' && (
-        <StackItem>
-          <Flex gap={{ default: 'gapSm' }}>
-            <FlexItem>
-              <Button
+                Analysis was stopped on {plan.terminatedAt ?? '—'} by user {plan.abortedBy ?? 'platform-admin'}.
+              </Alert>
+            </StackItem>
+          ) : null}
+          {isEscalating && (
+            <StackItem>
+              <Alert
+                isInline
                 variant="danger"
-                isDisabled={!isAgenticAutomationEnabled}
-                onClick={handleAcknowledgePlan}
+                title="Automated remediation retries exhausted"
               >
-                Escalate manually
-              </Button>
-            </FlexItem>
-            <FlexItem>
-              <Button
-                variant="secondary"
-                isDisabled={!isAgenticAutomationEnabled}
-                onClick={() => {
-                  if (selectedOption) {
-                    executeRemediation(plan.id, {
-                      optionIndex: selectedOptionIndex,
-                      optionId: selectedOption.id,
-                      optionTitle: selectedOption.title,
-                      maxAttempts: configMaxRetryAttempts,
-                    });
-                  }
-                }}
+                The autonomous agent failed to resolve this issue after {configMaxRetryAttempts} retry attempt{configMaxRetryAttempts !== 1 ? 's' : ''}.{' '}
+                {escalationPolicy === 'auto'
+                  ? 'Routing incident to configured external channels (PagerDuty / ITSM).'
+                  : 'Escalation handoff is in progress, and human intervention is now required.'}
+              </Alert>
+            </StackItem>
+          )}
+          {isEscalating && escalationPolicy === 'manual' && (
+            <StackItem>
+              <Flex gap={{ default: 'gapSm' }}>
+                <FlexItem>
+                  <Button
+                    variant="danger"
+                    isDisabled={!isAgenticAutomationEnabled}
+                    onClick={handleAcknowledgePlan}
+                  >
+                    Escalate manually
+                  </Button>
+                </FlexItem>
+                <FlexItem>
+                  <Button
+                    variant="secondary"
+                    isDisabled={!isAgenticAutomationEnabled}
+                    onClick={() => {
+                      if (selectedOption) {
+                        executeRemediation(plan.id, {
+                          optionIndex: selectedOptionIndex,
+                          optionId: selectedOption.id,
+                          optionTitle: selectedOption.title,
+                          maxAttempts: configMaxRetryAttempts,
+                        });
+                      }
+                    }}
+                  >
+                    Retry execution
+                  </Button>
+                </FlexItem>
+              </Flex>
+            </StackItem>
+          )}
+          {isEscalated && (
+            <StackItem>
+              <Alert
+                isInline
+                variant="warning"
+                title="Remediation action required"
               >
-                Retry execution
-              </Button>
-            </FlexItem>
-          </Flex>
-        </StackItem>
-      )}
-      {isEscalated && (
-        <StackItem>
-          <Alert
-            isInline
-            variant="warning"
-            title="Remediation action required"
-          >
-            Automated execution failed after reaching the maximum retry limit. Manual operator
-            intervention is required to resolve this escalation.
-          </Alert>
-        </StackItem>
-      )}
-      {isDenied && (
-        <StackItem>
-          <DeniedPlanBanner onStartNewInvestigation={isAgenticAutomationEnabled ? onStartNewInvestigation : undefined} />
-        </StackItem>
-      )}
-      {isEmergencyStopped && (
-        <StackItem>
-          <Alert
-            isInline
-            variant="warning"
-            title="Execution halted mid-flight"
-          >
-            This agentic run was stopped while execution was in progress. The cluster may be in a
-            partially modified state. Review the proposed agent commands below and complete or roll
-            back the operation manually during a scheduled maintenance window.
-          </Alert>
-        </StackItem>
-      )}
+                Automated execution failed after reaching the maximum retry limit. Manual operator
+                intervention is required to resolve this escalation.
+              </Alert>
+            </StackItem>
+          )}
+          {isDenied && (
+            <StackItem>
+              <DeniedPlanBanner onStartNewInvestigation={isAgenticAutomationEnabled ? onStartNewInvestigation : undefined} />
+            </StackItem>
+          )}
+          {isEmergencyStopped && (
+            <StackItem>
+              <Alert
+                isInline
+                variant="warning"
+                title="Execution halted mid-flight"
+              >
+                This agentic run was stopped while execution was in progress. The cluster may be in a
+                partially modified state. Review the proposed agent commands below and complete or roll
+                back the operation manually during a scheduled maintenance window.
+              </Alert>
+            </StackItem>
+          )}
+        </Stack>
+      </PageSection>
 
-      <StackItem>
-        <AgenticRunTimeline
-          status={status}
-          createdAt={plan.createdAt}
-          retryCount={Math.max(0, (workflow.verification?.attempt ?? 1) - 1)}
-          isCapabilitiesDisabled={!isAgenticAutomationEnabled}
-          isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
-          evidence={timelineEvidence}
-          meldedSlots={meldedTimelineSlots}
-        />
-      </StackItem>
-      {(isProposed || isEscalated) && (
-        <StackItem>{remediationConfirmModals}</StackItem>
-      )}
+      <PageSection
+        isFilled
+        hasOverflowScroll
+        aria-label="Agentic run timeline and remediation details"
+        padding={{ default: 'padding' }}
+      >
+        <Stack style={{ gap: '24px' }}>
+          <StackItem>
+            <AgenticRunTimeline
+              status={status}
+              createdAt={plan.createdAt}
+              retryCount={Math.max(0, (workflow.verification?.attempt ?? 1) - 1)}
+              isCapabilitiesDisabled={!isAgenticAutomationEnabled}
+              isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
+              evidence={timelineEvidence}
+              meldedSlots={meldedTimelineSlots}
+            />
+          </StackItem>
+          {(isProposed || isEscalated) && (
+            <StackItem>{remediationConfirmModals}</StackItem>
+          )}
+          {isEscalated && (
+            <StackItem>
+              <EscalationSummaryCard
+                plan={plan}
+                escalationLog={summaryEscalationLog}
+                escalationPolicy={escalationPolicy}
+              />
+            </StackItem>
+          )}
+        </Stack>
+      </PageSection>
 
-      {isEscalated && (
-        <StackItem>
-          <EscalationSummaryCard
-            plan={plan}
-            escalationLog={summaryEscalationLog}
-            escalationPolicy={escalationPolicy}
-          />
-        </StackItem>
-      )}
-    </Stack>
-    </AgenticRunDetailsShell>
+      {agenticRunActionsFooter ? (
+        <PageSection
+          stickyBase="bottom"
+          hasShadowTop
+          padding={{ default: 'padding' }}
+          aria-label="Run actions"
+          style={{
+            borderTop: '1px solid var(--pf-t--global--border--color--default)',
+            backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+          }}
+        >
+          {agenticRunActionsFooter}
+        </PageSection>
+      ) : null}
 
     {/* Stop analysis modal — rendered as a portal; lives outside Stack to avoid adding a gap slot */}
           <Modal
