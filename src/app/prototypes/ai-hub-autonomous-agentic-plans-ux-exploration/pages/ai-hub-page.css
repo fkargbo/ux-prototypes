@@ -220,7 +220,44 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  padding-block-end: 24px;
+  padding-block-end: 0;
+}
+
+/* Agentic run details: scrollable body + viewport-anchored action bar */
+.ols-agentic-run-details-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 220px);
+  box-sizing: border-box;
+  padding-bottom: 7rem;
+}
+
+.ols-agentic-run-details-shell__body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.ols-agentic-run-details-shell__actions {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: var(--pf-t--global--z-index--md, 100);
+  background-color: var(--pf-t--global--background--color--primary--default);
+  border-top: 1px solid var(--pf-t--global--border--color--default);
+  padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md);
+  box-shadow: 0 -4px 12px rgb(0 0 0 / 6%);
+}
+
+.ols-agentic-run-details-shell__actions-inner {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1101px) {
+  .ols-plan-remediation-drilldown .ols-agentic-run-details-shell__actions-inner {
+    width: 60%;
+  }
 }
 
 @media (min-width: 1101px) {

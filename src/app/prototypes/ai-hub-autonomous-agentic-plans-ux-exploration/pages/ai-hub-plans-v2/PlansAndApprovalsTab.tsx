@@ -49,6 +49,8 @@ import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AgenticRunTimeline, type AgenticRunTimelineEvidenceContext, type MeldedTimelineSlots } from '../../components/AgenticRunTimeline';
+import { AgenticRunDetailsSectionHeading } from '../../components/AgenticRunDetailsSectionHeading';
+import { AgenticRunDetailsShell } from '../../components/AgenticRunDetailsShell';
 import { NamespaceResourceLink } from '../../components/NamespaceResourceLink';
 import {
   buildAgenticRunRequest,
@@ -2894,7 +2896,8 @@ function useStreamingExecutionLog(
     const timer = window.setTimeout(() => {
       setVisibleCount((count) => Math.min(count + 1, lines.length));
     }, 650);
-    return () => window.clearTimeout(timer);
+
+  return () => window.clearTimeout(timer);
   }, [enabled, frozen, lines.length, visibleCount]);
 
   return lines.slice(0, frozen ? visibleCount : visibleCount).join('\n');
@@ -5775,297 +5778,6 @@ export const RemediationBlueprintPanel: React.FC<{
 
   if (!drawer && !isEscalating && !isPending && !isAnalyzing && !isRunAborted) return null;
 
-  // ── Analysis-aborted layout ────────────────────────────────────────────────
-  // Rendered when the analysis phase was manually canceled before execution began.
-  if (isRunAborted) {
-    const abortedAnalysisLog = generateAbortedAnalysisLogs(plan.id);
-  return (
-    <Stack style={{ gap: '24px' }}>
-        {/* Page heading + AI disclaimer */}
-      <StackItem>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-          <AiExperienceIcon size={20} />
-          <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
-            Agentic run details
-          </Title>
-        </Flex>
-        <Content component="p" className="ols-ai-hub-page-disclaimer">
-          <InfoCircleIcon
-            style={{
-              color: 'var(--pf-t--global--icon--color--status--info--default)',
-              marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
-              verticalAlign: 'middle',
-              flexShrink: 0,
-            }}
-            aria-hidden
-          />
-            The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
-            review AI-generated content prior to use.
-        </Content>
-      </StackItem>
-
-        {/* A. Analysis Request Card — preserved with partial log access */}
-        <StackItem>
-          <TriggerRequestSection
-            request={plan.request}
-            planId={plan.id}
-            logsLifecycle="cancelled"
-            logFinding={abortedAnalysisLog}
-            logNarrative="Analysis stopped before root cause could be confirmed."
-            analysisFailedToInitialize={false}
-            traceId={plan.traceId}
-            runStatus={status}
-            showAnalysisLogs={false}
-          />
-        </StackItem>
-
-        {/* B. Alert banner — cancellation metadata + Re-run analysis CTA */}
-        <StackItem>
-          <Alert
-            isInline
-            variant="info"
-            title="Analysis stopped"
-            actionLinks={
-              <Button
-                variant="link"
-                isInline
-                onClick={() => {
-                  // OLS-3719: patches spec.revisionFeedback on the AgenticRun CR
-                  // to trigger re-analysis. State transition is handled by the operator.
-                  // In this prototype we optimistically show Analyzing state.
-                  // eslint-disable-next-line no-alert
-                  window.alert('Re-run analysis: In production this patches spec.revisionFeedback on the AgenticRun CR (OLS-3719). Not yet wired in prototype.');
-                }}
-              >
-                Re-run analysis
-              </Button>
-            }
-          >
-            Analysis was stopped on {plan.terminatedAt ?? '—'} by user {plan.abortedBy ?? 'platform-admin'}.
-          </Alert>
-        </StackItem>
-
-        {/* C. Root Cause Analysis Card — muted, no result available */}
-        <StackItem>
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            gap={{ default: 'gapSm' }}
-            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-          >
-            <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-              Root cause analysis
-            </Title>
-            <Label color="grey" isCompact>AI-generated</Label>
-          </Flex>
-          <div style={LOCKED_BOX_STYLE}>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <RhUiBanIcon
-                style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
-                aria-hidden
-              />
-              <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
-                Analysis was aborted before a root cause could be determined.
-              </Content>
-            </Flex>
-          </div>
-        </StackItem>
-
-        {/* D. Remediation Hub — muted, no options available */}
-        <StackItem>
-          <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-            Remediation plans
-          </Title>
-          <div style={LOCKED_BOX_STYLE}>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <RhUiBanIcon
-                style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
-                aria-hidden
-              />
-              <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
-                No remediation options available because analysis was canceled.
-              </Content>
-            </Flex>
-          </div>
-        </StackItem>
-
-        {/* E. Timeline — preserved showing partial analysis steps up to abort */}
-        <StackItem>
-          <AgenticRunTimeline
-            status={status}
-            createdAt={plan.createdAt}
-            isCapabilitiesDisabled={!isAgenticAutomationEnabled}
-            evidence={timelineEvidence}
-          />
-        </StackItem>
-      </Stack>
-    );
-  }
-
-  // Cluster-update domain: RCA + read-only assessment. Standard proposal controls are not supported.
-  if (isClusterUpdatePlan) {
-    return (
-      <>
-      <Stack style={{ gap: '24px' }}>
-          <StackItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-            <AiExperienceIcon size={20} />
-            <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
-              Agentic run details
-            </Title>
-          </Flex>
-        </StackItem>
-
-        <StackItem>
-          <TriggerRequestSection
-            request={plan.request}
-            planId={plan.id}
-            logsLifecycle={analysisLogsLifecycle}
-            logFinding={analysisLogFinding}
-            logNarrative={analysisLogNarrative}
-            analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
-            traceId={plan.traceId}
-            runStatus={status}
-            showAnalysisLogs={false}
-          />
-        </StackItem>
-
-        <StackItem>
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            gap={{ default: 'gapSm' }}
-            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-          >
-            <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-              Root cause analysis
-            </Title>
-            <Label color="grey" isCompact>AI-generated</Label>
-          </Flex>
-          {isPendingReadyForAnalysis ? (
-            <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} isPendingApproval />
-          ) : isAnalyzing || !drawer ? (
-            <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
-          ) : (
-            <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
-              <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                <span className="ols-aio-text-overline">Detected root cause</span>
-              </div>
-              <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                {drawer.aggregatedFinding}
-              </Content>
-              <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                {drawer.rootCauseNarrative}
-              </Content>
-            </div>
-          )}
-        </StackItem>
-
-        <StackItem>
-          <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-            Remediation plans
-          </Title>
-          <Card style={{ borderRadius: '16px' }}>
-            <CardHeader>
-              <Flex
-                justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                alignItems={{ default: 'alignItemsFlexStart' }}
-                flexWrap={{ default: 'nowrap' }}
-                style={{ width: '100%' }}
-              >
-                        <FlexItem>
-                  <Flex
-                    direction={{ default: 'column' }}
-                    alignItems={{ default: 'alignItemsFlexStart' }}
-                    gap={{ default: 'gapXs' }}
-                  >
-                    <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
-                      Remediation
-                    </Content>
-                    <Content
-                      component="p"
-                      style={{
-                        fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {plan.synopsis}
-                    </Content>
-                  </Flex>
-                </FlexItem>
-                <FlexItem>
-                  {isCompleted ? (
-                    <Label color="green" icon={<RhUiCheckCircleFillIcon />}>Completed</Label>
-                  ) : status === 'Failed' ? (
-                    <Label color="red" icon={<RhUiErrorFillIcon />}>Failed</Label>
-                  ) : (isExecuting || isVerifying) ? (
-                    <Label color="blue" icon={<Spinner size="sm" aria-label="In progress" />}>In progress</Label>
-                  ) : isEscalated ? (
-                    <Label color="yellow" icon={<RhUiWarningFillIcon />}>Escalated</Label>
-                  ) : isDenied ? (
-                    <Label color="red" icon={<RhUiErrorFillIcon />}>Denied</Label>
-                  ) : isEmergencyStopped ? (
-                    <Label color="orange" icon={<RhUiWarningFillIcon />}>Emergency stopped</Label>
-                  ) : null}
-                        </FlexItem>
-                      </Flex>
-            </CardHeader>
-            <CardBody className="ols-remediation-option-card__body">
-              <Alert
-                variant="info"
-                isInline
-                title="External Workflow Required"
-              >
-                Cluster update readiness findings must be applied through the Cluster Settings portal
-                to preserve operator health validation checks.
-              </Alert>
-            </CardBody>
-          </Card>
-        </StackItem>
-
-        {/* ── Timeline (always last) ────────────────────────────────────── */}
-        <StackItem>
-          <AgenticRunTimeline
-            status={status}
-            createdAt={plan.createdAt}
-            isCapabilitiesDisabled={!isAgenticAutomationEnabled}
-            isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
-            evidence={timelineEvidence}
-          />
-        </StackItem>
-      </Stack>
-
-      {/* ── Cluster update sticky toolbar ──────────────────────────────────────
-          Only "Go to Cluster Settings" is rendered — standard proposal actions
-          (Execute remediation, Deny run, Download plan) are omitted because
-          cluster-update runs produce a read-only readiness assessment. */}
-      <div
-        style={{
-          position: 'sticky',
-          bottom: 0,
-          zIndex: 100,
-          backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-          borderTop: '1px solid var(--pf-t--global--border--color--default)',
-          padding: 'var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md)',
-        }}
-      >
-        <ActionList style={{ '--pf-v6-c-action-list--ColumnGap': 'var(--pf-t--global--spacer--gap--action-to-action--default)' } as React.CSSProperties}>
-          <ActionListItem>
-            <Button
-              variant="primary"
-              isDisabled={!onRemediateInClusterUpdates}
-              onClick={onRemediateInClusterUpdates}
-            >
-              Go to Cluster Settings
-            </Button>
-          </ActionListItem>
-        </ActionList>
-        <Content component="small" style={{ display: 'block', marginTop: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)' }}>
-          The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always review AI-generated content prior to use.
-        </Content>
-      </div>
-      </>
-    );
-  }
-
   // ── Pending HITL gate — Phase 1: Initializing (5s spinner) ──────────────────
   // Phase 2 (READY_FOR_ANALYSIS) falls through to the full Agentic Run Details
   // layout below with "Approve analysis" surfaced in the Analysis request header.
@@ -6095,7 +5807,44 @@ export const RemediationBlueprintPanel: React.FC<{
     approvedOptionId ? selectedOptionId === approvedOptionId : selectedOptionIndex === 0
   );
 
-  const meldedAnalysisPhaseContent = (
+  const abortedAnalysisLog = isRunAborted ? generateAbortedAnalysisLogs(plan.id) : '';
+
+  const meldedAnalysisPhaseContent = isRunAborted ? (
+    <>
+      <TriggerRequestSection
+        request={plan.request}
+        planId={plan.id}
+        logsLifecycle="cancelled"
+        logFinding={abortedAnalysisLog}
+        logNarrative="Analysis stopped before root cause could be confirmed."
+        analysisFailedToInitialize={false}
+        traceId={plan.traceId}
+        runStatus={status}
+        showAnalysisLogs
+      />
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--md)', marginTop: 'var(--pf-t--global--spacer--lg)' }}
+      >
+        <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+          Root cause analysis
+        </Title>
+        <Label color="grey" isCompact>AI-generated</Label>
+      </Flex>
+      <div style={LOCKED_BOX_STYLE}>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <RhUiBanIcon
+            style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
+            aria-hidden
+          />
+          <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
+            Analysis was aborted before a root cause could be determined.
+          </Content>
+        </Flex>
+      </div>
+    </>
+  ) : (
     <>
       <TriggerRequestSection
         request={plan.request}
@@ -6142,7 +5891,86 @@ export const RemediationBlueprintPanel: React.FC<{
     </>
   );
 
-  const meldedHumanApprovalContent = (
+  const meldedHumanApprovalContent = isRunAborted ? (
+    <>
+      <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+        Remediation plans
+      </Title>
+      <div style={LOCKED_BOX_STYLE}>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <RhUiBanIcon
+            style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
+            aria-hidden
+          />
+          <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
+            No remediation options available because analysis was canceled.
+          </Content>
+        </Flex>
+      </div>
+    </>
+  ) : isClusterUpdatePlan ? (
+    <>
+      <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+        Remediation plans
+      </Title>
+      <Card style={{ borderRadius: '16px' }}>
+        <CardHeader>
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            alignItems={{ default: 'alignItemsFlexStart' }}
+            flexWrap={{ default: 'nowrap' }}
+            style={{ width: '100%' }}
+          >
+            <FlexItem>
+              <Flex
+                direction={{ default: 'column' }}
+                alignItems={{ default: 'alignItemsFlexStart' }}
+                gap={{ default: 'gapXs' }}
+              >
+                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
+                  Remediation
+                </Content>
+                <Content
+                  component="p"
+                  style={{
+                    fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {plan.synopsis}
+                </Content>
+              </Flex>
+            </FlexItem>
+            <FlexItem>
+              {isCompleted ? (
+                <Label color="green" icon={<RhUiCheckCircleFillIcon />}>Completed</Label>
+              ) : status === 'Failed' ? (
+                <Label color="red" icon={<RhUiErrorFillIcon />}>Failed</Label>
+              ) : (isExecuting || isVerifying) ? (
+                <Label color="blue" icon={<Spinner size="sm" aria-label="In progress" />}>In progress</Label>
+              ) : isEscalated ? (
+                <Label color="yellow" icon={<RhUiWarningFillIcon />}>Escalated</Label>
+              ) : isDenied ? (
+                <Label color="red" icon={<RhUiErrorFillIcon />}>Denied</Label>
+              ) : isEmergencyStopped ? (
+                <Label color="orange" icon={<RhUiWarningFillIcon />}>Emergency stopped</Label>
+              ) : null}
+            </FlexItem>
+          </Flex>
+        </CardHeader>
+        <CardBody className="ols-remediation-option-card__body">
+          <Alert
+            variant="info"
+            isInline
+            title="External Workflow Required"
+          >
+            Cluster update readiness findings must be applied through the Cluster Settings portal
+            to preserve operator health validation checks.
+          </Alert>
+        </CardBody>
+      </Card>
+    </>
+  ) : (
     <>
       {isAnalysisOnly ? (
         <>
@@ -6576,26 +6404,138 @@ export const RemediationBlueprintPanel: React.FC<{
     ),
   };
 
-  const meldedDefaultExpandedEvents: readonly string[] = isProposed
-    ? ['agenticrun.human_approval']
-    : isPendingReadyForAnalysis
-      ? ['agenticrun.human_approval']
-      : isVerifying
-        ? ['agenticrun.verify']
-        : [];
+  const agenticRunActionsFooter = !isRunAborted ? (
+    <>
+      <ActionList style={{ '--pf-v6-c-action-list--ColumnGap': 'var(--pf-t--global--spacer--gap--action-to-action--default)' } as React.CSSProperties}>
+        {isClusterUpdatePlan ? (
+          <ActionListItem>
+            <Button
+              variant="primary"
+              isDisabled={!onRemediateInClusterUpdates}
+              onClick={onRemediateInClusterUpdates}
+            >
+              Go to Cluster Settings
+            </Button>
+          </ActionListItem>
+        ) : isPendingReadyForAnalysis ? (
+          <ActionListItem>
+            <Button
+              variant="primary"
+              isDisabled={!isAgenticAutomationEnabled}
+              onClick={() => dispatchAnalysis(plan.id)}
+            >
+              Approve analysis
+            </Button>
+          </ActionListItem>
+        ) : (
+          <>
+            {isStopApplicable && (
+              <ActionListItem>
+                <Button
+                  variant="danger"
+                  isDisabled={!isAgenticAutomationEnabled}
+                  onClick={stopAction}
+                >
+                  {stopLabel}
+                </Button>
+              </ActionListItem>
+            )}
+            <ActionListItem>
+              {stickyBarExecuteDisabled ? (
+                <Tooltip content={executeTooltip}>
+                  <span>
+                    <Button variant="primary" isDisabled>Execute remediation</Button>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    if (selectedOption) {
+                      setSelectedOptionId(selectedOption.id);
+                      setIsExecuteConfirmModalOpen(true);
+                    }
+                  }}
+                >
+                  Execute remediation
+                </Button>
+              )}
+            </ActionListItem>
+            <ActionListItem>
+              {stickyBarDenyDisabled ? (
+                <Tooltip content={denyTooltip}>
+                  <span>
+                    <Button variant="secondary" isDisabled>Deny run</Button>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Button variant="secondary" onClick={() => setIsDenyModalOpen(true)}>
+                  Deny run
+                </Button>
+              )}
+            </ActionListItem>
+            <ActionListItem>
+              {stickyDownloadDisabled ? (
+                <Tooltip content={stickyDownloadTooltip}>
+                  <span>
+                    <Button variant="link" icon={<RhUiDownloadIcon />} isDisabled>Download plan</Button>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Button
+                  variant="link"
+                  icon={<RhUiDownloadIcon />}
+                  onClick={() => {
+                    if (selectedOption) {
+                      downloadRemediationPlanMarkdown(plan, selectedOption, stickyRootCause);
+                    } else {
+                      downloadAnalysisReportMarkdown(plan, stickyRootCause);
+                    }
+                  }}
+                >
+                  Download plan
+                </Button>
+              )}
+            </ActionListItem>
+          </>
+        )}
+      </ActionList>
+      <Content component="small" style={{ display: 'block', marginTop: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)' }}>
+        The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always review AI-generated content prior to use.
+      </Content>
+    </>
+  ) : undefined;
 
   return (
     <>
+    <AgenticRunDetailsShell actions={agenticRunActionsFooter}>
     <Stack style={{ gap: '24px' }}>
       {/* ── Page heading ──────────────────────────────────────────────── */}
       <StackItem>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <AiExperienceIcon size={20} />
-          <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
-            Agentic run details
-          </Title>
-        </Flex>
+        <AgenticRunDetailsSectionHeading showAiDisclaimer={isRunAborted} />
       </StackItem>
+      {isRunAborted ? (
+        <StackItem>
+          <Alert
+            isInline
+            variant="info"
+            title="Analysis stopped"
+            actionLinks={
+              <Button
+                variant="link"
+                isInline
+                onClick={() => {
+                  window.alert('Re-run analysis: In production this patches spec.revisionFeedback on the AgenticRun CR (OLS-3719). Not yet wired in prototype.');
+                }}
+              >
+                Re-run analysis
+              </Button>
+            }
+          >
+            Analysis was stopped on {plan.terminatedAt ?? '—'} by user {plan.abortedBy ?? 'platform-admin'}.
+          </Alert>
+        </StackItem>
+      ) : null}
 
       {/* ── Status alerts (below heading) ────────────────────────────── */}
       {isEscalating && (
@@ -6685,7 +6625,6 @@ export const RemediationBlueprintPanel: React.FC<{
           isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
           evidence={timelineEvidence}
           meldedSlots={meldedTimelineSlots}
-          defaultExpandedEvents={meldedDefaultExpandedEvents}
         />
       </StackItem>
       {(isProposed || isEscalated) && (
@@ -6702,128 +6641,7 @@ export const RemediationBlueprintPanel: React.FC<{
         </StackItem>
       )}
     </Stack>
-
-    {/* ── Sticky action bar ─────────────────────────────────────────────────
-        Phase matrix (evaluated AFTER domain override):
-          • Pending (READY_FOR_ANALYSIS) → "Approve analysis" only (Primary)
-          • Analyzing          → Stop analysis ACTIVE | Execute/Deny/Download DISABLED
-          • Executing          → Stop execution ACTIVE | Execute/Deny DISABLED | Download ACTIVE
-          • Verifying          → Stop execution ACTIVE | Execute/Deny DISABLED | Download ACTIVE
-          • Escalating         → Stop execution ACTIVE | Execute/Deny DISABLED | Download ACTIVE
-          • Proposed           → Stop HIDDEN | Execute/Deny/Download ACTIVE
-          • Escalated          → Stop HIDDEN | Execute/Deny/Download ACTIVE
-          • Terminal (4 states)→ Stop HIDDEN | Execute/Deny DISABLED | Download ACTIVE */}
-    <div
-      style={{
-        position: 'sticky',
-        bottom: 0,
-        zIndex: 100,
-        backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-        borderTop: '1px solid var(--pf-t--global--border--color--default)',
-        padding: 'var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md)',
-      }}
-    >
-      {/* Override ActionList's default group-to-group gap (48px) with the
-          action-to-action token (16px) used by PF Toolbar for button groups. */}
-      <ActionList style={{ '--pf-v6-c-action-list--ColumnGap': 'var(--pf-t--global--spacer--gap--action-to-action--default)' } as React.CSSProperties}>
-        {/* Pending (READY_FOR_ANALYSIS): single focused CTA — analysis has not been
-            dispatched yet so Stop / Execute / Deny / Download are all irrelevant. */}
-        {isPendingReadyForAnalysis ? (
-          <ActionListItem>
-            <Button
-              variant="primary"
-              isDisabled={!isAgenticAutomationEnabled}
-              onClick={() => dispatchAnalysis(plan.id)}
-            >
-              Approve analysis
-            </Button>
-          </ActionListItem>
-        ) : (
-        <>
-        {/* Position 1: Stop analysis / Stop execution — Danger
-            Conditionally rendered so Positions 2-4 shift left when Stop is not applicable. */}
-        {isStopApplicable && (
-          <ActionListItem>
-            <Button
-              variant="danger"
-              isDisabled={!isAgenticAutomationEnabled}
-              onClick={stopAction}
-            >
-              {stopLabel}
-            </Button>
-          </ActionListItem>
-        )}
-
-        {/* Position 2: Execute remediation — Primary */}
-        <ActionListItem>
-          {stickyBarExecuteDisabled ? (
-            <Tooltip content={executeTooltip}>
-              <span>
-                <Button variant="primary" isDisabled>Execute remediation</Button>
-              </span>
-            </Tooltip>
-          ) : (
-            <Button
-              variant="primary"
-              onClick={() => {
-                if (selectedOption) {
-                  setSelectedOptionId(selectedOption.id);
-                  setIsExecuteConfirmModalOpen(true);
-                }
-              }}
-            >
-              Execute remediation
-            </Button>
-          )}
-        </ActionListItem>
-
-        {/* Position 3: Deny run — Secondary */}
-        <ActionListItem>
-          {stickyBarDenyDisabled ? (
-            <Tooltip content={denyTooltip}>
-              <span>
-                <Button variant="secondary" isDisabled>Deny run</Button>
-              </span>
-            </Tooltip>
-          ) : (
-            <Button variant="secondary" onClick={() => setIsDenyModalOpen(true)}>
-              Deny run
-            </Button>
-          )}
-        </ActionListItem>
-
-        {/* Position 4: Download plan — Link
-            Disabled while Pending (no CR yet) or Analyzing (ScopedActions payload incomplete). */}
-        <ActionListItem>
-          {stickyDownloadDisabled ? (
-            <Tooltip content={stickyDownloadTooltip}>
-              <span>
-                <Button variant="link" icon={<RhUiDownloadIcon />} isDisabled>Download plan</Button>
-              </span>
-            </Tooltip>
-          ) : (
-            <Button
-              variant="link"
-              icon={<RhUiDownloadIcon />}
-              onClick={() => {
-                if (selectedOption) {
-                  downloadRemediationPlanMarkdown(plan, selectedOption, stickyRootCause);
-                } else {
-                  downloadAnalysisReportMarkdown(plan, stickyRootCause);
-                }
-              }}
-            >
-              Download plan
-            </Button>
-          )}
-        </ActionListItem>
-        </>
-        )}
-      </ActionList>
-      <Content component="small" style={{ display: 'block', marginTop: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)' }}>
-        The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always review AI-generated content prior to use.
-      </Content>
-    </div>
+    </AgenticRunDetailsShell>
 
     {/* Stop analysis modal — rendered as a portal; lives outside Stack to avoid adding a gap slot */}
           <Modal

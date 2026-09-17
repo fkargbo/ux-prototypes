@@ -285,8 +285,8 @@ function resolveTimelinePhaseEvidence(
   if (event === 'agenticrun.verification.completed' || event === 'agenticrun.verification.retry') {
     if (!ctx.verificationLogText?.trim()) return null;
     return {
-      toggleCollapsed: 'View verification evidence',
-      toggleExpanded: 'Hide verification evidence',
+      toggleCollapsed: 'View verification logs',
+      toggleExpanded: 'Hide verification logs',
       content: () => (
         <ExpandableCodeBlock
           id={`timeline-verify-${ctx.planId}-${step.id}`}
@@ -301,8 +301,8 @@ function resolveTimelinePhaseEvidence(
     if (!ctx.verificationLogText?.trim()) return null;
     if (!step.isCurrent) return null;
     return {
-      toggleCollapsed: 'View verification evidence',
-      toggleExpanded: 'Hide verification evidence',
+      toggleCollapsed: 'View verification logs',
+      toggleExpanded: 'Hide verification logs',
       content: () => (
         <ExpandableCodeBlock
           id={`timeline-verify-active-${ctx.planId}-${step.id}`}
@@ -689,7 +689,10 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
               step={step}
               evidence={evidenceResolved}
               meldedBody={meldedBody}
-              defaultExpanded={shouldDefaultExpandStep(step, defaultExpandedEvents)}
+              defaultExpanded={
+                (step.isCurrent === true && Boolean(meldedBody || evidenceResolved))
+                || shouldDefaultExpandStep(step, defaultExpandedEvents)
+              }
               terminalExtra={terminalExtra}
             />
           );
