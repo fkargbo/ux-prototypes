@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import {
-  CodeBlock,
-  CodeBlockCode,
   Content,
   DescriptionList,
   DescriptionListDescription,
@@ -175,19 +173,6 @@ function resolveTimelinePhaseEvidence(
 
   const { event } = step;
 
-  if (event === 'agenticrun.received') {
-    if (!ctx.request?.trim()) return null;
-    return {
-      toggleCollapsed: 'View API payload',
-      toggleExpanded: 'Hide API payload',
-      content: () => (
-        <CodeBlock>
-          <CodeBlockCode>{ctx.request}</CodeBlockCode>
-        </CodeBlock>
-      ),
-    };
-  }
-
   if (event === 'agenticrun.analyze') {
     if (ctx.isAwaitingAnalysisApproval && status === 'Pending') return null;
     if (step.variant === 'pending') return null;
@@ -228,34 +213,6 @@ function resolveTimelinePhaseEvidence(
               <DescriptionListDescription>{ctx.rootCauseNarrative}</DescriptionListDescription>
             </DescriptionListGroup>
           )}
-        </DescriptionList>
-      ),
-    };
-  }
-
-  if (event === 'agenticrun.human_approval') {
-    if (step.variant === 'pending') return null;
-    return {
-      toggleCollapsed: 'View approval record',
-      toggleExpanded: 'Hide approval record',
-      content: () => (
-        <DescriptionList isCompact>
-          <DescriptionListGroup>
-            <DescriptionListTerm>Event</DescriptionListTerm>
-            <DescriptionListDescription>{step.label}</DescriptionListDescription>
-          </DescriptionListGroup>
-          {step.description && (
-            <DescriptionListGroup>
-              <DescriptionListTerm>Recorded at</DescriptionListTerm>
-              <DescriptionListDescription>{step.description}</DescriptionListDescription>
-            </DescriptionListGroup>
-          )}
-          <DescriptionListGroup>
-            <DescriptionListTerm>Permissions</DescriptionListTerm>
-            <DescriptionListDescription>
-              Scoped RBAC for this run is fixed upon approval and cannot be expanded mid-flight.
-            </DescriptionListDescription>
-          </DescriptionListGroup>
         </DescriptionList>
       ),
     };
@@ -646,6 +603,8 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   isAwaitingAnalysisApproval = false,
   evidence,
 }) => {
+  const [isTimelineExpanded, setIsTimelineExpanded] = useState(true);
+
   const steps = buildTimelineSteps(status, createdAt, retryCount, isAwaitingAnalysisApproval)
     .filter((s) => s.variant !== 'pending')
     .map((s) => {
@@ -664,10 +623,16 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   if (steps.length === 0) return null;
 
   return (
-    <div>
-      <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-        Timeline
-      </Title>
+    <ExpandableSection
+      toggleText=""
+      isExpanded={isTimelineExpanded}
+      onToggle={(_event, expanded) => setIsTimelineExpanded(expanded)}
+      toggleContent={
+        <Title headingLevel="h4" size="md">
+          Timeline
+        </Title>
+      }
+    >
       <Timeline aria-label="Agentic run timeline">
         {steps.map((step) => (
           <TimelineItem
@@ -677,6 +642,6 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
           />
         ))}
       </Timeline>
-    </div>
+    </ExpandableSection>
   );
 };
