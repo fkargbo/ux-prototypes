@@ -224,12 +224,14 @@
 }
 
 /*
- * Agentic run details: one page scroll; actions bar in document flow at the end (no sticky —
- * sticky + reserved padding caused empty scroll and the bar drifting mid-page).
+ * Agentic run details: page scroll; actions bar fixed to viewport bottom within the
+ * drilldown column (geometry synced in AgenticRunDetailsLayout). Spacer matches bar height
+ * so scroll ends flush — no empty gap below the disclaimer.
  */
 .ols-ai-hub-page--v3 div.template-page-content:has(.ols-plan-remediation-drilldown) {
   min-height: 0 !important;
-  padding-bottom: 24px !important;
+  padding-block-start: var(--pf-t--global--spacer--md) !important;
+  padding-block-end: 0 !important;
 }
 
 :root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content:has(.ols-plan-remediation-drilldown) {
@@ -248,19 +250,30 @@
 
 .ols-agentic-run-details-layout__subheader {
   width: 100%;
-  padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md) 0;
+  padding: 0 var(--pf-t--global--spacer--md);
   box-sizing: border-box;
 }
 
 .ols-agentic-run-details-layout__timeline {
   width: 100%;
-  padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md);
+  padding: var(--pf-t--global--spacer--md);
+  padding-block-start: var(--pf-t--global--spacer--lg);
   box-sizing: border-box;
 }
 
+.ols-agentic-run-details-layout__footer-spacer {
+  height: var(--ols-agentic-run-footer-height, 0);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
 .ols-agentic-run-details-layout__footer {
-  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: var(--ols-agentic-run-footer-left, 0);
+  width: var(--ols-agentic-run-footer-width, 100%);
   box-sizing: border-box;
+  z-index: var(--pf-t--global--z-index--md, 100);
   border-top: 1px solid var(--pf-t--global--border--color--default);
   background-color: var(--pf-t--global--background--color--primary--default);
   padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md);
