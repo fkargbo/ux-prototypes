@@ -31,7 +31,6 @@ import {
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
-import { AgenticRunDetailsPageFrame } from '../../components/AgenticRunDetailsPageLayout';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 import '../ai-hub-page.css';
@@ -177,15 +176,13 @@ export const AcsPlanDetailPageV2: React.FC = () => {
           style={isInitializingPhase && effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
         >
           <AgenticKillSwitchBanner />
-          <AgenticRunDetailsPageFrame aria-label={`ACS plan: ${planDisplayName}`}>
-            <RemediationBlueprintPanel
+          <RemediationBlueprintPanel
             key={plan.id}
             plan={effectivePlan}
             onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
             onStartNewInvestigation={navigateBackToPlans}
             onPendingInitializingChange={setIsInitializingPhase}
           />
-          </AgenticRunDetailsPageFrame>
         </div>
       </div>
     </div>

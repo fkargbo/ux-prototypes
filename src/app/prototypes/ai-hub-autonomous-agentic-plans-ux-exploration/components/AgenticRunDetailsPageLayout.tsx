@@ -1,5 +1,5 @@
 import React from 'react';
-import { Breadcrumb, BreadcrumbItem, Page } from '@patternfly/react-core';
+import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
 
 export type AgenticRunDetailsBreadcrumbProps = {
   listLabel: string;
@@ -18,21 +18,38 @@ export const AgenticRunDetailsBreadcrumb: React.FC<AgenticRunDetailsBreadcrumbPr
   </Breadcrumb>
 );
 
-type AgenticRunDetailsPageFrameProps = {
-  /** `PageSection` nodes from `RemediationBlueprintPanel`. */
+type AgenticRunDetailsLayoutProps = {
+  /** Sub-header, alerts, and “Agentic run details” copy — does not scroll. */
+  subheader: React.ReactNode;
+  /** Timeline and melded phase content — scrolls inside the content column. */
   children: React.ReactNode;
-  'aria-label'?: string;
+  /** Sticky action bar + AI disclaimer; spans full drilldown width. */
+  actions?: React.ReactNode;
 };
 
 /**
- * PF6 filled page column inside `template-page-content`. Breadcrumb and run title render
- * in the standard template sections above this frame (see v2 detail route pages).
+ * Three-part column inside `ols-plan-remediation-drilldown` (no nested PF Page — avoids
+ * fighting the OpenShift console page grid and broken fill/sticky sections).
  */
-export const AgenticRunDetailsPageFrame: React.FC<AgenticRunDetailsPageFrameProps> = ({
+export const AgenticRunDetailsLayout: React.FC<AgenticRunDetailsLayoutProps> = ({
+  subheader,
   children,
-  'aria-label': ariaLabel,
+  actions,
 }) => (
-  <Page isContentFilled className="ols-agentic-run-details-page" aria-label={ariaLabel}>
-    {children}
-  </Page>
+  <div className="ols-agentic-run-details-layout">
+    <div className="ols-agentic-run-details-layout__subheader">{subheader}</div>
+    <div
+      className="ols-agentic-run-details-layout__scroll"
+      role="region"
+      aria-label="Agentic run timeline and remediation details"
+      tabIndex={0}
+    >
+      {children}
+    </div>
+    {actions ? (
+      <footer className="ols-agentic-run-details-layout__footer" aria-label="Run actions">
+        {actions}
+      </footer>
+    ) : null}
+  </div>
 );

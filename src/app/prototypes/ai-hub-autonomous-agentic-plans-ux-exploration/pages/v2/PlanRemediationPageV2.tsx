@@ -19,7 +19,6 @@ import {
   type PlanRow,
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
-import { AgenticRunDetailsPageFrame } from '../../components/AgenticRunDetailsPageLayout';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import {
   buildPrototypeHref,
@@ -197,8 +196,7 @@ export const PlanRemediationPageV2: React.FC = () => {
           style={isInitializingPhase && effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
         >
           <AgenticKillSwitchBanner />
-          <AgenticRunDetailsPageFrame aria-label={`Plan remediation: ${planDisplayName}`}>
-            <RemediationBlueprintPanel
+          <RemediationBlueprintPanel
             key={plan.id}
             plan={effectivePlan}
             onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
@@ -206,7 +204,6 @@ export const PlanRemediationPageV2: React.FC = () => {
             onRemediateInClusterUpdates={openClusterUpdateUi}
             onPendingInitializingChange={setIsInitializingPhase}
           />
-          </AgenticRunDetailsPageFrame>
         </div>
       </div>
     </div>

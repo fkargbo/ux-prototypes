@@ -32,7 +32,6 @@ import {
   ModalFooter,
   ModalHeader,
   ModalVariant,
-  PageSection,
   Pagination,
   PaginationVariant,
   Popover,
@@ -50,6 +49,7 @@ import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { AgenticRunTimeline, type AgenticRunTimelineEvidenceContext, type MeldedTimelineSlots } from '../../components/AgenticRunTimeline';
+import { AgenticRunDetailsLayout } from '../../components/AgenticRunDetailsPageLayout';
 import { AgenticRunDetailsSectionHeading } from '../../components/AgenticRunDetailsSectionHeading';
 import { NamespaceResourceLink } from '../../components/NamespaceResourceLink';
 import {
@@ -6508,7 +6508,8 @@ export const RemediationBlueprintPanel: React.FC<{
 
   return (
     <>
-      <PageSection padding={{ default: 'padding' }}>
+      <AgenticRunDetailsLayout
+        subheader={
         <Stack style={{ gap: '24px' }}>
           <StackItem>
             <AgenticRunDetailsSectionHeading showAiDisclaimer={isRunAborted} />
@@ -6613,13 +6614,8 @@ export const RemediationBlueprintPanel: React.FC<{
             </StackItem>
           )}
         </Stack>
-      </PageSection>
-
-      <PageSection
-        isFilled
-        hasOverflowScroll
-        aria-label="Agentic run timeline and remediation details"
-        padding={{ default: 'padding' }}
+        }
+        actions={agenticRunActionsFooter}
       >
         <Stack style={{ gap: '24px' }}>
           <StackItem>
@@ -6646,22 +6642,7 @@ export const RemediationBlueprintPanel: React.FC<{
             </StackItem>
           )}
         </Stack>
-      </PageSection>
-
-      {agenticRunActionsFooter ? (
-        <PageSection
-          stickyBase="bottom"
-          hasShadowTop
-          padding={{ default: 'padding' }}
-          aria-label="Run actions"
-          style={{
-            borderTop: '1px solid var(--pf-t--global--border--color--default)',
-            backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
-          }}
-        >
-          {agenticRunActionsFooter}
-        </PageSection>
-      ) : null}
+      </AgenticRunDetailsLayout>
 
     {/* Stop analysis modal — rendered as a portal; lives outside Stack to avoid adding a gap slot */}
           <Modal
