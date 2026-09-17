@@ -23,12 +23,12 @@ type AgenticRunDetailsLayoutProps = {
   subheader: React.ReactNode;
   /** Timeline and melded phase content — scrolls with the page. */
   children: React.ReactNode;
-  /** Action bar + AI disclaimer — sticky to viewport bottom within the drilldown column. */
+  /** Action bar + AI disclaimer — end of page scroll, full drilldown width. */
   actions?: React.ReactNode;
 };
 
 /**
- * Agentic run details column: one document scroll (console main), footer sticks to bottom only.
+ * Agentic run details column: console page scroll; actions sit flush after timeline (see CSS).
  */
 export const AgenticRunDetailsLayout: React.FC<AgenticRunDetailsLayoutProps> = ({
   subheader,

@@ -224,9 +224,18 @@
 }
 
 /*
- * Agentic run details: single page scroll (no inner overflow pane). Only the actions footer
- * uses position sticky at the bottom of the viewport.
+ * Agentic run details: one page scroll; actions bar in document flow at the end (no sticky —
+ * sticky + reserved padding caused empty scroll and the bar drifting mid-page).
  */
+.ols-ai-hub-page--v3 div.template-page-content:has(.ols-plan-remediation-drilldown) {
+  min-height: 0 !important;
+  padding-bottom: 24px !important;
+}
+
+:root.pf-v6-theme-glass .ols-ai-hub-page div.template-page-content:has(.ols-plan-remediation-drilldown) {
+  min-height: 0 !important;
+}
+
 .ols-agentic-run-details-layout {
   width: 100%;
   box-sizing: border-box;
@@ -235,11 +244,6 @@
 .ols-agentic-run-details-layout__main {
   width: 100%;
   box-sizing: border-box;
-  /*
-   * Reserve space so the last timeline content is not hidden under the sticky footer.
-   * Tune if action rows wrap on narrow widths.
-   */
-  padding-bottom: 7rem;
 }
 
 .ols-agentic-run-details-layout__subheader {
@@ -255,15 +259,11 @@
 }
 
 .ols-agentic-run-details-layout__footer {
-  position: sticky;
-  bottom: 0;
   width: 100%;
   box-sizing: border-box;
-  z-index: var(--pf-t--global--z-index--md, 100);
   border-top: 1px solid var(--pf-t--global--border--color--default);
   background-color: var(--pf-t--global--background--color--primary--default);
   padding: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md);
-  box-shadow: 0 -4px 12px rgb(0 0 0 / 6%);
 }
 
 @media (min-width: 1101px) {
