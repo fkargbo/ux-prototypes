@@ -33,7 +33,7 @@ export type DependencyState = 'ready' | 'attention' | 'degraded' | 'missing';
 /**
  * Groups a dependency into one of two rendered sub-sections:
  *  - OPERATOR  → "Required operators"  (OLM-installed operators + backend workloads)
- *  - CONFIGURATION → "Required configurations" (Custom Resources, UI Plugin CRs, secrets)
+ *  - CONFIGURATION → "Configurations" (Custom Resources, UI Plugin CRs, secrets)
  *
  * Optional — omit on v1 cards to preserve the legacy "Required components" single section.
  */
@@ -51,7 +51,7 @@ export interface CapabilityDependency {
     isExternal?: boolean;
   };
   /**
-   * When set, the card body splits into "Required operators" / "Required configurations"
+   * When set, the card body splits into "Required operators" / "Configurations"
    * sub-sections instead of the generic "Required components" heading.
    * Leave unset for v1 data to preserve backward compatibility.
    */

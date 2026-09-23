@@ -125,14 +125,29 @@ interface KpiCardProps {
   navigate: ReturnType<typeof useNavigate>;
 }
 
+/**
+ * Resolves the icon severity for a KPI value.
+ * Integer 0 + zeroVariant → treat as non-alarming (Day 0 setup gaps must not
+ * render as danger). Otherwise use valueIconVariant when set.
+ */
+const resolveValueIconVariant = (stat: OperationalKpiStat): OperationalKpiVariant | undefined => {
+  const numeric = Number.parseInt(stat.value, 10);
+  const isZeroInteger = Number.isInteger(numeric) && numeric === 0 && /^\d+$/.test(stat.value.trim());
+  if (isZeroInteger && stat.zeroVariant !== undefined) {
+    return stat.zeroVariant === 'neutral' ? undefined : stat.zeroVariant;
+  }
+  return stat.valueIconVariant;
+};
+
 const KpiCard: React.FC<KpiCardProps> = ({ stat, navigate }) => {
   // Render the numeric value — three variants:
   // 1. popoverItems present → Popover trigger button
   // 2. valueIsLink → plain link-styled button (no navigation yet)
   // 3. default → plain text
   const valueNode = (() => {
-    const iconNode = stat.valueIconVariant ? (
-      <KpiValueIcon variant={stat.valueIconVariant} />
+    const effectiveIconVariant = resolveValueIconVariant(stat);
+    const iconNode = effectiveIconVariant ? (
+      <KpiValueIcon variant={effectiveIconVariant} />
     ) : null;
 
     const valueInner = (

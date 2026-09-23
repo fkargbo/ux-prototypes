@@ -214,7 +214,7 @@ export const CapabilityCard: React.FC<CapabilityCardProps> = ({ capability, onDe
                 {configDeps.length > 0 && (
                   <>
                     <h4 className="ols-obs-services-capability-card__deps-heading ols-obs-services-capability-card__deps-heading--spaced">
-                      Required configurations
+                      Configurations
                     </h4>
                     <List isPlain className="ols-obs-services-capability-card__deps">
                       {configDeps.map(renderDepItem)}

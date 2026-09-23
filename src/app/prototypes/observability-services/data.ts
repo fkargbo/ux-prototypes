@@ -30,9 +30,11 @@ export const OPERATIONAL_KPI_STATS_V2_DAY0: OperationalKpiStat[] = [
     category: 'Component health',
     value: '0',
     label: 'Degraded',
-    subtext: 'No operators running',
-    variant: 'danger',
-    zeroVariant: 'success',
+    // Day 0: setup gaps (not installed / not configured) are lifecycle state,
+    // not active runtime failures — never surface a danger icon when count is 0.
+    subtext: 'No components degraded',
+    variant: 'neutral',
+    zeroVariant: 'neutral',
     valueIconVariant: 'danger',
   },
 ];
