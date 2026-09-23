@@ -670,7 +670,7 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
       onToggle={(_event, expanded) => setIsTimelineExpanded(expanded)}
       toggleContent={
         <Title headingLevel="h4" size="md">
-          Timeline
+          Agentic run timeline
         </Title>
       }
     >
