@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import {
   Button,
+  ClipboardCopyButton,
+  CodeBlock,
+  CodeBlockAction,
+  CodeBlockCode,
   DescriptionList,
   DescriptionListDescription,
   DescriptionListGroup,
@@ -23,7 +27,6 @@ import {
   AnalysisLogsExpandable,
   type AnalysisLogsLifecycle,
 } from './AnalysisLogsExpandable';
-import { ExpandableCodeBlock } from './ExpandableCodeBlock';
 import type { AlertInvestigationCardData } from '../pages/ai-hub-plans-v2/alertInvestigationPlans';
 import type { PlanStatus } from '../types/planStatus';
 
@@ -132,6 +135,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   alertInvestigation,
 }) => {
   const [isRawPayloadExpanded, setIsRawPayloadExpanded] = useState(false);
+  const [isRawPayloadCopied, setIsRawPayloadCopied] = useState(false);
   const hasRequest = Boolean(request?.trim());
   const emptyMessage = analysisFailedToInitialize
     ? 'Analysis failed to initialize.'
@@ -139,6 +143,15 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   const showTraceLink =
     Boolean(traceId) && Boolean(runStatus) && TRACE_LINK_VISIBLE_STATUSES.has(runStatus as PlanStatus);
   const isAlertInvestigation = Boolean(alertInvestigation);
+  const rawPayloadCodeId = `analysis-request-raw-${planId}`;
+  const rawPayloadCopyId = `${rawPayloadCodeId}-copy`;
+
+  const handleCopyRawPayload = () => {
+    if (!request) return;
+    navigator.clipboard.writeText(request);
+    setIsRawPayloadCopied(true);
+    window.setTimeout(() => setIsRawPayloadCopied(false), 2000);
+  };
 
   return (
     <div className="ols-ai-hub-trigger-request">
@@ -254,12 +267,35 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
                 isExpanded={isRawPayloadExpanded}
                 onToggle={(_event, expanded) => setIsRawPayloadExpanded(expanded)}
               >
-                <ExpandableCodeBlock
-                  id={`analysis-request-raw-${planId}`}
-                  code={request!}
-                  codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto' }}
-                  maxCollapsedLines={12}
-                />
+                <CodeBlock
+                  actions={
+                    <CodeBlockAction>
+                      <ClipboardCopyButton
+                        id={rawPayloadCopyId}
+                        textId={rawPayloadCodeId}
+                        aria-label="Copy raw alert payload to clipboard"
+                        onClick={handleCopyRawPayload}
+                        exitDelay={1000}
+                        variant="plain"
+                      >
+                        {isRawPayloadCopied ? 'Copied!' : 'Copy'}
+                      </ClipboardCopyButton>
+                    </CodeBlockAction>
+                  }
+                >
+                  <CodeBlockCode
+                    id={rawPayloadCodeId}
+                    style={{
+                      fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                      maxHeight: '280px',
+                      overflowY: 'auto',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {request}
+                  </CodeBlockCode>
+                </CodeBlock>
               </ExpandableSection>
             ) : (
               <EmptyState variant="xs">
