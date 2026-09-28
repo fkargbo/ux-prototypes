@@ -19,6 +19,7 @@ import {
   AI_INSIGHT_TEXT_STYLE,
 } from '../data/fleetInsightsConfig';
 import type { LightspeedInvestigateContext } from './OpenShiftLightspeedPanel';
+import { getUxAlertInvestigationActionLabel } from '../../ai-hub-plans-v2/alertInvestigationPlans';
 
 type SeverityKey = 'Critical' | 'Warning' | 'Info';
 type SeverityLabelStatus = 'danger' | 'warning' | 'info';
@@ -161,7 +162,7 @@ export const TopAlertsSection: React.FC<TopAlertsSectionProps> = ({
                           style={{ display: 'block', flexShrink: 0 }}
                         />
                       </span>
-                      Investigate with AI
+                      {getUxAlertInvestigationActionLabel(rule.name)}
                     </Button>
                   </FlexItem>
                 ) : null}

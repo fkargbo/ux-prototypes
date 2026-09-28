@@ -264,6 +264,91 @@ export function markAlertInvestigationCreated(alertName: string): void {
   }
 }
 
+/**
+ * Alerts that already have an active AgenticRun (Proposed demo).
+ * Alerting kebab should show “View AI investigation”; list includes the run immediately.
+ * `VMCannotBeEvicted` is the Alerting mock alias for `VCCannotBeEvicted`.
+ */
+export const EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS = [
+  'VCCannotBeEvicted',
+  'VMCannotBeEvicted',
+] as const;
+
+export const INVESTIGATE_WITH_AI_LABEL = 'Investigate with AI';
+export const VIEW_AI_INVESTIGATION_LABEL = 'View AI investigation';
+
+export function isExistingAlertInvestigationDemo(alertName: string): boolean {
+  return (EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS as readonly string[]).includes(alertName);
+}
+
+/** Action label for Top firing / Alerting CTAs in this UX-exploration prototype. */
+export function getUxAlertInvestigationActionLabel(alertName: string): string {
+  if (isExistingAlertInvestigationDemo(alertName)) {
+    return VIEW_AI_INVESTIGATION_LABEL;
+  }
+  const created = readCreatedAlertInvestigations();
+  if (created.includes(alertName)) {
+    return VIEW_AI_INVESTIGATION_LABEL;
+  }
+  return INVESTIGATE_WITH_AI_LABEL;
+}
+
+/**
+ * Observability Alerting reads this shared key for kebab labels.
+ * Seed only while UX-exploration is mounted; clean up on unmount so MVP is untouched.
+ */
+const OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY =
+  'hpux.observability-agentic-troubleshooting-ai.alert-investigation-created';
+
+function readSessionAlertNames(key: string): string[] {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((entry): entry is string => typeof entry === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSessionAlertNames(key: string, names: string[]): void {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(names));
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Seed Run B (VCCannotBeEvicted / Proposed) as an existing investigation for:
+ * - UX-exploration plan list visibility
+ * - Observability Alerting kebab label (“View AI investigation”)
+ * Returns a cleanup that removes only the demo seeds from the observability key.
+ */
+export function seedExistingAlertInvestigationDemoState(): () => void {
+  EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS.forEach((name) => markAlertInvestigationCreated(name));
+
+  const beforeObs = readSessionAlertNames(OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY);
+  const mergedObs = Array.from(new Set([...beforeObs, ...EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS]));
+  writeSessionAlertNames(OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY, mergedObs);
+
+  return () => {
+    const current = readSessionAlertNames(OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY);
+    const cleaned = current.filter(
+      (name) => !(EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS as readonly string[]).includes(name),
+    );
+    if (cleaned.length === 0) {
+      try {
+        sessionStorage.removeItem(OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    writeSessionAlertNames(OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY, cleaned);
+  };
+}
+
 /** Mark every alert alias for a plan id (keeps Alerting deep-links local to this prototype). */
 export function markAlertInvestigationCreatedForPlanId(planId: string): void {
   Object.entries(ALERT_NAME_TO_NEW_INVESTIGATION_PLAN_ID)
@@ -283,14 +368,16 @@ export function getAlertInvestigationCard(planId: string): AlertInvestigationCar
   return ALERT_INVESTIGATION_CARD_BY_PLAN_ID[planId];
 }
 
-/** Hide alert-triggered investigation plans until the user opens them from Alerting. */
+/** Hide 0-to-1 alert plans until opened; keep existing (Proposed) demo runs visible. */
 export function isNewAlertInvestigationPlanVisible(plan: PlanRow): boolean {
+  if (plan.id === 'inv-alert-vm-cannot-evict') {
+    return true;
+  }
   const alertName = resolveAlertNameForNewInvestigationPlanId(plan.id);
   if (!alertName) {
     return true;
   }
   const created = readCreatedAlertInvestigations();
-  // Canonical + alias names may both be stored depending on which UI opened the run.
   const aliases = Object.entries(ALERT_NAME_TO_NEW_INVESTIGATION_PLAN_ID)
     .filter(([, id]) => id === plan.id)
     .map(([name]) => name);
