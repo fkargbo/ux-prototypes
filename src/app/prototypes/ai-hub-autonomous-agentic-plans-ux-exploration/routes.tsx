@@ -114,6 +114,21 @@ export const routes: RouteConfig[] = [
     navigation: { group: 'Administration', order: 7 },
   },
 
+  // ── Alerting → Agentic run details bridge (UX-exploration host only) ────────
+  // When THIS prototype is active, Alerting navigates to
+  // /core/observe/troubleshooting-plans/:planId. Bridge into /ux-exp/... so the
+  // MVP stream (/v2/ai-hub/...) is never involved.
+  {
+    path: '/core/observe/troubleshooting-plans',
+    element: <BridgeRedirect to="/ux-exp/ai-hub/observe/plans" />,
+    title: 'Agentic runs',
+  },
+  {
+    path: '/core/observe/troubleshooting-plans/:planId',
+    element: <BridgeRedirect to="/ux-exp/ai-hub/agentic-runs/runs/:planId" />,
+    title: 'Agentic run details',
+  },
+
   // ── Alerting ───────────────────────────────────────────────────────────────
   {
     path: '/core/observe/alerting',

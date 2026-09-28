@@ -659,6 +659,35 @@ const SYNTHETIC_FLEET_ALERTS: AlertRecord[] = [
     rootCauseTail: 'cache pressure',
     category: 'AI insight · Storage',
   }),
+  buildSyntheticAlert({
+    id: 'alrt-9020',
+    clusterId: 'prod-east-2',
+    severity: 'critical',
+    title: 'NodeNotReady',
+    service: 'openshift-node / kubelet',
+    age: '8m',
+    firedAt: '2026-04-29T18:24:00.000Z',
+    message: 'Node lost Ready condition on prod-east-2; AI investigation correlating kubelet and workload signals.',
+    rootCauseRef: 'kubelet-not-ready',
+    rootCauseTail: 'lost Ready condition',
+    category: 'AI insight · Platform',
+    agentStatus: 'investigating',
+  }),
+  buildSyntheticAlert({
+    id: 'alrt-9021',
+    clusterId: 'prod-east-2',
+    severity: 'warning',
+    title: 'VCCannotBeEvicted',
+    service: 'openshift-cluster-api / virt-launcher',
+    age: '14m',
+    firedAt: '2026-04-29T18:18:00.000Z',
+    message: 'Virtual machine eviction blocked on virt-launcher-node-1; remediation options ready for review.',
+    rootCauseRef: 'vm-eviction-pdb',
+    rootCauseTail: 'PDB / migration policy',
+    category: 'AI insight · Workload',
+    // Proposed-phase investigation — remediation options await approval.
+    agentStatus: 'remediating',
+  }),
 ];
 
 export const ALERTS: AlertRecord[] = [
@@ -1631,7 +1660,19 @@ export function buildFleetTopFiringAlertRuleRows(): FleetTopAlertRuleRow[] {
 
   /** Fleet ingress incident row pinned first on “Top firing alerts”; remainder sorted by volume. */
   const ordered = ingressRow ? [ingressRow, ...withoutIngress] : sorted;
-  return ordered.slice(0, TOP_FLEET_ALERTS_DISPLAY_MAX);
+
+  // Pin Alert Investigation deep-link demos so Investigate with AI entry points stay visible.
+  const alertInvestigationPins = ['NodeNotReady', 'VCCannotBeEvicted'];
+  const pinnedRows = alertInvestigationPins
+    .map((name) => ordered.find((row) => row.name === name) ?? byTitle[name])
+    .filter((row): row is FleetTopAlertRuleRow => Boolean(row));
+  const withoutPins = ordered.filter((row) => !alertInvestigationPins.includes(row.name));
+  const withPins = [
+    ...(ingressRow ? [ingressRow] : []),
+    ...pinnedRows,
+    ...withoutPins.filter((row) => row.name !== ingressTitle),
+  ];
+  return withPins.slice(0, TOP_FLEET_ALERTS_DISPLAY_MAX);
 }
 
 /**
@@ -1714,7 +1755,18 @@ export function buildClusterTopFiringAlertRuleRows(clusterId: string): FleetTopA
   const ingressRow = ingressIdx >= 0 ? sorted[ingressIdx] : undefined;
   const withoutIngress = ingressRow ? sorted.filter((_, i) => i !== ingressIdx) : sorted;
   const ordered = ingressRow ? [ingressRow, ...withoutIngress] : sorted;
-  return ordered.slice(0, TOP_FLEET_ALERTS_DISPLAY_MAX);
+
+  const alertInvestigationPins = ['NodeNotReady', 'VCCannotBeEvicted'];
+  const pinnedRows = alertInvestigationPins
+    .map((name) => ordered.find((row) => row.name === name) ?? byTitle[name])
+    .filter((row): row is FleetTopAlertRuleRow => Boolean(row));
+  const withoutPins = ordered.filter((row) => !alertInvestigationPins.includes(row.name));
+  const withPins = [
+    ...(ingressRow ? [ingressRow] : []),
+    ...pinnedRows,
+    ...withoutPins.filter((row) => row.name !== ingressTitle),
+  ];
+  return withPins.slice(0, TOP_FLEET_ALERTS_DISPLAY_MAX);
 }
 
 /** Firing alert count for one cluster (matches `getAlertsForCluster` / cluster KPI scope). */

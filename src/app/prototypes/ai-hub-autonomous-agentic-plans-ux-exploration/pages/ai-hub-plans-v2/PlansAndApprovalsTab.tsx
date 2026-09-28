@@ -85,6 +85,7 @@ import {
   applyScRemediationPatches,
 } from './singleClusterPlanSimulation';
 import {
+  getAlertInvestigationCard,
   NEW_ALERT_INVESTIGATION_DRAWER_DATA,
   NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
   NEW_ALERT_INVESTIGATION_PLANS,
@@ -921,10 +922,7 @@ const ALL_PLANS: RawPlanRow[] = [
       { icon: 'ban', text: 'MaxRetriesExhausted: escalation_request.tmpl type mismatch on StepResultRef — manual policy paused handoff.' },
     ],
   },
-  ...NEW_ALERT_INVESTIGATION_PLANS.map((plan) => ({
-    ...plan,
-    drawerTargets: ['prod-east-2'],
-  })),
+  ...NEW_ALERT_INVESTIGATION_PLANS,
 ];
 
 // ─── Dataset — Single-cluster overrides (Core Platforms perspective) ──────────
@@ -2445,6 +2443,42 @@ oc scale statefulset/prometheus-k8s --replicas=2 -n openshift-monitoring` },
     { id: 'prom-wal-o2', title: 'Segment-by-segment WAL repair in write-isolated mode', description: 'Cordon the Prometheus node, isolate the write path via remote-write disablement, then repair individual corrupted WAL segments. Faster than a full repair but requires manual segment identification. Riskier if additional corruption exists outside the identified segments.', risk: 'high', reversible: 'Partial', model: 'fast', rawCommands: `oc annotate pod/prometheus-k8s-0 -n openshift-monitoring prometheus.io/remote-write-disabled=true
 oc rsh -n openshift-monitoring prometheus-k8s-0 -- tsdb repair --repair /prometheus/wal/00000001
 oc annotate pod/prometheus-k8s-0 -n openshift-monitoring prometheus.io/remote-write-disabled-` },
+  ],
+  'inv-alert-vm-cannot-evict': [
+    {
+      id: 'inv-vc-o1',
+      title: 'Enable live migration + drain virt-launcher-node-1',
+      description:
+        'Enable KubeVirt live migration for the blocked VM, then drain virt-launcher-node-1 so the workload migrates without violating the PodDisruptionBudget.',
+      risk: 'medium',
+      reversible: 'Reversible',
+      model: 'smart',
+      rawCommands:
+        'oc patch virtualmachineinstance/virt-launcher-node-1 -n openshift-cluster-api --type merge -p \'{"spec":{"evictionStrategy":"LiveMigrate"}}\' && oc adm drain virt-launcher-node-1 --ignore-daemonsets --delete-emptydir-data',
+      diagnosis: {
+        aggregatedFinding:
+          'VCCannotBeEvicted: eviction blocked by PDB minAvailable=1 with live migration disabled.',
+        rootCauseNarrative:
+          'The virt-launcher pod cannot be evicted because live migration is disabled and the PDB requires at least one available pod.',
+      },
+    },
+    {
+      id: 'inv-vc-o2',
+      title: 'Temporarily lower PDB minAvailable during maintenance window',
+      description:
+        'Lower PodDisruptionBudget minAvailable to 0 for a controlled window, evict the VM, then restore the original PDB.',
+      risk: 'high',
+      reversible: 'Partial',
+      model: 'fast',
+      rawCommands:
+        'oc patch pdb/virt-launcher-pdb -n openshift-cluster-api --type merge -p \'{"spec":{"minAvailable":0}}\' && oc delete pod -l kubevirt.io/vm=virt-launcher-node-1 -n openshift-cluster-api',
+      diagnosis: {
+        aggregatedFinding:
+          'PDB constraint is the primary blocker; a temporary minAvailable relaxation unblocks eviction.',
+        rootCauseNarrative:
+          'With live migration unavailable, the only short-term path is a controlled PDB relaxation during a maintenance window.',
+      },
+    },
   ],
 };
 
@@ -5821,6 +5855,7 @@ export const RemediationBlueprintPanel: React.FC<{
         traceId={plan.traceId}
         runStatus={status}
         showAnalysisLogs
+        alertInvestigation={getAlertInvestigationCard(plan.id)}
       />
       <Flex
         alignItems={{ default: 'alignItemsCenter' }}
@@ -5856,6 +5891,7 @@ export const RemediationBlueprintPanel: React.FC<{
         traceId={plan.traceId}
         runStatus={status}
         showAnalysisLogs
+        alertInvestigation={getAlertInvestigationCard(plan.id)}
       />
       {showTopLevelRca && (
         <>
@@ -6769,6 +6805,7 @@ export function buildPlansForPerspective(
             severity: normalizedRow.severity,
             namespace: identity?.namespace,
             triggerDomain: normalizedRow.triggerDomain,
+            alertName: getAlertInvestigationCard(row.id)?.alertName,
           }),
       };
 

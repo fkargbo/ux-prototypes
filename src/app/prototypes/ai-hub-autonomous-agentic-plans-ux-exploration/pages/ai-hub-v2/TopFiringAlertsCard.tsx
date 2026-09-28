@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, CardBody, CardExpandableContent, CardHeader, CardTitle, Label } from '@patternfly/react-core';
+import { useActivePerspective, type AppShellPerspectiveKey } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   ALERTS,
   FLEET_WIDE_REGIONAL_INGRESS,
@@ -14,6 +15,14 @@ import { TopAlertsSection } from '../alerting-fleet-copy/components/TopAlertsSec
 import type { LightspeedInvestigateContext } from '../alerting-fleet-copy/components/OpenShiftLightspeedPanel';
 import { agenticGlobalAiApi } from '../../persesAgenticBridge';
 import { dispatchRemediationDrill } from '../../components/autonomousAiObserve/remediationDrillSession';
+import {
+  markAlertInvestigationCreated,
+  resolveNewInvestigationPlanIdForAlert,
+} from '../ai-hub-plans-v2/alertInvestigationPlans';
+import { getPlanDetailHref } from '../ai-hub-plans-v2/domainPlanNavigation';
+import { buildPlansForPerspective } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
+import { perspectiveKeyFromShellName } from '../v2PlanRemediationDrillSession';
+import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 
 const TOP_FIRING_CARD_ID = 'ols-ai-hub-top-firing-alerts';
 
@@ -44,6 +53,8 @@ export type TopFiringAlertsCardProps = {
  */
 export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ clusterId }) => {
   const navigate = useNavigate();
+  const { activePerspective } = useActivePerspective();
+  const isSingleCluster = Boolean(clusterId) || activePerspective === 'Core platforms';
 
   const [expanded, setExpanded] = useState(true);
 
@@ -69,8 +80,22 @@ export const TopFiringAlertsCard: React.FC<TopFiringAlertsCardProps> = ({ cluste
   }, [navigate, clusterId]);
 
   const onViewRemediation = useCallback((ruleName: string) => {
+    const planId = resolveNewInvestigationPlanIdForAlert(ruleName);
+    if (planId) {
+      markAlertInvestigationCreated(ruleName);
+      const perspectiveKey: AppShellPerspectiveKey =
+        perspectiveKeyFromShellName(activePerspective)
+        ?? (isSingleCluster ? 'core-platforms' : DEFAULT_PROTOTYPE_PERSPECTIVE);
+      const plan = buildPlansForPerspective(isSingleCluster).find((row) => row.id === planId);
+      if (plan) {
+        navigate(getPlanDetailHref(plan, perspectiveKey));
+        return;
+      }
+      navigate(`/ux-exp/ai-hub/agentic-runs/runs/${encodeURIComponent(planId)}?perspective=${perspectiveKey}`);
+      return;
+    }
     dispatchRemediationDrill({ alertRuleTitle: ruleName });
-  }, []);
+  }, [activePerspective, isSingleCluster, navigate]);
 
   const onOpenLightspeed = useCallback((ctx: LightspeedInvestigateContext) => {
     const directAlert = ALERTS.find((a) => a.title === ctx.sourceName);

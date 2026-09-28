@@ -1,5 +1,5 @@
 /**
- * MVP-prototype-specific wrapper around the shared Multi-cluster Alerting dashboard.
+ * UX-exploration wrapper around the shared Multi-cluster Alerting dashboard.
  * Adds the B4 AI-driven investigation banner when at least one alert row is
  * actively being investigated by the autonomous agent.
  *
@@ -8,8 +8,10 @@
  * inline-alert placement guideline: "If the alert is relevant to the tab content,
  * place it below the tabs."
  *
- * ⚠️  All changes in this file are ISOLATED to the AI Hub – Autonomous agentic
- *     plans (MVP) prototype.  Do NOT modify the shared MultiClusterAlertingDashboard.
+ * ⚠️  All changes in this file are ISOLATED to
+ *     `ai-hub-autonomous-agentic-plans-ux-exploration`.
+ *     Do NOT change the shared MultiClusterAlertingDashboard, and do NOT couple
+ *     this stream to `ai-hub-autonomous-agentic-plans-mvp`.
  */
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -32,7 +34,7 @@ const B4InvestigationBanner: React.FC = () => {
       if (!tabsEl) return false;
 
       const mountDiv = document.createElement('div');
-      mountDiv.setAttribute('data-mvp-b4-banner', 'true');
+      mountDiv.setAttribute('data-ux-exp-b4-banner', 'true');
       mountDiv.style.padding = `var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--md) 0`;
       tabsEl.insertAdjacentElement('afterend', mountDiv);
       mountRef.current = mountDiv;

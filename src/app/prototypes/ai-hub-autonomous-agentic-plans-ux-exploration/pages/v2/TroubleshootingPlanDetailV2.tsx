@@ -29,6 +29,7 @@ import {
   writePlanRemediationDrillSession,
 } from '../v2PlanRemediationDrillSession';
 import { resolvePlanDomainAnnotations } from '../ai-hub-plans-v2/domainPlanNavigation';
+import { markAlertInvestigationCreatedForPlanId } from '../ai-hub-plans-v2/alertInvestigationPlans';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
@@ -61,6 +62,14 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
 
   useEffect(() => {
     setLocallyDenied(false);
+  }, [planId]);
+
+  // Keep alert-investigation visibility scoped to this UX-exploration prototype
+  // (does not write the shared observability / MVP session key).
+  useEffect(() => {
+    if (planId) {
+      markAlertInvestigationCreatedForPlanId(decodeURIComponent(planId));
+    }
   }, [planId]);
 
   /**
