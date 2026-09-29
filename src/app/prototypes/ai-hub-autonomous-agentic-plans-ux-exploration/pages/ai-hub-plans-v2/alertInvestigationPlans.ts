@@ -283,6 +283,10 @@ export function isExistingAlertInvestigationDemo(alertName: string): boolean {
 
 /** Action label for Top firing / Alerting CTAs in this UX-exploration prototype. */
 export function getUxAlertInvestigationActionLabel(alertName: string): string {
+  // NodeNotReady is the 0-to-1 demo — always “Investigate with AI”.
+  if (alertName === 'NodeNotReady') {
+    return INVESTIGATE_WITH_AI_LABEL;
+  }
   if (isExistingAlertInvestigationDemo(alertName)) {
     return VIEW_AI_INVESTIGATION_LABEL;
   }
@@ -329,7 +333,9 @@ export function seedExistingAlertInvestigationDemoState(): () => void {
   EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS.forEach((name) => markAlertInvestigationCreated(name));
 
   const beforeObs = readSessionAlertNames(OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY);
-  const mergedObs = Array.from(new Set([...beforeObs, ...EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS]));
+  // Keep VC demo as “View AI investigation”; strip NodeNotReady so it stays “Investigate with AI”.
+  const withoutNodeNotReady = beforeObs.filter((name) => name !== 'NodeNotReady');
+  const mergedObs = Array.from(new Set([...withoutNodeNotReady, ...EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS]));
   writeSessionAlertNames(OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY, mergedObs);
 
   return () => {

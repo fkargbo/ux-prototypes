@@ -124,6 +124,12 @@ function stepIndicatorIcon(variant: TimelineStepVariant, isCurrent?: boolean): R
   }
 }
 
+function phaseAnchorId(event: string): string | undefined {
+  if (event === 'agenticrun.analyze') return 'analysis-phase';
+  if (event === 'agenticrun.human_approval') return 'remediation-phase';
+  return undefined;
+}
+
 const TimelineItem: React.FC<{
   step: TimelineStep;
   evidence: TimelinePhaseEvidence | null;
@@ -133,9 +139,10 @@ const TimelineItem: React.FC<{
 }> = ({ step, evidence, meldedBody, defaultExpanded = false, terminalExtra }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const contentId = `timeline-evidence-${step.id}`;
+  const anchorId = phaseAnchorId(step.event);
 
   return (
-    <li className="ols-agentic-run-timeline__item">
+    <li className="ols-agentic-run-timeline__item" id={anchorId}>
       <div className="ols-agentic-run-timeline__indicator" aria-hidden>
         {stepIndicatorIcon(step.variant, step.isCurrent)}
       </div>

@@ -6400,6 +6400,27 @@ export const RemediationBlueprintPanel: React.FC<{
     </>
   );
 
+  // Alerting deep-link: expand is already driven by timeline `isCurrent`; scroll the
+  // active phase into view above the fold after the melded timeline mounts.
+  useEffect(() => {
+    if (!getAlertInvestigationCard(plan.id)) {
+      return undefined;
+    }
+    const targetId =
+      status === 'Analyzing'
+        ? 'analysis-phase'
+        : status === 'Proposed'
+          ? 'remediation-phase'
+          : null;
+    if (!targetId) {
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+    return () => window.clearTimeout(timer);
+  }, [plan.id, status]);
+
   const meldedTimelineSlots: MeldedTimelineSlots = {
     analysisPhaseStarted: meldedAnalysisPhaseContent,
     humanApprovalRequested: meldedHumanApprovalContent,

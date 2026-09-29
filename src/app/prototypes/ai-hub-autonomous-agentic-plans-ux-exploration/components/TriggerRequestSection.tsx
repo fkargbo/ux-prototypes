@@ -5,15 +5,13 @@ import {
   CodeBlock,
   CodeBlockAction,
   CodeBlockCode,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
   EmptyState,
   EmptyStateBody,
   ExpandableSection,
   Flex,
   FlexItem,
+  Grid,
+  GridItem,
   Label,
   Popover,
   Title,
@@ -27,6 +25,7 @@ import {
   AnalysisLogsExpandable,
   type AnalysisLogsLifecycle,
 } from './AnalysisLogsExpandable';
+import { NamespaceResourceBadge } from './NamespaceResourceLink';
 import type { AlertInvestigationCardData } from '../pages/ai-hub-plans-v2/alertInvestigationPlans';
 import type { PlanStatus } from '../types/planStatus';
 
@@ -61,7 +60,7 @@ export type TriggerRequestSectionProps = {
   runStatus?: PlanStatus;
   /** When false, analysis logs render only on the Timeline (Agentic run details). */
   showAnalysisLogs?: boolean;
-  /** When set, render the formatted Alert Investigation card above the raw payload. */
+  /** When set, render the formatted Alert analysis card above the raw payload. */
   alertInvestigation?: AlertInvestigationCardData;
 };
 
@@ -115,12 +114,29 @@ function SeverityBadge({ severity }: { severity: 'critical' | 'warning' }) {
   );
 }
 
+function MetaField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <span className="ols-aio-text-overline">{label}</span>
+      <div
+        style={{
+          marginTop: 'var(--pf-t--global--spacer--xs)',
+          color: 'var(--pf-t--global--text--color--regular)',
+          fontSize: 'var(--pf-t--global--font--size--body--sm)',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
  * Analysis request section — matches Root cause analysis section structure
  * (title row + `ols-aio-rca-box` body). For alert-triggered runs, surfaces a
- * formatted Alert Investigation summary; raw payload stays in a collapsed expandable.
+ * formatted Alert analysis summary; raw payload stays in a collapsed expandable.
  */
 export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   request,
@@ -142,7 +158,6 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
     : 'Analysis request data unavailable.';
   const showTraceLink =
     Boolean(traceId) && Boolean(runStatus) && TRACE_LINK_VISIBLE_STATUSES.has(runStatus as PlanStatus);
-  const isAlertInvestigation = Boolean(alertInvestigation);
   const rawPayloadCodeId = `analysis-request-raw-${planId}`;
   const rawPayloadCopyId = `${rawPayloadCodeId}-copy`;
 
@@ -168,13 +183,6 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
                 Analysis request
               </Title>
             </FlexItem>
-            {isAlertInvestigation ? (
-              <FlexItem>
-                <Label color="grey" isCompact>
-                  Alert Investigation
-                </Label>
-              </FlexItem>
-            ) : null}
             <FlexItem>
               <Popover
                 aria-label="Analysis request help"
@@ -213,40 +221,37 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
       >
         {alertInvestigation ? (
           <>
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapSm' }}
-              flexWrap={{ default: 'wrap' }}
+            <Title
+              headingLevel="h5"
+              size="md"
               style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
             >
-              <FlexItem>
-                <Title headingLevel="h5" size="md" style={{ marginBottom: 0 }}>
-                  {alertInvestigation.alertName}
-                </Title>
-              </FlexItem>
-              <FlexItem>
-                <SeverityBadge severity={alertInvestigation.severity} />
-              </FlexItem>
-            </Flex>
+              Alert analysis
+            </Title>
 
-            <DescriptionList
-              isHorizontal
-              isCompact
-              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-            >
-              <DescriptionListGroup>
-                <DescriptionListTerm>Namespace</DescriptionListTerm>
-                <DescriptionListDescription>{alertInvestigation.namespace}</DescriptionListDescription>
-              </DescriptionListGroup>
-              <DescriptionListGroup>
-                <DescriptionListTerm>Trigger domain</DescriptionListTerm>
-                <DescriptionListDescription>{alertInvestigation.triggerDomainLabel}</DescriptionListDescription>
-              </DescriptionListGroup>
-              <DescriptionListGroup>
-                <DescriptionListTerm>Workload</DescriptionListTerm>
-                <DescriptionListDescription>{alertInvestigation.workload}</DescriptionListDescription>
-              </DescriptionListGroup>
-            </DescriptionList>
+            <Grid hasGutter style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <GridItem span={6}>
+                <MetaField label="Alert name">{alertInvestigation.alertName}</MetaField>
+              </GridItem>
+              <GridItem span={6}>
+                <MetaField label="Severity">
+                  <SeverityBadge severity={alertInvestigation.severity} />
+                </MetaField>
+              </GridItem>
+              <GridItem span={6}>
+                <MetaField label="Namespace">
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+                    <FlexItem>
+                      <NamespaceResourceBadge />
+                    </FlexItem>
+                    <FlexItem>{alertInvestigation.namespace}</FlexItem>
+                  </Flex>
+                </MetaField>
+              </GridItem>
+              <GridItem span={6}>
+                <MetaField label="Trigger domain">{alertInvestigation.triggerDomainLabel}</MetaField>
+              </GridItem>
+            </Grid>
 
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
               <span className="ols-aio-text-overline">Alert summary</span>
