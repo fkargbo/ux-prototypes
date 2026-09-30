@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Content,
   ExpandableSection,
@@ -127,6 +127,12 @@ function stepIndicatorIcon(variant: TimelineStepVariant, isCurrent?: boolean): R
 function phaseAnchorId(event: string): string | undefined {
   if (event === 'agenticrun.analyze') return 'analysis-phase';
   if (event === 'agenticrun.human_approval') return 'remediation-phase';
+  if (event === 'agenticrun.execution.completed' || event === 'agenticrun.execute') {
+    return 'execution-phase';
+  }
+  if (event === 'agenticrun.verification.completed' || event === 'agenticrun.verify') {
+    return 'verification-phase';
+  }
   return undefined;
 }
 
@@ -140,6 +146,14 @@ const TimelineItem: React.FC<{
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const contentId = `timeline-evidence-${step.id}`;
   const anchorId = phaseAnchorId(step.event);
+
+  // Re-apply default expansion when status-driven targets resolve after mount
+  // (e.g. Completed → execution/verification), without blocking later manual toggles.
+  useEffect(() => {
+    if (defaultExpanded) {
+      setIsExpanded(true);
+    }
+  }, [defaultExpanded, step.id]);
 
   return (
     <li className="ols-agentic-run-timeline__item" id={anchorId}>
@@ -260,14 +274,16 @@ export function getDefaultExpandedPhaseId(runStatus: PlanStatus): DefaultExpande
       return 'remediation';
 
     case 'Completed':
-      // Prefer verification evidence when present; caller falls back to execution.
-      return 'verification';
+      // Prefer execution evidence (logs / outputs); verification is expanded as a secondary when present.
+      return 'execution';
 
     case 'Failed':
     case 'Executing':
     case 'Approved':
     case 'EmergencyStopped':
     case 'Plan aborted':
+    case 'Escalating':
+    case 'Escalated':
       return 'execution';
 
     case 'Verifying':
@@ -281,11 +297,26 @@ export function getDefaultExpandedPhaseId(runStatus: PlanStatus): DefaultExpande
 /**
  * Resolves audit-event name(s) to expand for the given status, preferring events
  * that exist in the rendered timeline (pending steps are already filtered out).
+ *
+ * Completed expands Execution and Verification (when both exist) so success evidence
+ * is visible without scrolling past collapsed mid-timeline nodes.
  */
 export function getDefaultExpandedPhaseEvents(
   runStatus: PlanStatus,
   availableEvents: readonly string[],
 ): string[] {
+  const has = (event: string) => availableEvents.includes(event);
+  const firstMatch = (candidates: readonly string[]) => candidates.find(has);
+
+  if (runStatus === 'Completed') {
+    const events: string[] = [];
+    const exec = firstMatch(PHASE_EVENT_CANDIDATES.execution);
+    const verify = firstMatch(PHASE_EVENT_CANDIDATES.verification);
+    if (exec) events.push(exec);
+    if (verify) events.push(verify);
+    return events;
+  }
+
   const phaseId = getDefaultExpandedPhaseId(runStatus);
   if (!phaseId) {
     return [];
@@ -296,8 +327,42 @@ export function getDefaultExpandedPhaseEvents(
       ? [...PHASE_EVENT_CANDIDATES.verification, ...PHASE_EVENT_CANDIDATES.execution]
       : PHASE_EVENT_CANDIDATES[phaseId];
 
-  for (const event of candidates) {
-    if (availableEvents.includes(event)) {
+  const match = firstMatch(candidates);
+  return match ? [match] : [];
+}
+
+/**
+ * Narrows preferred events to those that actually have melded body or legacy evidence,
+ * then falls back through remaining phase candidates so terminal runs always expand something.
+ */
+export function resolveDefaultExpandedEventsWithContent(
+  runStatus: PlanStatus,
+  steps: readonly TimelineStep[],
+  hasContentForEvent: (event: string) => boolean,
+): string[] {
+  const availableEvents = steps.map((s) => s.event);
+  const preferred = getDefaultExpandedPhaseEvents(runStatus, availableEvents);
+  const preferredWithContent = preferred.filter(hasContentForEvent);
+  if (preferredWithContent.length > 0) {
+    return preferredWithContent;
+  }
+
+  const phaseId = getDefaultExpandedPhaseId(runStatus);
+  if (!phaseId) {
+    return [];
+  }
+
+  const fallbackCandidates =
+    phaseId === 'verification' || runStatus === 'Completed'
+      ? [...PHASE_EVENT_CANDIDATES.execution, ...PHASE_EVENT_CANDIDATES.verification, ...PHASE_EVENT_CANDIDATES.remediation, ...PHASE_EVENT_CANDIDATES.analysis]
+      : phaseId === 'execution'
+        ? [...PHASE_EVENT_CANDIDATES.execution, ...PHASE_EVENT_CANDIDATES.remediation, ...PHASE_EVENT_CANDIDATES.analysis]
+        : phaseId === 'remediation'
+          ? [...PHASE_EVENT_CANDIDATES.remediation, ...PHASE_EVENT_CANDIDATES.analysis]
+          : [...PHASE_EVENT_CANDIDATES.analysis, ...PHASE_EVENT_CANDIDATES.remediation];
+
+  for (const event of fallbackCandidates) {
+    if (availableEvents.includes(event) && hasContentForEvent(event)) {
       return [event];
     }
   }
@@ -747,9 +812,16 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
       return s;
     });
 
-  const statusExpandedEvents = getDefaultExpandedPhaseEvents(
+  const statusExpandedEvents = resolveDefaultExpandedEventsWithContent(
     status,
-    steps.map((s) => s.event),
+    steps,
+    (event) => {
+      const step = steps.find((s) => s.event === event);
+      if (!step) return false;
+      const meldedBody = resolveMeldedBody(step, meldedSlots);
+      if (meldedBody) return true;
+      return Boolean(resolveTimelinePhaseEvidence(step, evidence, status));
+    },
   );
   const expandedEvents = Array.from(new Set([...defaultExpandedEvents, ...statusExpandedEvents]));
 

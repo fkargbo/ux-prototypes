@@ -6401,18 +6401,26 @@ export const RemediationBlueprintPanel: React.FC<{
     </>
   );
 
-  // Alerting deep-link: expand is already driven by timeline `isCurrent`; scroll the
-  // active phase into view above the fold after the melded timeline mounts.
+  // Deep-link / status-driven scroll: bring the default-expanded phase above the fold
+  // after the melded timeline mounts (Analysis / Remediation / Execution / Verification).
   useEffect(() => {
-    if (!getAlertInvestigationCard(plan.id)) {
-      return undefined;
-    }
     const targetId =
-      status === 'Analyzing'
+      status === 'Analyzing' || status === 'Run aborted' || status === 'Acknowledged'
         ? 'analysis-phase'
-        : status === 'Proposed'
+        : status === 'Proposed' || status === 'Denied' || status === 'Pending'
           ? 'remediation-phase'
-          : null;
+          : status === 'Completed'
+            || status === 'Failed'
+            || status === 'Executing'
+            || status === 'Approved'
+            || status === 'EmergencyStopped'
+            || status === 'Plan aborted'
+            || status === 'Escalating'
+            || status === 'Escalated'
+            ? 'execution-phase'
+            : status === 'Verifying'
+              ? 'verification-phase'
+              : null;
     if (!targetId) {
       return undefined;
     }
