@@ -795,8 +795,6 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   meldedSlots,
   defaultExpandedEvents = [],
 }) => {
-  const [isTimelineExpanded, setIsTimelineExpanded] = useState(true);
-
   const steps = buildTimelineSteps(status, createdAt, retryCount, isAwaitingAnalysisApproval)
     .filter((s) => s.variant !== 'pending')
     .map((s) => {
@@ -828,16 +826,10 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   if (steps.length === 0) return null;
 
   return (
-    <ExpandableSection
-      toggleText=""
-      isExpanded={isTimelineExpanded}
-      onToggle={(_event, expanded) => setIsTimelineExpanded(expanded)}
-      toggleContent={
-        <Title headingLevel="h4" size="md">
-          Agentic run timeline
-        </Title>
-      }
-    >
+    <div>
+      <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+        Agentic run timeline
+      </Title>
       <Timeline aria-label="Agentic run timeline">
         {steps.map((step) => {
           const meldedBody = resolveMeldedBody(step, meldedSlots);
@@ -866,6 +858,6 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
           );
         })}
       </Timeline>
-    </ExpandableSection>
+    </div>
   );
 };
