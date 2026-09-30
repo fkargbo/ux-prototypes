@@ -5712,7 +5712,7 @@ export const RemediationBlueprintPanel: React.FC<{
   const timelineEvidence = useMemo((): AgenticRunTimelineEvidenceContext => {
     const execOption = options.find((opt) => opt.id === approvedOptionId) ?? options[0];
     const executionLog =
-      execOption && (isExecutionPhase || isTerminal || isVerifying || isEscalating || isEscalated)
+      execOption && (isExecutionPhase || isTerminal || isVerifying || isEscalating || isEscalated || isEmergencyStopped)
         ? buildActiveExecutionLogLines(plan, execOption).join('\n')
         : '';
     const verificationLog =
@@ -5743,6 +5743,7 @@ export const RemediationBlueprintPanel: React.FC<{
     drawer?.rootCauseNarrative,
     isEscalated,
     isEscalating,
+    isEmergencyStopped,
     isExecutionPhase,
     isPendingReadyForAnalysis,
     isTerminal,
@@ -6424,7 +6425,7 @@ export const RemediationBlueprintPanel: React.FC<{
   const meldedTimelineSlots: MeldedTimelineSlots = {
     analysisPhaseStarted: meldedAnalysisPhaseContent,
     humanApprovalRequested: meldedHumanApprovalContent,
-    executionPhaseCompleted: (isVerifying || isTerminal || isEscalating || isEscalated) ? (
+    executionPhaseCompleted: (isVerifying || isTerminal || isEscalating || isEscalated || isEmergencyStopped || isPlanAborted) ? (
       <ExecutionSummaryCard
         plan={plan}
         executionLog={summaryExecutionLog}

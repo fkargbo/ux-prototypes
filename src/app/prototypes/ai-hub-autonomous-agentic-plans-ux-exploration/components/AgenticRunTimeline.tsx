@@ -204,7 +204,9 @@ function resolveMeldedBody(step: TimelineStep, slots: MeldedTimelineSlots | unde
   if (event === 'agenticrun.analyze' && slots.analysisPhaseStarted) return slots.analysisPhaseStarted;
   if (event === 'agenticrun.human_approval' && slots.humanApprovalRequested) return slots.humanApprovalRequested;
   if (
-    (event === 'agenticrun.execution.completed' || event.startsWith('sr-exec-'))
+    (event === 'agenticrun.execution.completed'
+      || event === 'agenticrun.execute'
+      || event.startsWith('sr-exec-'))
     && slots.executionPhaseCompleted
   ) {
     return slots.executionPhaseCompleted;
@@ -223,6 +225,83 @@ function resolveMeldedBody(step: TimelineStep, slots: MeldedTimelineSlots | unde
 
 function shouldDefaultExpandStep(step: TimelineStep, defaultExpandedEvents: readonly string[]): boolean {
   return defaultExpandedEvents.includes(step.event);
+}
+
+/** Logical phase ids for default expansion on Agentic Run Details load. */
+export type DefaultExpandedPhaseId =
+  | 'analysis'
+  | 'remediation'
+  | 'execution'
+  | 'verification';
+
+const PHASE_EVENT_CANDIDATES: Record<DefaultExpandedPhaseId, readonly string[]> = {
+  analysis: ['agenticrun.analyze'],
+  remediation: ['agenticrun.human_approval'],
+  execution: ['agenticrun.execution.completed', 'agenticrun.execute'],
+  verification: ['agenticrun.verification.completed', 'agenticrun.verify'],
+};
+
+/**
+ * Maps run status → the phase that should start expanded.
+ * Terminal states open the phase with the most pertinent evidence; active states
+ * keep Analysis / Remediation focus (same as isCurrent fallback).
+ */
+export function getDefaultExpandedPhaseId(runStatus: PlanStatus): DefaultExpandedPhaseId | null {
+  switch (runStatus) {
+    case 'Analyzing':
+    case 'Run aborted':
+    case 'Acknowledged':
+      return 'analysis';
+
+    case 'Proposed':
+    case 'Denied':
+    case 'Pending':
+      // Pending + manual gate surfaces human_approval; Expired (if added) would land here too.
+      return 'remediation';
+
+    case 'Completed':
+      // Prefer verification evidence when present; caller falls back to execution.
+      return 'verification';
+
+    case 'Failed':
+    case 'Executing':
+    case 'Approved':
+    case 'EmergencyStopped':
+    case 'Plan aborted':
+      return 'execution';
+
+    case 'Verifying':
+      return 'verification';
+
+    default:
+      return null;
+  }
+}
+
+/**
+ * Resolves audit-event name(s) to expand for the given status, preferring events
+ * that exist in the rendered timeline (pending steps are already filtered out).
+ */
+export function getDefaultExpandedPhaseEvents(
+  runStatus: PlanStatus,
+  availableEvents: readonly string[],
+): string[] {
+  const phaseId = getDefaultExpandedPhaseId(runStatus);
+  if (!phaseId) {
+    return [];
+  }
+
+  const candidates =
+    phaseId === 'verification'
+      ? [...PHASE_EVENT_CANDIDATES.verification, ...PHASE_EVENT_CANDIDATES.execution]
+      : PHASE_EVENT_CANDIDATES[phaseId];
+
+  for (const event of candidates) {
+    if (availableEvents.includes(event)) {
+      return [event];
+    }
+  }
+  return [];
 }
 
 function resolveTimelinePhaseEvidence(
@@ -668,6 +747,12 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
       return s;
     });
 
+  const statusExpandedEvents = getDefaultExpandedPhaseEvents(
+    status,
+    steps.map((s) => s.event),
+  );
+  const expandedEvents = Array.from(new Set([...defaultExpandedEvents, ...statusExpandedEvents]));
+
   if (steps.length === 0) return null;
 
   return (
@@ -690,6 +775,7 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
             step.event === 'agenticrun.terminal'
               ? (meldedSlots?.terminal ?? null)
               : undefined;
+          const hasExpandableContent = Boolean(meldedBody || evidenceResolved);
           return (
             <TimelineItem
               key={step.id}
@@ -697,8 +783,11 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
               evidence={evidenceResolved}
               meldedBody={meldedBody}
               defaultExpanded={
-                (step.isCurrent === true && Boolean(meldedBody || evidenceResolved))
-                || shouldDefaultExpandStep(step, defaultExpandedEvents)
+                hasExpandableContent
+                && (
+                  (step.isCurrent === true)
+                  || shouldDefaultExpandStep(step, expandedEvents)
+                )
               }
               terminalExtra={terminalExtra}
             />
