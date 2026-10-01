@@ -154,6 +154,11 @@ export interface PlanRow {
   drawerTargets: string[];
   /** ISO-8601 instant when the plan was created. */
   createdAt?: string;
+  /**
+   * ISO-8601 instant when a terminal run (and associated resources) is scheduled
+   * for automatic cluster deletion. Present only for Completed / Failed / Denied.
+   */
+  deletionTime?: string | null;
   /** Logical plan resource name (e.g. gitops-domain-drift-remediation). */
   name?: string;
   /** Fleet cluster label for the plans table. */
@@ -2954,6 +2959,55 @@ const formatPlanCreatedAt = (iso: string): string => {
   });
 };
 
+/** Same console date/time formatting as the Created column. */
+const formatPlanTimestamp = formatPlanCreatedAt;
+
+/** Terminal statuses that carry a backend deletion timestamp (14-day retention mock). */
+const DELETION_TIME_TERMINAL_STATUSES = new Set<PlanStatus>(['Completed', 'Failed', 'Denied']);
+const DELETION_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
+
+/**
+ * Resolves `deletionTime` for an AgenticRun row.
+ * Only terminal Completed / Failed / Denied get a value (Created + 14 days);
+ * EmergencyStopped and in-progress states stay empty.
+ */
+export function resolvePlanDeletionTime(
+  status: PlanStatus,
+  createdAt: string | undefined,
+  explicit?: string | null,
+): string | undefined {
+  if (explicit) {
+    return explicit;
+  }
+  if (!createdAt || !DELETION_TIME_TERMINAL_STATUSES.has(status)) {
+    return undefined;
+  }
+  const createdMs = new Date(createdAt).getTime();
+  if (Number.isNaN(createdMs)) {
+    return undefined;
+  }
+  return new Date(createdMs + DELETION_RETENTION_MS).toISOString();
+}
+
+const PlanTimestampCell: React.FC<{ value?: string | null }> = ({ value }) => {
+  if (!value) {
+    return <>{'—'}</>;
+  }
+  return (
+    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+      <FlexItem>
+        <OutlinedClockIcon
+          style={{ color: 'var(--pf-t--global--icon--color--subtle)', verticalAlign: 'middle' }}
+          aria-hidden
+        />
+      </FlexItem>
+      <FlexItem>
+        <time dateTime={value}>{formatPlanTimestamp(value)}</time>
+      </FlexItem>
+    </Flex>
+  );
+};
+
 // ─── Status label ─────────────────────────────────────────────────────────────
 
 type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey' | 'yellow';
@@ -3323,7 +3377,7 @@ const PlanRowActionsMenu: React.FC<{ planId: string; planName: string; onDelete:
 
 // ─── Column management ────────────────────────────────────────────────────────
 
-export type ColumnKey = 'name' | 'namespace' | 'triggerDomain' | 'status' | 'tokensConsumed' | 'created';
+export type ColumnKey = 'name' | 'namespace' | 'triggerDomain' | 'status' | 'tokensConsumed' | 'created' | 'deletionTime';
 
 const COLUMN_LABELS: Record<ColumnKey, string> = {
   name: 'Name',
@@ -3332,19 +3386,47 @@ const COLUMN_LABELS: Record<ColumnKey, string> = {
   status: 'Status',
   tokensConsumed: 'Tokens consumed',
   created: 'Created',
+  deletionTime: 'Deletion time',
 };
 
 const ALWAYS_VISIBLE_COLUMN_SET = new Set<ColumnKey>(['name']);
-const DEFAULT_HIDDEN_COLUMNS: ColumnKey[] = ['tokensConsumed'];
+const DEFAULT_HIDDEN_COLUMNS: ColumnKey[] = ['tokensConsumed', 'deletionTime'];
 
-export const MANAGEABLE_COLUMN_ORDER: ColumnKey[] = ['name', 'namespace', 'triggerDomain', 'status', 'tokensConsumed', 'created'];
+/** Columns that existed before `deletionTime` — used to migrate saved visibility prefs. */
+const LEGACY_MANAGEABLE_COLUMNS: readonly ColumnKey[] = [
+  'name',
+  'namespace',
+  'triggerDomain',
+  'status',
+  'tokensConsumed',
+  'created',
+];
+
+export const MANAGEABLE_COLUMN_ORDER: ColumnKey[] = [
+  'name',
+  'namespace',
+  'triggerDomain',
+  'status',
+  'tokensConsumed',
+  'created',
+  'deletionTime',
+];
 
 export function usePlansColumnVisibility(storageKey?: string) {
   const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnKey>>(() => {
     if (storageKey) {
       try {
         const stored = localStorage.getItem(storageKey);
-        if (stored) return new Set(JSON.parse(stored) as ColumnKey[]);
+        if (stored) {
+          const parsed = new Set(JSON.parse(stored) as ColumnKey[]);
+          // Keep newly default-hidden columns hidden until the user explicitly toggles them.
+          for (const key of DEFAULT_HIDDEN_COLUMNS) {
+            if (!LEGACY_MANAGEABLE_COLUMNS.includes(key)) {
+              parsed.add(key);
+            }
+          }
+          return parsed;
+        }
       } catch { /* ignore */ }
     }
     return new Set<ColumnKey>(DEFAULT_HIDDEN_COLUMNS);
@@ -3480,11 +3562,14 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
 }) => {
   const isColHidden = (key: ColumnKey) => hiddenColumns?.has(key) ?? false;
   const tokensHidden = isColHidden('tokensConsumed');
+  // Hidden by default when column prefs are absent (matches Manage columns default).
+  const deletionTimeHidden = hiddenColumns ? isColHidden('deletionTime') : true;
   const triggerDomainVisible = showTriggerDomainColumn && !isColHidden('triggerDomain');
   const statusColIndex = triggerDomainVisible ? 3 : 2;
   const createdColIndex = triggerDomainVisible
     ? (tokensHidden ? 4 : 5)
     : (tokensHidden ? 3 : 4);
+  const deletionTimeColIndex = createdColIndex + 1;
   const getSortProps = (colIndex: number) =>
     !onSort
       ? {}
@@ -3513,10 +3598,23 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
           <Th style={{ width: '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(2)}>Trigger domain</Th>
         ) : null}
         <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(statusColIndex)}>Status</Th>
-        {!isColHidden('tokensConsumed') && (
+        {!tokensHidden && (
           <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
         )}
         <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(createdColIndex)}>Created</Th>
+        {!deletionTimeHidden && (
+          <Th
+            style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}
+            {...getSortProps(deletionTimeColIndex)}
+          >
+            <PlansTableColumnHeader
+              label="Deletion time"
+              popoverHeader="Deletion time"
+              popoverBody="The scheduled time when this terminal run and its associated resources will be automatically removed from the cluster."
+              ariaLabel="More information about Deletion time"
+            />
+          </Th>
+        )}
         <Th screenReaderText="Actions" />
       </Tr>
     </Thead>
@@ -3563,29 +3661,22 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             <StatusLabel status={row.status} terminatedAt={row.terminatedAt} />
           </Td>
 
-          {!isColHidden('tokensConsumed') && (
+          {!tokensHidden && (
             <Td dataLabel="Tokens consumed">
               <PlanTokensConsumedCell row={row} />
             </Td>
           )}
 
           <Td dataLabel="Created">
-            {row.createdAt ? (
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                <FlexItem>
-                  <OutlinedClockIcon
-                    style={{ color: 'var(--pf-t--global--icon--color--subtle)', verticalAlign: 'middle' }}
-                    aria-hidden
-                  />
-                </FlexItem>
-                <FlexItem>
-              <time dateTime={row.createdAt}>{formatPlanCreatedAt(row.createdAt)}</time>
-                </FlexItem>
-              </Flex>
-            ) : (
-              '—'
-            )}
+            <PlanTimestampCell value={row.createdAt} />
           </Td>
+
+          {!deletionTimeHidden && (
+            <Td dataLabel="Deletion time">
+              <PlanTimestampCell value={row.deletionTime} />
+            </Td>
+          )}
+
           <Td dataLabel="Actions" modifier="fitContent" style={{ textAlign: 'right' }}>
             <PlanRowActionsMenu
               planId={row.id}
@@ -3663,6 +3754,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
     let idx = 2;
     const triggerHidden = colVis.hiddenColumns.has('triggerDomain');
     const tokensHidden = colVis.hiddenColumns.has('tokensConsumed');
+    const deletionTimeHidden = colVis.hiddenColumns.has('deletionTime');
 
     if (!triggerHidden) {
       if (colIndex === idx) return resolveDisplayDomain(row.triggerDomain ?? '').toLowerCase();
@@ -3672,6 +3764,10 @@ const PlansTable: React.FC<PlansTableProps> = ({
     idx++;
     if (!tokensHidden) idx++; // tokens consumed — not sortable, just advance the counter
     if (colIndex === idx) return row.createdAt ?? '';
+    idx++;
+    if (!deletionTimeHidden) {
+      if (colIndex === idx) return row.deletionTime ?? '';
+    }
 
     return '';
   }, [colVis.hiddenColumns]);
@@ -6839,27 +6935,36 @@ export function buildPlansForPerspective(
           }),
       };
 
+      let resolvedRow: PlanRow = baseRow;
+
       if (abortedPlans[row.id]) {
         const abortEntry = abortedPlans[row.id];
         // 'analysis' phase abort → analysis was stopped before execution began → 'Run aborted'
         // 'execution' phase abort → execution was halted mid-flight → 'Plan aborted'
         const abortStatus = abortEntry.phase === 'analysis' ? 'Run aborted' : 'Plan aborted';
-        return {
+        resolvedRow = {
           ...baseRow,
           status: abortStatus,
           terminatedAt: abortEntry.terminatedAt,
         };
+      } else {
+        const workflowPhase = workflowByPlanId[row.id]?.runtimePhase;
+        if (workflowPhase) {
+          resolvedRow = {
+            ...baseRow,
+            status: workflowPhase,
+          };
+        }
       }
 
-      const workflowPhase = workflowByPlanId[row.id]?.runtimePhase;
-      if (workflowPhase) {
-        return {
-          ...baseRow,
-          status: workflowPhase,
-        };
-      }
-
-      return baseRow;
+      return {
+        ...resolvedRow,
+        deletionTime: resolvePlanDeletionTime(
+          resolvedRow.status,
+          resolvedRow.createdAt,
+          normalizedRow.deletionTime,
+        ),
+      };
     });
 }
 
