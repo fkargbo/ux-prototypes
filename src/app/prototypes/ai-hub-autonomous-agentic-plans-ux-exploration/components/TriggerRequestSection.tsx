@@ -32,6 +32,7 @@ import type {
   AlertInvestigationCardData,
 } from '../pages/ai-hub-plans-v2/alertInvestigationPlans';
 import type { PlanStatus } from '../types/planStatus';
+import './triggerRequestSection.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,10 +44,18 @@ const TRACE_LINK_VISIBLE_STATUSES: ReadonlySet<PlanStatus> = new Set([
   'Failed',
 ]);
 
-/** Visible body rows before the alert table scrolls (header stays sticky). */
+/** Visible body rows before the alert table scrolls (header stays frozen above). */
 const ALERT_TABLE_MAX_VISIBLE_ROWS = 3;
-/** Compact header + 3 body rows — keeps storm payloads scrollable without growing the card. */
-const ALERT_TABLE_SCROLL_MAX_HEIGHT = `calc(2.25rem + ${ALERT_TABLE_MAX_VISIBLE_ROWS} * 2.75rem)`;
+/** Compact body rows only — header is outside the scroll container. */
+const ALERT_TABLE_BODY_SCROLL_MAX_HEIGHT = `calc(${ALERT_TABLE_MAX_VISIBLE_ROWS} * 2.75rem)`;
+
+const ALERT_TABLE_COL_WIDTHS = {
+  alertName: 20 as const,
+  severity: 15 as const,
+  namespace: 25 as const,
+  triggerDomain: 25 as const,
+  actions: 15 as const,
+};
 
 export type TriggerRequestSectionProps = {
   /** Raw `spec.request` prompt / alert event string. */
@@ -143,16 +152,6 @@ function alertingHref(options: {
   }
   return `/core/observe/alerting?${params.toString()}`;
 }
-
-const stickyThStyle: React.CSSProperties = {
-  position: 'sticky',
-  top: 0,
-  zIndex: 2,
-  // Match `.ols-aio-rca-box` surface and stay fully opaque so scrolled rows don't show through.
-  backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
-  backgroundClip: 'padding-box',
-  boxShadow: 'inset 0 -1px 0 var(--pf-t--global--border--color--default)',
-};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -255,69 +254,94 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
             </Title>
 
             {alertRows.length > 0 ? (
-              <div
-                style={{
-                  maxHeight: ALERT_TABLE_SCROLL_MAX_HEIGHT,
-                  overflowY: alertRows.length > ALERT_TABLE_MAX_VISIBLE_ROWS ? 'auto' : 'visible',
-                  marginBottom: 'var(--pf-t--global--spacer--md)',
-                  borderBlockEnd: 'var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default)',
-                }}
-              >
+              <div className="ols-alert-analysis-table-wrap" role="group" aria-label="Correlated alerts for this analysis">
+                {/* Header is outside the scrollport so body rows can never show through it. */}
                 <Table
-                  aria-label="Correlated alerts for this analysis"
+                  className="ols-alert-analysis-table ols-alert-analysis-table--head"
                   variant="compact"
                   gridBreakPoint=""
                 >
                   <Thead>
                     <Tr>
-                      <Th style={stickyThStyle}>Alert name</Th>
-                      <Th style={stickyThStyle}>Severity</Th>
-                      <Th style={stickyThStyle}>Namespace</Th>
-                      <Th style={stickyThStyle}>Trigger domain</Th>
-                      <Th style={stickyThStyle} screenReaderText="Actions" />
+                      <Th width={ALERT_TABLE_COL_WIDTHS.alertName} modifier="truncate">Alert name</Th>
+                      <Th width={ALERT_TABLE_COL_WIDTHS.severity} modifier="truncate">Severity</Th>
+                      <Th width={ALERT_TABLE_COL_WIDTHS.namespace} modifier="truncate">Namespace</Th>
+                      <Th width={ALERT_TABLE_COL_WIDTHS.triggerDomain} modifier="truncate">Trigger domain</Th>
+                      <Th width={ALERT_TABLE_COL_WIDTHS.actions} modifier="truncate" screenReaderText="Actions" />
                     </Tr>
                   </Thead>
-                  <Tbody>
-                    {alertRows.map((row) => (
-                      <Tr key={`${row.alertName}-${row.namespace}`}>
-                        <Td dataLabel="Alert name">
-                          <span style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
-                            {row.alertName}
-                          </span>
-                        </Td>
-                        <Td dataLabel="Severity">
-                          <SeverityBadge severity={row.severity} />
-                        </Td>
-                        <Td dataLabel="Namespace">
-                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                            <FlexItem>
-                              <NamespaceResourceBadge />
-                            </FlexItem>
-                            <FlexItem>{row.namespace}</FlexItem>
-                          </Flex>
-                        </Td>
-                        <Td dataLabel="Trigger domain">{row.triggerDomainLabel}</Td>
-                        <Td dataLabel="Actions" modifier="fitContent">
-                          <Button
-                            variant="link"
-                            isInline
-                            onClick={() => {
-                              navigate(
-                                alertingHref({
-                                  alertName: row.alertName,
-                                  clusterId: row.clusterId,
-                                }),
-                              );
-                            }}
-                            aria-label={`View alert ${row.alertName} in Observe Alerting`}
-                          >
-                            View alert
-                          </Button>
-                        </Td>
-                      </Tr>
-                    ))}
-                  </Tbody>
                 </Table>
+                <div
+                  className="ols-alert-analysis-table-body-scroll"
+                  style={{
+                    maxHeight: ALERT_TABLE_BODY_SCROLL_MAX_HEIGHT,
+                    overflowY: alertRows.length > ALERT_TABLE_MAX_VISIBLE_ROWS ? 'auto' : 'visible',
+                  }}
+                >
+                  <Table
+                    className="ols-alert-analysis-table ols-alert-analysis-table--body"
+                    aria-label="Correlated alert rows"
+                    variant="compact"
+                    gridBreakPoint=""
+                  >
+                    <Tbody>
+                      {alertRows.map((row) => (
+                        <Tr key={`${row.alertName}-${row.namespace}`}>
+                          <Td
+                            dataLabel="Alert name"
+                            width={ALERT_TABLE_COL_WIDTHS.alertName}
+                            className="ols-alert-analysis-table__cell"
+                          >
+                            <span style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
+                              {row.alertName}
+                            </span>
+                          </Td>
+                          <Td dataLabel="Severity" width={ALERT_TABLE_COL_WIDTHS.severity}>
+                            <SeverityBadge severity={row.severity} />
+                          </Td>
+                          <Td
+                            dataLabel="Namespace"
+                            width={ALERT_TABLE_COL_WIDTHS.namespace}
+                            className="ols-alert-analysis-table__cell"
+                          >
+                            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                              <FlexItem>
+                                <NamespaceResourceBadge />
+                              </FlexItem>
+                              <FlexItem style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {row.namespace}
+                              </FlexItem>
+                            </Flex>
+                          </Td>
+                          <Td
+                            dataLabel="Trigger domain"
+                            width={ALERT_TABLE_COL_WIDTHS.triggerDomain}
+                            className="ols-alert-analysis-table__cell"
+                          >
+                            {row.triggerDomainLabel}
+                          </Td>
+                          <Td dataLabel="Actions" width={ALERT_TABLE_COL_WIDTHS.actions}>
+                            <Button
+                              variant="link"
+                              isInline
+                              onClick={() => {
+                                navigate(
+                                  alertingHref({
+                                    alertName: row.alertName,
+                                    clusterId: row.clusterId,
+                                  }),
+                                );
+                              }}
+                              aria-label={`View alert ${row.alertName} in Observe Alerting`}
+                            >
+                              View alert
+                            </Button>
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </div>
               </div>
             ) : null}
 

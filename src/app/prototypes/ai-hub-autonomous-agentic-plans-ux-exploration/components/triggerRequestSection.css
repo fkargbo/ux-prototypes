@@ -1,0 +1,33 @@
+/* Alert analysis compact table — frozen header + evenly weighted columns */
+
+.ols-alert-analysis-table-wrap {
+  margin-bottom: var(--pf-t--global--spacer--md);
+  border-block-end: var(--pf-t--global--border--width--divider--default) solid
+    var(--pf-t--global--border--color--default);
+}
+
+.ols-alert-analysis-table-body-scroll {
+  overflow-y: auto;
+}
+
+.ols-alert-analysis-table.pf-v6-c-table {
+  table-layout: fixed;
+  width: 100%;
+  --pf-v6-c-table--BackgroundColor: transparent;
+}
+
+/* Keep header visually continuous with the Analysis card; never translucent. */
+.ols-alert-analysis-table--head.pf-v6-c-table {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+:root.pf-v6-theme-glass .ols-alert-analysis-table--head.pf-v6-c-table {
+  /* Opaque cover — glass surface tokens are translucent and would leak body rows. */
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+.ols-alert-analysis-table .ols-alert-analysis-table__cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
