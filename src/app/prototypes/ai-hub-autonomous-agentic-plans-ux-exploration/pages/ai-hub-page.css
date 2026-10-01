@@ -296,8 +296,10 @@
 }
 
 @media (min-width: 1101px) {
+  /* +200px breathing room for the Agentic run timeline / melded details column. */
   .ols-plan-remediation-drilldown {
-    width: 60%;
+    width: calc(60% + 200px);
+    max-width: 100%;
   }
 }
 

@@ -1,32 +1,64 @@
-/* Alert analysis compact table — frozen header + evenly weighted columns */
+/* Alert analysis compact table — content-sized columns, 190px ellipsis cap */
 
-.ols-alert-analysis-table-wrap {
+.ols-alert-analysis-table-scroll {
   margin-bottom: var(--pf-t--global--spacer--md);
   border-block-end: var(--pf-t--global--border--width--divider--default) solid
     var(--pf-t--global--border--color--default);
-}
-
-.ols-alert-analysis-table-body-scroll {
-  overflow-y: auto;
-}
-
-.ols-alert-analysis-table.pf-v6-c-table {
-  table-layout: fixed;
-  width: 100%;
-  --pf-v6-c-table--BackgroundColor: transparent;
-}
-
-/* Keep header visually continuous with the Analysis card; never translucent. */
-.ols-alert-analysis-table--head.pf-v6-c-table {
+  /* Match Analysis card surface so sticky header cover is continuous. */
   background-color: var(--pf-t--global--background--color--secondary--default);
 }
 
-:root.pf-v6-theme-glass .ols-alert-analysis-table--head.pf-v6-c-table {
-  /* Opaque cover — glass surface tokens are translucent and would leak body rows. */
+.ols-alert-analysis-table.pf-v6-c-table {
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+  --pf-v6-c-table--BackgroundColor: var(--pf-t--global--background--color--secondary--default);
+  --pf-v6-c-table--m-sticky-header--BackgroundColor: var(
+    --pf-t--global--background--color--secondary--default
+  );
+}
+
+/* Opaque sticky header cover (PF paints via th::after). */
+.ols-alert-analysis-table.pf-v6-c-table.pf-m-sticky-header > .pf-v6-c-table__thead {
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+.ols-alert-analysis-table.pf-v6-c-table.pf-m-sticky-header
+  > .pf-v6-c-table__thead
+  .pf-v6-c-table__th::after {
+  background-color: var(--pf-t--global--background--color--secondary--default) !important;
+  opacity: 1 !important;
+}
+
+:root.pf-v6-theme-glass .ols-alert-analysis-table-scroll,
+:root.pf-v6-theme-glass .ols-alert-analysis-table.pf-v6-c-table {
+  --pf-v6-c-table--BackgroundColor: var(--pf-t--global--background--color--primary--default);
+  --pf-v6-c-table--m-sticky-header--BackgroundColor: var(
+    --pf-t--global--background--color--primary--default
+  );
   background-color: var(--pf-t--global--background--color--primary--default);
 }
 
-.ols-alert-analysis-table .ols-alert-analysis-table__cell {
+:root.pf-v6-theme-glass
+  .ols-alert-analysis-table.pf-v6-c-table.pf-m-sticky-header
+  > .pf-v6-c-table__thead {
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+:root.pf-v6-theme-glass
+  .ols-alert-analysis-table.pf-v6-c-table.pf-m-sticky-header
+  > .pf-v6-c-table__thead
+  .pf-v6-c-table__th::after {
+  background-color: var(--pf-t--global--background--color--primary--default) !important;
+}
+
+/*
+ * Content stretches the column; beyond 190px truncate with ellipsis
+ * (OCP console Name-column pattern).
+ */
+.ols-alert-analysis-table__truncate {
+  display: block;
+  max-width: 190px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
