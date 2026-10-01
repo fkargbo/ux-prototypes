@@ -18,7 +18,6 @@ import {
 import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
-  ExternalLinkAltIcon,
   InfoCircleIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
@@ -148,8 +147,11 @@ function alertingHref(options: {
 const stickyThStyle: React.CSSProperties = {
   position: 'sticky',
   top: 0,
-  zIndex: 1,
-  backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+  zIndex: 2,
+  // Match `.ols-aio-rca-box` surface and stay fully opaque so scrolled rows don't show through.
+  backgroundColor: 'var(--pf-t--global--background--color--secondary--default)',
+  backgroundClip: 'padding-box',
+  boxShadow: 'inset 0 -1px 0 var(--pf-t--global--border--color--default)',
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -299,8 +301,6 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
                           <Button
                             variant="link"
                             isInline
-                            icon={<ExternalLinkAltIcon />}
-                            iconPosition="end"
                             onClick={() => {
                               navigate(
                                 alertingHref({
