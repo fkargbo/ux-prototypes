@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
   ClipboardCopyButton,
@@ -10,8 +11,6 @@ import {
   ExpandableSection,
   Flex,
   FlexItem,
-  Grid,
-  GridItem,
   Label,
   Popover,
   Title,
@@ -19,14 +18,20 @@ import {
 import {
   ExclamationCircleIcon,
   ExclamationTriangleIcon,
+  ExternalLinkAltIcon,
+  InfoCircleIcon,
   OutlinedQuestionCircleIcon,
 } from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import {
   AnalysisLogsExpandable,
   type AnalysisLogsLifecycle,
 } from './AnalysisLogsExpandable';
 import { NamespaceResourceBadge } from './NamespaceResourceLink';
-import type { AlertInvestigationCardData } from '../pages/ai-hub-plans-v2/alertInvestigationPlans';
+import type {
+  AlertInvestigationAlertRow,
+  AlertInvestigationCardData,
+} from '../pages/ai-hub-plans-v2/alertInvestigationPlans';
 import type { PlanStatus } from '../types/planStatus';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -38,6 +43,11 @@ const TRACE_LINK_VISIBLE_STATUSES: ReadonlySet<PlanStatus> = new Set([
   'Completed',
   'Failed',
 ]);
+
+/** Visible body rows before the alert table scrolls (header stays sticky). */
+const ALERT_TABLE_MAX_VISIBLE_ROWS = 3;
+/** Compact header + 3 body rows — keeps storm payloads scrollable without growing the card. */
+const ALERT_TABLE_SCROLL_MAX_HEIGHT = `calc(2.25rem + ${ALERT_TABLE_MAX_VISIBLE_ROWS} * 2.75rem)`;
 
 export type TriggerRequestSectionProps = {
   /** Raw `spec.request` prompt / alert event string. */
@@ -99,11 +109,18 @@ export function buildAgenticRunRequest(plan: {
   ].join('\n');
 }
 
-function SeverityBadge({ severity }: { severity: 'critical' | 'warning' }) {
+function SeverityBadge({ severity }: { severity: AlertInvestigationAlertRow['severity'] }) {
   if (severity === 'critical') {
     return (
       <Label color="red" isCompact icon={<ExclamationCircleIcon />}>
         Critical
+      </Label>
+    );
+  }
+  if (severity === 'info') {
+    return (
+      <Label color="purple" isCompact icon={<InfoCircleIcon />}>
+        Info
       </Label>
     );
   }
@@ -114,29 +131,33 @@ function SeverityBadge({ severity }: { severity: 'critical' | 'warning' }) {
   );
 }
 
-function MetaField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <span className="ols-aio-text-overline">{label}</span>
-      <div
-        style={{
-          marginTop: 'var(--pf-t--global--spacer--xs)',
-          color: 'var(--pf-t--global--text--color--regular)',
-          fontSize: 'var(--pf-t--global--font--size--body--sm)',
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
+function alertingHref(options: {
+  alertName: string;
+  clusterId?: string;
+}): string {
+  const params = new URLSearchParams();
+  params.set('tab', 'alerts');
+  params.set('scope', 'ai-hub');
+  params.set('alertName', options.alertName);
+  if (options.clusterId) {
+    params.set('cluster', options.clusterId);
+  }
+  return `/core/observe/alerting?${params.toString()}`;
 }
+
+const stickyThStyle: React.CSSProperties = {
+  position: 'sticky',
+  top: 0,
+  zIndex: 1,
+  backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
  * Analysis request section — matches Root cause analysis section structure
  * (title row + `ols-aio-rca-box` body). For alert-triggered runs, surfaces a
- * formatted Alert analysis summary; raw payload stays in a collapsed expandable.
+ * compact Alert analysis table; raw payload stays in a collapsed expandable.
  */
 export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   request,
@@ -150,6 +171,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   showAnalysisLogs = true,
   alertInvestigation,
 }) => {
+  const navigate = useNavigate();
   const [isRawPayloadExpanded, setIsRawPayloadExpanded] = useState(false);
   const [isRawPayloadCopied, setIsRawPayloadCopied] = useState(false);
   const hasRequest = Boolean(request?.trim());
@@ -160,6 +182,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
     Boolean(traceId) && Boolean(runStatus) && TRACE_LINK_VISIBLE_STATUSES.has(runStatus as PlanStatus);
   const rawPayloadCodeId = `analysis-request-raw-${planId}`;
   const rawPayloadCopyId = `${rawPayloadCodeId}-copy`;
+  const alertRows = alertInvestigation?.alerts ?? [];
 
   const handleCopyRawPayload = () => {
     if (!request) return;
@@ -229,29 +252,74 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
               Alert analysis
             </Title>
 
-            <Grid hasGutter style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              <GridItem span={6}>
-                <MetaField label="Alert name">{alertInvestigation.alertName}</MetaField>
-              </GridItem>
-              <GridItem span={6}>
-                <MetaField label="Severity">
-                  <SeverityBadge severity={alertInvestigation.severity} />
-                </MetaField>
-              </GridItem>
-              <GridItem span={6}>
-                <MetaField label="Namespace">
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                    <FlexItem>
-                      <NamespaceResourceBadge />
-                    </FlexItem>
-                    <FlexItem>{alertInvestigation.namespace}</FlexItem>
-                  </Flex>
-                </MetaField>
-              </GridItem>
-              <GridItem span={6}>
-                <MetaField label="Trigger domain">{alertInvestigation.triggerDomainLabel}</MetaField>
-              </GridItem>
-            </Grid>
+            {alertRows.length > 0 ? (
+              <div
+                style={{
+                  maxHeight: ALERT_TABLE_SCROLL_MAX_HEIGHT,
+                  overflowY: alertRows.length > ALERT_TABLE_MAX_VISIBLE_ROWS ? 'auto' : 'visible',
+                  marginBottom: 'var(--pf-t--global--spacer--md)',
+                  borderBlockEnd: 'var(--pf-t--global--border--width--divider--default) solid var(--pf-t--global--border--color--default)',
+                }}
+              >
+                <Table
+                  aria-label="Correlated alerts for this analysis"
+                  variant="compact"
+                  gridBreakPoint=""
+                >
+                  <Thead>
+                    <Tr>
+                      <Th style={stickyThStyle}>Alert name</Th>
+                      <Th style={stickyThStyle}>Severity</Th>
+                      <Th style={stickyThStyle}>Namespace</Th>
+                      <Th style={stickyThStyle}>Trigger domain</Th>
+                      <Th style={stickyThStyle} screenReaderText="Actions" />
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {alertRows.map((row) => (
+                      <Tr key={`${row.alertName}-${row.namespace}`}>
+                        <Td dataLabel="Alert name">
+                          <span style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: 'var(--pf-t--global--font--size--body--sm)' }}>
+                            {row.alertName}
+                          </span>
+                        </Td>
+                        <Td dataLabel="Severity">
+                          <SeverityBadge severity={row.severity} />
+                        </Td>
+                        <Td dataLabel="Namespace">
+                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                            <FlexItem>
+                              <NamespaceResourceBadge />
+                            </FlexItem>
+                            <FlexItem>{row.namespace}</FlexItem>
+                          </Flex>
+                        </Td>
+                        <Td dataLabel="Trigger domain">{row.triggerDomainLabel}</Td>
+                        <Td dataLabel="Actions" modifier="fitContent">
+                          <Button
+                            variant="link"
+                            isInline
+                            icon={<ExternalLinkAltIcon />}
+                            iconPosition="end"
+                            onClick={() => {
+                              navigate(
+                                alertingHref({
+                                  alertName: row.alertName,
+                                  clusterId: row.clusterId,
+                                }),
+                              );
+                            }}
+                            aria-label={`View alert ${row.alertName} in Observe Alerting`}
+                          >
+                            View alert
+                          </Button>
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </div>
+            ) : null}
 
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
               <span className="ols-aio-text-overline">Alert summary</span>

@@ -86,6 +86,7 @@ import {
 } from './singleClusterPlanSimulation';
 import {
   getAlertInvestigationCard,
+  getAlertInvestigationPrimaryAlertName,
   NEW_ALERT_INVESTIGATION_DRAWER_DATA,
   NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
   NEW_ALERT_INVESTIGATION_PLANS,
@@ -6931,7 +6932,7 @@ export function buildPlansForPerspective(
             severity: normalizedRow.severity,
             namespace: identity?.namespace,
             triggerDomain: normalizedRow.triggerDomain,
-            alertName: getAlertInvestigationCard(row.id)?.alertName,
+            alertName: getAlertInvestigationPrimaryAlertName(row.id),
           }),
       };
 

@@ -23,13 +23,21 @@ export const ALERT_NAME_TO_NEW_INVESTIGATION_PLAN_ID: Record<string, string> = {
 
 export const NEW_ALERT_INVESTIGATION_PLAN_IDS = new Set(Object.values(ALERT_NAME_TO_NEW_INVESTIGATION_PLAN_ID));
 
-/** Formatted Alert Investigation card fields for Analysis request. */
-export type AlertInvestigationCardData = {
+/** One correlated alert row in the Analysis request Alert analysis table. */
+export type AlertInvestigationAlertRow = {
   alertName: string;
-  severity: 'critical' | 'warning';
+  severity: 'critical' | 'warning' | 'info';
   namespace: string;
   triggerDomainLabel: string;
-  workload: string;
+  /** Optional cluster scope for Observe > Alerting deep links. */
+  clusterId?: string;
+};
+
+/** Formatted Alert Investigation card fields for Analysis request. */
+export type AlertInvestigationCardData = {
+  /** Correlated alerts that triggered this analysis (supports alert storms). */
+  alerts: AlertInvestigationAlertRow[];
+  /** Human-readable summary shown beneath the alert table. */
   summary: string;
 };
 
@@ -129,38 +137,90 @@ export const NEW_ALERT_INVESTIGATION_PLAN_IDENTITY: Record<
 /** Structured card content for the Analysis request Alert Investigation layout. */
 export const ALERT_INVESTIGATION_CARD_BY_PLAN_ID: Record<string, AlertInvestigationCardData> = {
   'inv-alert-node-not-ready': {
-    alertName: 'NodeNotReady',
-    severity: 'critical',
-    namespace: 'openshift-node',
-    triggerDomainLabel: 'Prometheus / AlertManager',
-    workload: 'prod-east-2',
+    // Multi-alert storm demo — table scrolls after 3 visible rows.
+    alerts: [
+      {
+        alertName: 'NodeNotReady',
+        severity: 'critical',
+        namespace: 'openshift-node',
+        triggerDomainLabel: 'Prometheus / AlertManager',
+        clusterId: 'prod-east-2',
+      },
+      {
+        alertName: 'KubeNodeNotReady',
+        severity: 'critical',
+        namespace: 'openshift-node',
+        triggerDomainLabel: 'Prometheus / AlertManager',
+        clusterId: 'prod-east-2',
+      },
+      {
+        alertName: 'TargetDown',
+        severity: 'warning',
+        namespace: 'openshift-monitoring',
+        triggerDomainLabel: 'Prometheus / AlertManager',
+        clusterId: 'prod-east-2',
+      },
+      {
+        alertName: 'KubePodNotReady',
+        severity: 'warning',
+        namespace: 'openshift-monitoring',
+        triggerDomainLabel: 'Prometheus / AlertManager',
+        clusterId: 'prod-east-2',
+      },
+      {
+        alertName: 'NodeFilesystemAlmostOutOfSpace',
+        severity: 'info',
+        namespace: 'openshift-node',
+        triggerDomainLabel: 'Prometheus / AlertManager',
+        clusterId: 'prod-east-2',
+      },
+    ],
     summary:
-      'Node lost Ready condition on prod-east-2. AI analysis initiated to identify root cause and propose node drain/remediation steps.',
+      'Node lost Ready condition on prod-east-2. AI analysis correlating node, kubelet, and dependent workload alerts to identify root cause and propose drain/remediation steps.',
   },
   'inv-alert-vm-cannot-evict': {
-    alertName: 'VCCannotBeEvicted',
-    severity: 'warning',
-    namespace: 'openshift-cluster-api',
-    triggerDomainLabel: 'Prometheus / AlertManager',
-    workload: 'virt-launcher-node-1',
+    alerts: [
+      {
+        alertName: 'VCCannotBeEvicted',
+        severity: 'warning',
+        namespace: 'openshift-cluster-api',
+        triggerDomainLabel: 'Prometheus / AlertManager',
+        clusterId: 'prod-east-2',
+      },
+    ],
     summary:
       'Virtual machine eviction blocked on virt-launcher-node-1. AI analysis proposed remediation options for PDB and live-migration constraints.',
   },
   'inv-alert-mds-cache-high': {
-    alertName: 'MDSCacheUsageHigh',
-    severity: 'critical',
-    namespace: 'openshift-storage',
-    triggerDomainLabel: 'Prometheus / AlertManager',
-    workload: 'rook-ceph-mds-a',
+    alerts: [
+      {
+        alertName: 'MDSCacheUsageHigh',
+        severity: 'critical',
+        namespace: 'openshift-storage',
+        triggerDomainLabel: 'Prometheus / AlertManager',
+        clusterId: 'prod-east-2',
+      },
+      {
+        alertName: 'CephMDSMissingReplicas',
+        severity: 'warning',
+        namespace: 'openshift-storage',
+        triggerDomainLabel: 'Prometheus / AlertManager',
+        clusterId: 'prod-east-2',
+      },
+    ],
     summary:
       'Ceph MDS cache usage exceeded threshold. AI analysis correlating metadata load with client sessions.',
   },
   'inv-alert-node-cpu-high': {
-    alertName: 'NodeCPUHigh',
-    severity: 'warning',
-    namespace: 'kube-system',
-    triggerDomainLabel: 'Prometheus / AlertManager',
-    workload: 'worker-02',
+    alerts: [
+      {
+        alertName: 'NodeCPUHigh',
+        severity: 'warning',
+        namespace: 'kube-system',
+        triggerDomainLabel: 'Prometheus / AlertManager',
+        clusterId: 'prod-east-2',
+      },
+    ],
     summary:
       'Sustained CPU utilization above threshold on worker-02. AI analysis ranking noisy-neighbor workloads.',
   },
@@ -372,6 +432,11 @@ export function resolveAlertNameForNewInvestigationPlanId(planId: string): strin
 
 export function getAlertInvestigationCard(planId: string): AlertInvestigationCardData | undefined {
   return ALERT_INVESTIGATION_CARD_BY_PLAN_ID[planId];
+}
+
+/** Primary (first) alert name for request builders / deep links. */
+export function getAlertInvestigationPrimaryAlertName(planId: string): string | undefined {
+  return ALERT_INVESTIGATION_CARD_BY_PLAN_ID[planId]?.alerts[0]?.alertName;
 }
 
 /** Hide 0-to-1 alert plans until opened; keep existing (Proposed) demo runs visible. */
