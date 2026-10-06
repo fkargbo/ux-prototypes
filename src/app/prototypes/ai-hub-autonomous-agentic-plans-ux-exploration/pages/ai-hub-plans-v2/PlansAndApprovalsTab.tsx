@@ -3216,10 +3216,19 @@ export const WaitingApprovalPlanMeta: React.FC<{ plan: PlanRow }> = ({ plan }) =
     return null;
   }
 
+  const deletionTime = resolvePlanDeletionTime(plan.status, plan.createdAt, plan.deletionTime);
+
   return (
     <Content component="small" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
       Created{' '}
-      <time dateTime={plan.createdAt}>{formatPlanCreatedAt(plan.createdAt)}</time>
+      <time dateTime={plan.createdAt}>{formatPlanTimestamp(plan.createdAt)}</time>
+      {deletionTime ? (
+        <>
+          {' · '}
+          Deletion time{' '}
+          <time dateTime={deletionTime}>{formatPlanTimestamp(deletionTime)}</time>
+        </>
+      ) : null}
     </Content>
   );
 };
