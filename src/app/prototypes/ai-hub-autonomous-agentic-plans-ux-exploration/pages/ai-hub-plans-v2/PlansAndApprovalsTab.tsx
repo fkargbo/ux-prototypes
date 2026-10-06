@@ -3217,19 +3217,38 @@ export const WaitingApprovalPlanMeta: React.FC<{ plan: PlanRow }> = ({ plan }) =
   }
 
   const deletionTime = resolvePlanDeletionTime(plan.status, plan.createdAt, plan.deletionTime);
+  const timestampStyle: React.CSSProperties = {
+    margin: 0,
+    color: 'var(--pf-t--global--text--color--subtle)',
+  };
 
   return (
-    <Content component="small" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
-      Created{' '}
-      <time dateTime={plan.createdAt}>{formatPlanTimestamp(plan.createdAt)}</time>
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      spaceItems={{ default: 'spaceItemsSm' }}
+      flexWrap={{ default: 'wrap' }}
+    >
+      <FlexItem>
+        <Content component="small" style={timestampStyle}>
+          Created{' '}
+          <time dateTime={plan.createdAt}>{formatPlanTimestamp(plan.createdAt)}</time>
+        </Content>
+      </FlexItem>
       {deletionTime ? (
         <>
-          {' · '}
-          Deletion time{' '}
-          <time dateTime={deletionTime}>{formatPlanTimestamp(deletionTime)}</time>
+          <Divider
+            orientation={{ default: 'vertical' }}
+            style={{ alignSelf: 'stretch', minHeight: '1em' }}
+          />
+          <FlexItem>
+            <Content component="small" style={timestampStyle}>
+              Deletion time{' '}
+              <time dateTime={deletionTime}>{formatPlanTimestamp(deletionTime)}</time>
+            </Content>
+          </FlexItem>
         </>
       ) : null}
-    </Content>
+    </Flex>
   );
 };
 
