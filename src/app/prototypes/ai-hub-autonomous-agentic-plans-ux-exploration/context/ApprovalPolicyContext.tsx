@@ -2,6 +2,14 @@ import React, { createContext, useContext, useMemo, useState } from 'react';
 
 export type ApprovalMode = 'manual' | 'auto';
 
+/** Approval settings persisted onto an AgenticRun when the run is created. */
+export type AgenticRunApprovalPolicy = {
+  analysis: ApprovalMode;
+  execution: ApprovalMode;
+  verification: ApprovalMode;
+  escalation: ApprovalMode;
+};
+
 export type PolicyConfig = {
   /** Phase 1 — AI analysis dispatch: Manual requires "Approve analysis"; Auto bypasses Pending. */
   analysisPolicy: ApprovalMode;

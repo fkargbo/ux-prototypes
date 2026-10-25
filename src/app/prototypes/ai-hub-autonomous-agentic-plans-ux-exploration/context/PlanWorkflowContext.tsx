@@ -29,6 +29,7 @@ export type PlanWorkflowRecord = {
   runtimePhase: PlanStatus | null;
   executionApproval: ExecutionApproval | null;
   verification: VerificationState | null;
+  verificationApprovalPending: boolean;
   revisionHistory: RevisionFeedbackEntry[];
   revisionCount: number;
   isReAnalyzing: boolean;
@@ -40,6 +41,7 @@ const EMPTY_RECORD: PlanWorkflowRecord = {
   runtimePhase: null,
   executionApproval: null,
   verification: null,
+  verificationApprovalPending: false,
   revisionHistory: [],
   revisionCount: 0,
   isReAnalyzing: false,
@@ -64,6 +66,8 @@ type PlanWorkflowContextValue = {
   acknowledgePlan: (planId: string) => void;
   clearExecutionApproval: (planId: string) => void;
   startExecution: (planId: string) => void;
+  requestVerificationApproval: (planId: string, checks: string[]) => void;
+  approveVerification: (planId: string) => void;
   startVerification: (planId: string, checks: string[]) => void;
   completeVerification: (planId: string, success: boolean) => PlanStatus;
   submitRevisionFeedback: (planId: string, text: string) => void;
@@ -139,6 +143,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
         },
         runtimePhase: 'Executing',
         verification: null,
+        verificationApprovalPending: false,
       });
     },
     [patchPlan],
@@ -157,6 +162,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
         executionApproval: null,
         runtimePhase: 'Proposed',
         verification: null,
+        verificationApprovalPending: false,
       });
     },
     [patchPlan],
@@ -164,9 +170,53 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const startExecution = useCallback(
     (planId: string) => {
-      patchPlan(planId, { runtimePhase: 'Executing', verification: null });
+      patchPlan(planId, {
+        runtimePhase: 'Executing',
+        verification: null,
+        verificationApprovalPending: false,
+      });
     },
     [patchPlan],
+  );
+
+  const requestVerificationApproval = useCallback(
+    (planId: string, checks: string[]) => {
+      const record = workflowByPlanId[planId] ?? createEmptyRecord();
+      const approval = record.executionApproval;
+      const maxAttempts = approval?.maxAttempts ?? GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS;
+      const priorAttempt = record.verification?.attempt ?? 0;
+      patchPlan(planId, {
+        runtimePhase: 'Verifying',
+        verificationApprovalPending: true,
+        verification: {
+          attempt: priorAttempt + 1,
+          maxAttempts,
+          startedAt: new Date().toISOString(),
+          checks,
+        },
+      });
+    },
+    [patchPlan, workflowByPlanId],
+  );
+
+  const approveVerification = useCallback(
+    (planId: string) => {
+      const record = workflowByPlanId[planId] ?? createEmptyRecord();
+      if (!record.verification) {
+        return;
+      }
+      patchPlan(planId, {
+        runtimePhase: 'Verifying',
+        verificationApprovalPending: false,
+        verification: {
+          ...record.verification,
+          startedAt: new Date().toISOString(),
+          outcome: undefined,
+          completedAt: undefined,
+        },
+      });
+    },
+    [patchPlan, workflowByPlanId],
   );
 
   const startVerification = useCallback(
@@ -176,6 +226,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const priorAttempt = workflowByPlanId[planId]?.verification?.attempt ?? 0;
       patchPlan(planId, {
         runtimePhase: 'Verifying',
+        verificationApprovalPending: false,
         verification: {
           attempt: priorAttempt + 1,
           maxAttempts,
@@ -198,6 +249,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (success) {
         patchPlan(planId, {
           runtimePhase: 'Completed',
+          verificationApprovalPending: false,
           verification: { ...verification, outcome: 'passed', completedAt: new Date().toISOString() },
         });
         return 'Completed';
@@ -206,6 +258,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (verification.attempt < verification.maxAttempts) {
         patchPlan(planId, {
           runtimePhase: 'Executing',
+          verificationApprovalPending: false,
           verification: { ...verification, outcome: 'failed', completedAt: new Date().toISOString() },
         });
         return 'Executing';
@@ -213,6 +266,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       patchPlan(planId, {
         runtimePhase: 'Failed',
+        verificationApprovalPending: false,
         verification: { ...verification, outcome: 'failed', completedAt: new Date().toISOString() },
       });
       return 'Failed';
@@ -236,6 +290,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       patchPlan(planId, {
         executionApproval: null,
         verification: null,
+        verificationApprovalPending: false,
         runtimePhase: 'Analyzing',
         isReAnalyzing: true,
         revisionHistory: [...record.revisionHistory, entry],
@@ -273,6 +328,8 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       acknowledgePlan,
       clearExecutionApproval,
       startExecution,
+      requestVerificationApproval,
+      approveVerification,
       startVerification,
       completeVerification,
       submitRevisionFeedback,
@@ -288,6 +345,8 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       acknowledgePlan,
       clearExecutionApproval,
       startExecution,
+      requestVerificationApproval,
+      approveVerification,
       startVerification,
       completeVerification,
       submitRevisionFeedback,

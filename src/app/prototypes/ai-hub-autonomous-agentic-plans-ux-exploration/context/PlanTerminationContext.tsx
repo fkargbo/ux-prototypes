@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { PlanWorkflowSnapshot } from './PlanWorkflowContext';
+import type { AgenticRunApprovalPolicy } from './ApprovalPolicyContext';
 
 export type TerminatedPlanEntry = {
   terminatedAt: string;
@@ -12,6 +13,9 @@ export type TerminatedPlanState = Record<string, TerminatedPlanEntry>;
 export type PlanExecutionRuntime = {
   abortedPlans: TerminatedPlanState;
   workflowByPlanId?: PlanWorkflowSnapshot;
+  /** Current configuration snapshot used when creating mock AgenticRun payloads. */
+  approvalPolicy?: AgenticRunApprovalPolicy;
+  maxRetryAttempts?: number;
 };
 
 type PlanTerminationContextValue = {

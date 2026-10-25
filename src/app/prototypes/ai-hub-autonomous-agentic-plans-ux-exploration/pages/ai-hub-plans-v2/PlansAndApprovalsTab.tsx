@@ -104,9 +104,9 @@ import {
 } from '../../context/AgenticCapabilitiesContext';
 import { useDeletedPlans } from '../../context/DeletedPlansContext';
 import { DeleteAgenticRunModal } from '../../components/DeleteAgenticRunModal';
-import { usePlanTermination, type PlanExecutionRuntime } from '../../context/PlanTerminationContext';
+import type { PlanExecutionRuntime } from '../../context/PlanTerminationContext';
 import { usePlanWorkflow } from '../../context/PlanWorkflowContext';
-import { useApprovalPolicy } from '../../context/ApprovalPolicyContext';
+import type { AgenticRunApprovalPolicy } from '../../context/ApprovalPolicyContext';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
 import type { PlanStatus } from '../../types/planStatus';
 import { normalizePlanStatus } from '../../types/planStatus';
@@ -132,6 +132,19 @@ import { LogViewer } from '@patternfly/react-log-viewer';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PlanSeverity = 'critical' | 'warning';
+
+type AgenticRunPhaseName = 'Analysis' | 'Execution' | 'Verification' | 'Escalation';
+
+export type AgenticRunPayload = {
+  /** Snapshot of the phase policy stored with this run when it was created. */
+  approvalPolicy: AgenticRunApprovalPolicy;
+  maxRetryAttempts: number;
+  /** Backend phase status used by the details view to decide whether the run is paused. */
+  phase: {
+    name: AgenticRunPhaseName;
+    requiresApproval: boolean;
+  };
+};
 
 /** Icon semantic used in expandable row consolidated reasons. */
 type ReasonIconType = 'sync' | 'alert' | 'warning' | 'gear' | 'ban' | 'wrench' | 'search';
@@ -185,6 +198,61 @@ export interface PlanRow {
    * AND status is Analyzing/Executing/Completed/Failed.
    */
   traceId?: string;
+  /** AgenticRun status payload, including the run-scoped approval policy snapshot. */
+  agenticRun?: AgenticRunPayload;
+}
+
+const DEFAULT_AGENTIC_RUN_APPROVAL_POLICY: AgenticRunPayload['approvalPolicy'] = {
+  analysis: 'manual',
+  execution: 'manual',
+  verification: 'auto',
+  escalation: 'manual',
+};
+
+function phaseNameForStatus(status: PlanStatus): AgenticRunPhaseName {
+  if (status === 'Pending' || status === 'Analyzing' || status === 'Run aborted' || status === 'Acknowledged') {
+    return 'Analysis';
+  }
+  if (status === 'Verifying') {
+    return 'Verification';
+  }
+  if (status === 'Proposed' || status === 'Approved' || status === 'Executing'
+    || status === 'Completed' || status === 'Failed' || status === 'Denied' || status === 'EmergencyStopped'
+    || status === 'Plan aborted') {
+    return 'Execution';
+  }
+  return 'Escalation';
+}
+
+function requiresApprovalForPhase(
+  status: PlanStatus,
+  phaseName: AgenticRunPhaseName,
+  approvalPolicy: AgenticRunPayload['approvalPolicy'],
+): boolean {
+  const phaseIsPaused = status === 'Pending' || status === 'Proposed' || status === 'Verifying' || status === 'Escalating';
+  if (!phaseIsPaused) {
+    return false;
+  }
+  const policyKey = phaseName.toLowerCase() as keyof AgenticRunPayload['approvalPolicy'];
+  return approvalPolicy[policyKey] === 'manual';
+}
+
+function buildAgenticRunPayload(
+  status: PlanStatus,
+  existing?: AgenticRunPayload,
+  configuredPolicy?: AgenticRunApprovalPolicy,
+  configuredMaxRetryAttempts?: number,
+): AgenticRunPayload {
+  const approvalPolicy = existing?.approvalPolicy ?? configuredPolicy ?? DEFAULT_AGENTIC_RUN_APPROVAL_POLICY;
+  const phaseName = phaseNameForStatus(status);
+  return {
+    approvalPolicy,
+    maxRetryAttempts: existing?.maxRetryAttempts ?? configuredMaxRetryAttempts ?? GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
+    phase: {
+      name: phaseName,
+      requiresApproval: requiresApprovalForPhase(status, phaseName, approvalPolicy),
+    },
+  };
 }
 
 /**
@@ -2890,16 +2958,6 @@ const PLAN_ESCALATION_SUMMARY: Record<string, EscalationSummaryData> = {
   },
 };
 
-const formatExecutionKillTimestamp = (date: Date): string =>
-  date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-
 function buildActiveExecutionLogLines(plan: PlanRow, option: RemediationOption): string[] {
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
   const cmd = option.rawCommands.split('\n')[0]?.trim() ?? option.title;
@@ -4236,9 +4294,8 @@ const VerificationSummaryCard: React.FC<{
    */
   isVerifyingActive?: boolean;
   isLive?: boolean;
-  verificationPolicy?: 'manual' | 'auto';
-  onApproveVerification?: () => void;
-}> = ({ plan, verificationLog, verification, isVerifyingActive = false, isLive = false, verificationPolicy, onApproveVerification }) => {
+  onVerificationComplete?: () => void;
+}> = ({ plan, verificationLog, verification, isVerifyingActive = false, isLive = false, onVerificationComplete }) => {
   const summary = isVerifyingActive ? null : PLAN_VERIFICATION_SUMMARY[plan.id];
   const isInProgress = isVerifyingActive || !summary;
 
@@ -4265,16 +4322,17 @@ const VerificationSummaryCard: React.FC<{
     return () => window.clearInterval(interval);
   }, [isInProgress, isLive, checkLines]);
 
-  // Auto-complete verification after health-check stream finishes (auto policy only).
+  // Complete verification after health-check stream finishes. Manual policy gates
+  // before this component mounts; once approved, verification runs automatically.
   // This replaces the timer that previously lived in VerificationPanel.
   useEffect(() => {
-    if (!isInProgress || !isLive || verificationPolicy !== 'auto' || !onApproveVerification) {
+    if (!isInProgress || !isLive || !onVerificationComplete) {
       return undefined;
     }
     const streamDurationMs = checkLines.length * 700 + 1200;
-    const timer = window.setTimeout(onApproveVerification, streamDurationMs);
+    const timer = window.setTimeout(onVerificationComplete, streamDurationMs);
     return () => window.clearTimeout(timer);
-  }, [isInProgress, isLive, verificationPolicy, onApproveVerification, checkLines.length]);
+  }, [isInProgress, isLive, onVerificationComplete, checkLines.length]);
 
   const visibleLines = checkLines.slice(0, visibleCount);
   const attempt = verification?.attempt ?? 1;
@@ -4356,18 +4414,6 @@ const VerificationSummaryCard: React.FC<{
               </>
             )}
 
-            {/* Manual policy: Approve verification button */}
-            {verificationPolicy === 'manual' && !verification?.outcome && (
-              <>
-                <Divider style={{ margin: 'var(--pf-t--global--spacer--lg) 0 var(--pf-t--global--spacer--md)' }} />
-                <Button
-                  variant="primary"
-                  onClick={onApproveVerification}
-                >
-                  Approve verification
-                </Button>
-              </>
-            )}
           </CardBody>
         </Card>
       </>
@@ -5538,6 +5584,19 @@ function generateAbortedAnalysisLogs(planId: string): string {
   ].join('\n');
 }
 
+/**
+ * Inline paused-state messaging for a run whose own status payload requires
+ * operator approval. Approval controls remain centralized in the sticky toolbar.
+ */
+const ManualApprovalAlert: React.FC<{ phaseName: AgenticRunPhaseName }> = ({
+  phaseName,
+}) => (
+  <Alert variant="info" isInline title="Awaiting Manual Approval">
+    This run has paused at the {phaseName} phase based on your configuration settings. Review the
+    proposed actions before continuing.
+  </Alert>
+);
+
 export const RemediationBlueprintPanel: React.FC<{
   plan: PlanRow;
   onRejectPlan?: () => void;
@@ -5572,6 +5631,17 @@ export const RemediationBlueprintPanel: React.FC<{
   const isEmergencyStopped = status === 'EmergencyStopped';
   const isPending = status === 'Pending';
   const isClusterUpdatePlan = resolvePlanDomainAnnotations(plan).sourceDomain === 'cluster-update';
+  const runPayload = plan.agenticRun ?? buildAgenticRunPayload(status);
+  const {
+    approvalPolicy,
+    maxRetryAttempts: configMaxRetryAttempts,
+  } = runPayload;
+  const {
+    analysis: analysisPolicy,
+    execution: executionPolicy,
+    verification: verificationPolicy,
+    escalation: escalationPolicy,
+  } = approvalPolicy;
   // True only when the run is in Pending and the 5-second INITIALIZING window has expired —
   // the full Agentic Run Details layout renders (manual policy gate).
   // Note: isPendingReadyForAnalysis is evaluated lazily below after pendingSubState is defined.
@@ -5580,18 +5650,21 @@ export const RemediationBlueprintPanel: React.FC<{
   const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
   const { isAgentActiveForCluster } = useAgenticCapabilities();
   const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
-  const { registerPlanTermination } = usePlanTermination();
   const {
     getPlanWorkflow,
     executeRemediation,
     acknowledgePlan,
+    requestVerificationApproval,
+    approveVerification,
     startVerification,
     completeVerification,
     dispatchAnalysis,
   } = usePlanWorkflow();
   const workflow = getPlanWorkflow(plan.id);
-  const [isStopAnalysisModalOpen, setIsStopAnalysisModalOpen] = useState(false);
-  const [isStopExecutionModalOpen, setIsStopExecutionModalOpen] = useState(false);
+  const isAwaitingVerificationApproval =
+    isVerifying
+    && verificationPolicy === 'manual'
+    && (workflow.verificationApprovalPending || !workflow.verification);
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
   const [retryBanner, setRetryBanner] = useState<string | null>(null);
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
@@ -5605,14 +5678,6 @@ export const RemediationBlueprintPanel: React.FC<{
    */
   type PendingSubState = 'INITIALIZING' | 'READY_FOR_ANALYSIS';
   const [pendingSubState, setPendingSubState] = useState<PendingSubState>('INITIALIZING');
-  const {
-    analysisPolicy,
-    executionPolicy,
-    verificationPolicy,
-    escalationPolicy,
-    maxRetryAttempts: configMaxRetryAttempts,
-  } = useApprovalPolicy();
-
   // After INITIALIZING:
   //   • Automatic policy → dispatch analysis immediately (skip the manual gate).
   //   • Manual policy    → advance to READY_FOR_ANALYSIS so the full details layout renders
@@ -5643,7 +5708,6 @@ export const RemediationBlueprintPanel: React.FC<{
   useEffect(() => {
     setIsExecutionRunning(false);
     setRetryBanner(null);
-    setIsStopExecutionModalOpen(false);
   }, [plan.id]);
 
   useEffect(() => {
@@ -5653,11 +5717,23 @@ export const RemediationBlueprintPanel: React.FC<{
     }
     setIsExecutionRunning(true);
     const timer = window.setTimeout(() => {
-      startVerification(plan.id, VERIFICATION_CHECK_LINES);
+      if (verificationPolicy === 'manual') {
+        requestVerificationApproval(plan.id, VERIFICATION_CHECK_LINES);
+      } else {
+        startVerification(plan.id, VERIFICATION_CHECK_LINES);
+      }
       setIsExecutionRunning(false);
     }, 4000);
     return () => window.clearTimeout(timer);
-  }, [isExecuting, isAgenticAutomationEnabled, plan.id, startVerification, workflow.verification?.attempt]);
+  }, [
+    isExecuting,
+    isAgenticAutomationEnabled,
+    plan.id,
+    requestVerificationApproval,
+    startVerification,
+    verificationPolicy,
+    workflow.verification?.attempt,
+  ]);
 
   // Full Agentic Run Details layout is shown when Pending has passed the 5s INITIALIZING window
   // and the analysis policy is manual (auto policy auto-dispatches, so this stays false for auto).
@@ -5673,6 +5749,19 @@ export const RemediationBlueprintPanel: React.FC<{
     ),
     drawer,
   );
+  const primaryOption = options[0];
+  const reversibilityCircuitBreakerActive =
+    isProposed &&
+    executionPolicy === 'auto' &&
+    primaryOption?.reversible !== undefined &&
+    primaryOption.reversible !== 'Reversible';
+  const phaseRequiresManualApproval = runPayload.phase.requiresApproval || reversibilityCircuitBreakerActive;
+  const manualApprovalPhase = phaseRequiresManualApproval
+    && (isPendingReadyForAnalysis || isProposed || isEscalating)
+    ? runPayload.phase.name
+    : null;
+  const isAutomaticPhase = !phaseRequiresManualApproval
+    && (isPending || isProposed || isVerifying || isEscalating);
   /**
    * OLS-3724 mutual exclusivity:
    * - When remediation options exist, each card renders its own RCA — hide top-level.
@@ -5767,13 +5856,6 @@ export const RemediationBlueprintPanel: React.FC<{
   // When executionPolicy === 'auto', the primary option's reversibility is checked.
   // If partially reversible or irreversible, the circuit breaker fires and we fall
   // back to manual approval (show warning Alert + "Apply remediation" button).
-  const primaryOption = options[0];
-  const reversibilityCircuitBreakerActive =
-    isProposed &&
-    executionPolicy === 'auto' &&
-    primaryOption?.reversible !== undefined &&
-    primaryOption.reversible !== 'Reversible';
-
   // Auto-execute the primary option when executionPolicy is 'auto' and the circuit
   // breaker is NOT active. A 2-second spinner gives the user visibility before commit.
   const [isAutoExecuteQueued, setIsAutoExecuteQueued] = useState(false);
@@ -5819,6 +5901,23 @@ export const RemediationBlueprintPanel: React.FC<{
       );
     }
   }, [completeVerification, isAgenticAutomationEnabled, plan.id, workflow.verification]);
+
+  const handleApproveVerification = useCallback(() => {
+    if (!isAgenticAutomationEnabled) return;
+    if (workflow.verificationApprovalPending) {
+      approveVerification(plan.id);
+      return;
+    }
+    // Supports a directly seeded Verifying run whose workflow record has not
+    // been initialized by the execution simulator yet.
+    startVerification(plan.id, VERIFICATION_CHECK_LINES);
+  }, [
+    approveVerification,
+    isAgenticAutomationEnabled,
+    plan.id,
+    startVerification,
+    workflow.verificationApprovalPending,
+  ]);
 
   // Log text used by the standalone Execution / Verification Summary cards.
   // Must be declared before any early returns to satisfy the Rules of Hooks.
@@ -5882,23 +5981,6 @@ export const RemediationBlueprintPanel: React.FC<{
 
   // ── Sticky action bar derived state ─────────────────────────────────────
   /**
-   * Stop button phases (Position 1, conditionally rendered):
-   *   Analyzing                → Stop analysis
-   *   Executing / Plan aborted → Stop execution
-   *   Verifying                → Stop execution
-   *   Escalating               → Stop execution
-   *
-   * Pending (READY_FOR_ANALYSIS) is excluded — that phase renders only
-   * "Approve analysis" in the toolbar; Stop is irrelevant before dispatch.
-   */
-  const isStopApplicable =
-    (isAnalyzing || isExecutionPhase || isVerifying || isEscalating) && !executionKillState;
-  const stopLabel = isAnalyzing ? 'Stop analysis' : 'Stop execution';
-  const stopAction = isAnalyzing
-    ? () => setIsStopAnalysisModalOpen(true)
-    : () => setIsStopExecutionModalOpen(true);
-
-  /**
    * Execute / Deny are active in Proposed and Escalated (both require human decision).
    * All other phases — including transient and terminal — disable these buttons.
    */
@@ -5935,6 +6017,35 @@ export const RemediationBlueprintPanel: React.FC<{
   const stickyDownloadDisabled = isPending || isAnalyzing;
   const stickyDownloadTooltip = 'Plan is being generated';
   const stickyRootCause = { aggregatedFinding: analysisLogFinding, rootCauseNarrative: analysisLogNarrative };
+
+  // Keep this hook before the Pending INITIALIZING early return so the component
+  // executes the same hook sequence while the run transitions to READY_FOR_ANALYSIS.
+  useEffect(() => {
+    const targetId =
+      status === 'Analyzing' || status === 'Run aborted' || status === 'Acknowledged'
+        ? 'analysis-phase'
+        : status === 'Proposed' || status === 'Denied' || status === 'Pending'
+          ? 'remediation-phase'
+          : status === 'Completed'
+            || status === 'Failed'
+            || status === 'Executing'
+            || status === 'Approved'
+            || status === 'EmergencyStopped'
+            || status === 'Plan aborted'
+            || status === 'Escalating'
+            || status === 'Escalated'
+            ? 'execution-phase'
+            : status === 'Verifying'
+              ? 'verification-phase'
+              : null;
+    if (!targetId) {
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+    return () => window.clearTimeout(timer);
+  }, [plan.id, status]);
 
   if (!drawer && !isEscalating && !isPending && !isAnalyzing && !isRunAborted) return null;
 
@@ -6526,35 +6637,6 @@ export const RemediationBlueprintPanel: React.FC<{
     </>
   );
 
-  // Deep-link / status-driven scroll: bring the default-expanded phase above the fold
-  // after the melded timeline mounts (Analysis / Remediation / Execution / Verification).
-  useEffect(() => {
-    const targetId =
-      status === 'Analyzing' || status === 'Run aborted' || status === 'Acknowledged'
-        ? 'analysis-phase'
-        : status === 'Proposed' || status === 'Denied' || status === 'Pending'
-          ? 'remediation-phase'
-          : status === 'Completed'
-            || status === 'Failed'
-            || status === 'Executing'
-            || status === 'Approved'
-            || status === 'EmergencyStopped'
-            || status === 'Plan aborted'
-            || status === 'Escalating'
-            || status === 'Escalated'
-            ? 'execution-phase'
-            : status === 'Verifying'
-              ? 'verification-phase'
-              : null;
-    if (!targetId) {
-      return undefined;
-    }
-    const timer = window.setTimeout(() => {
-      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 200);
-    return () => window.clearTimeout(timer);
-  }, [plan.id, status]);
-
   const meldedTimelineSlots: MeldedTimelineSlots = {
     analysisPhaseStarted: meldedAnalysisPhaseContent,
     humanApprovalRequested: meldedHumanApprovalContent,
@@ -6570,15 +6652,18 @@ export const RemediationBlueprintPanel: React.FC<{
       />
     ) : undefined,
     verificationPhaseStarted: isVerifying ? (
-      <VerificationSummaryCard
-        plan={plan}
-        verificationLog={summaryVerificationLog}
-        verification={workflow.verification ?? verificationState}
-        isVerifyingActive
-        isLive={Boolean(workflow.verification) && isAgenticAutomationEnabled}
-        verificationPolicy={verificationPolicy}
-        onApproveVerification={handleVerificationComplete}
-      />
+      isAwaitingVerificationApproval ? (
+        <ManualApprovalAlert phaseName="Verification" />
+      ) : (
+        <VerificationSummaryCard
+          plan={plan}
+          verificationLog={summaryVerificationLog}
+          verification={workflow.verification ?? verificationState}
+          isVerifyingActive
+          isLive={Boolean(workflow.verification) && isAgenticAutomationEnabled}
+          onVerificationComplete={handleVerificationComplete}
+        />
+      )
     ) : undefined,
     verificationPhaseCompleted: isTerminal ? (
       <VerificationSummaryCard
@@ -6587,7 +6672,6 @@ export const RemediationBlueprintPanel: React.FC<{
         verification={workflow.verification ?? verificationState}
         isVerifyingActive={false}
         isLive={false}
-        verificationPolicy={verificationPolicy}
       />
     ) : undefined,
     terminal: (
@@ -6608,29 +6692,69 @@ export const RemediationBlueprintPanel: React.FC<{
               Go to Cluster Settings
             </Button>
           </ActionListItem>
+        ) : isAutomaticPhase ? (
+          <>
+            <ActionListItem>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                <FlexItem><Spinner size="sm" aria-label="Automatic phase in progress" /></FlexItem>
+                <FlexItem>
+                  <Content component="small" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
+                    {isProposed ? 'Executing automatically…' : isVerifying ? 'Verifying automatically…' : 'Processing automatically…'}
+                  </Content>
+                </FlexItem>
+              </Flex>
+            </ActionListItem>
+          </>
         ) : isPendingReadyForAnalysis ? (
-          <ActionListItem>
-            <Button
-              variant="primary"
-              isDisabled={!isAgenticAutomationEnabled}
-              onClick={() => dispatchAnalysis(plan.id)}
-            >
-              Approve analysis
-            </Button>
-          </ActionListItem>
+          <>
+            <ActionListItem>
+              <Button
+                variant="primary"
+                isDisabled={!isAgenticAutomationEnabled}
+                onClick={() => dispatchAnalysis(plan.id)}
+              >
+                Approve analysis
+              </Button>
+            </ActionListItem>
+            <ActionListItem>
+              <Button
+                variant="secondary"
+                isDisabled={!isAgenticAutomationEnabled || !onRejectPlan}
+                onClick={() => setIsDenyModalOpen(true)}
+              >
+                Deny run
+              </Button>
+            </ActionListItem>
+          </>
+        ) : isAwaitingVerificationApproval ? (
+          <>
+            <ActionListItem>
+              <Button
+                variant="primary"
+                isDisabled={!isAgenticAutomationEnabled}
+                onClick={handleApproveVerification}
+              >
+                Approve verification
+              </Button>
+            </ActionListItem>
+            <ActionListItem>
+              <Button
+                variant="link"
+                icon={<RhUiDownloadIcon />}
+                onClick={() => {
+                  if (selectedOption) {
+                    downloadRemediationPlanMarkdown(plan, selectedOption, stickyRootCause);
+                  } else {
+                    downloadAnalysisReportMarkdown(plan, stickyRootCause);
+                  }
+                }}
+              >
+                Download plan
+              </Button>
+            </ActionListItem>
+          </>
         ) : (
           <>
-            {isStopApplicable && (
-              <ActionListItem>
-                <Button
-                  variant="danger"
-                  isDisabled={!isAgenticAutomationEnabled}
-                  onClick={stopAction}
-                >
-                  {stopLabel}
-                </Button>
-              </ActionListItem>
-            )}
             <ActionListItem>
               {stickyBarExecuteDisabled ? (
                 <Tooltip content={executeTooltip}>
@@ -6705,6 +6829,11 @@ export const RemediationBlueprintPanel: React.FC<{
           <StackItem>
             <AgenticRunDetailsSectionHeading showAiDisclaimer={isRunAborted} />
           </StackItem>
+          {manualApprovalPhase && !isClusterUpdatePlan && !isAnalysisOnly && (
+            <StackItem>
+              <ManualApprovalAlert phaseName={manualApprovalPhase} />
+            </StackItem>
+          )}
           {isRunAborted ? (
             <StackItem>
               <Alert
@@ -6820,7 +6949,7 @@ export const RemediationBlueprintPanel: React.FC<{
               meldedSlots={meldedTimelineSlots}
             />
           </StackItem>
-          {(isProposed || isEscalated) && (
+          {(isPendingReadyForAnalysis || isProposed || isEscalated) && !isAutomaticPhase && (
             <StackItem>{remediationConfirmModals}</StackItem>
           )}
           {isEscalated && (
@@ -6835,61 +6964,6 @@ export const RemediationBlueprintPanel: React.FC<{
         </Stack>
       </AgenticRunDetailsLayout>
 
-    {/* Stop analysis modal — rendered as a portal; lives outside Stack to avoid adding a gap slot */}
-          <Modal
-            variant={ModalVariant.small}
-            isOpen={isStopAnalysisModalOpen}
-            onClose={() => setIsStopAnalysisModalOpen(false)}
-            aria-labelledby="stop-plan-analysis-title"
-          >
-            <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
-            <ModalBody>
-              This halts root cause investigation for this run. Partial findings are preserved but no
-              remediation options will be synthesized.
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                variant="danger"
-                onClick={() => {
-            registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()), 'analysis');
-                  setIsStopAnalysisModalOpen(false);
-                }}
-              >
-                Yes, stop analysis
-              </Button>
-              <Button variant="link" onClick={() => setIsStopAnalysisModalOpen(false)}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </Modal>
-
-    {/* Stop execution modal — portal; triggered from the sticky action bar */}
-    <Modal
-      variant={ModalVariant.small}
-      isOpen={isStopExecutionModalOpen}
-      onClose={() => setIsStopExecutionModalOpen(false)}
-      aria-labelledby="stop-plan-execution-title"
-    >
-      <ModalHeader title="Stop execution?" labelId="stop-plan-execution-title" />
-      <ModalBody>
-        This will halt the execution run. This may result in partial execution. You may need to manually
-        complete or undo any partial changes.
-      </ModalBody>
-      <ModalFooter>
-        <Button
-          variant="danger"
-          onClick={() => {
-            registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()), 'execution');
-            setIsStopExecutionModalOpen(false);
-          }}
-        >
-          Yes, stop execution
-        </Button>
-        <Button variant="link" onClick={() => setIsStopExecutionModalOpen(false)}>
-          Cancel
-        </Button>
-      </ModalFooter>
-    </Modal>
     </>
   );
 };
@@ -6937,6 +7011,12 @@ export function buildPlansForPerspective(
       const baseRow: PlanRow = {
         ...normalizedRow,
         status: normalizePlanStatus(normalizedRow.status),
+        agenticRun: buildAgenticRunPayload(
+          normalizePlanStatus(normalizedRow.status),
+          normalizedRow.agenticRun,
+          runtime.approvalPolicy,
+          runtime.maxRetryAttempts,
+        ),
         name: identity?.name ?? row.id,
         synopsis: identity?.synopsis ?? normalizedRow.synopsis,
         namespace: identity?.namespace,
@@ -6974,6 +7054,7 @@ export function buildPlansForPerspective(
         resolvedRow = {
           ...baseRow,
           status: abortStatus,
+          agenticRun: buildAgenticRunPayload(abortStatus, baseRow.agenticRun),
           terminatedAt: abortEntry.terminatedAt,
         };
       } else {
@@ -6982,6 +7063,7 @@ export function buildPlansForPerspective(
           resolvedRow = {
             ...baseRow,
             status: workflowPhase,
+            agenticRun: buildAgenticRunPayload(workflowPhase, baseRow.agenticRun),
           };
         }
       }
