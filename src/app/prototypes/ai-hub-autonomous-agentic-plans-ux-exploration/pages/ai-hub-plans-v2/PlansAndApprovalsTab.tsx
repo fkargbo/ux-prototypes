@@ -4295,7 +4295,8 @@ const VerificationSummaryCard: React.FC<{
   isVerifyingActive?: boolean;
   isLive?: boolean;
   onVerificationComplete?: () => void;
-}> = ({ plan, verificationLog, verification, isVerifyingActive = false, isLive = false, onVerificationComplete }) => {
+  onVerificationRetry?: () => void;
+}> = ({ plan, verificationLog, verification, isVerifyingActive = false, isLive = false, onVerificationComplete, onVerificationRetry }) => {
   const summary = isVerifyingActive ? null : PLAN_VERIFICATION_SUMMARY[plan.id];
   const isInProgress = isVerifyingActive || !summary;
 
@@ -4305,6 +4306,13 @@ const VerificationSummaryCard: React.FC<{
     : VERIFICATION_CHECK_LINES;
 
   const [visibleCount, setVisibleCount] = useState(isLive ? 0 : checkLines.length);
+  const attempt = verification?.attempt ?? 1;
+  const maxAttempts = verification?.maxAttempts ?? 3;
+  const isRetryPending =
+    isInProgress
+    && verification?.outcome === 'failed'
+    && !verification.requiresNewApproval
+    && attempt < maxAttempts;
 
   // Stream check lines one-by-one while verifying.
   useEffect(() => {
@@ -4320,23 +4328,34 @@ const VerificationSummaryCard: React.FC<{
       if (count >= checkLines.length) window.clearInterval(interval);
     }, 700);
     return () => window.clearInterval(interval);
-  }, [isInProgress, isLive, checkLines]);
+  }, [checkLines, isInProgress, isLive, verification?.attempt]);
 
   // Complete verification after health-check stream finishes. Manual policy gates
   // before this component mounts; once approved, verification runs automatically.
   // This replaces the timer that previously lived in VerificationPanel.
   useEffect(() => {
-    if (!isInProgress || !isLive || !onVerificationComplete) {
+    if (isRetryPending) {
+      if (!isLive || !onVerificationRetry) return undefined;
+      const retryTimer = window.setTimeout(onVerificationRetry, 1200);
+      return () => window.clearTimeout(retryTimer);
+    }
+    if (!isInProgress || !isLive || !onVerificationComplete || verification?.outcome === 'failed') {
       return undefined;
     }
     const streamDurationMs = checkLines.length * 700 + 1200;
     const timer = window.setTimeout(onVerificationComplete, streamDurationMs);
     return () => window.clearTimeout(timer);
-  }, [isInProgress, isLive, onVerificationComplete, checkLines.length]);
+  }, [
+    checkLines.length,
+    isInProgress,
+    isLive,
+    isRetryPending,
+    onVerificationComplete,
+    onVerificationRetry,
+    verification?.outcome,
+  ]);
 
   const visibleLines = checkLines.slice(0, visibleCount);
-  const attempt = verification?.attempt ?? 1;
-  const maxAttempts = verification?.maxAttempts ?? 3;
 
   // ── In-progress layout (status = Verifying, no completed summary yet) ──────
   if (isInProgress) {
@@ -4394,12 +4413,16 @@ const VerificationSummaryCard: React.FC<{
               component="small"
               style={{
                 display: 'block',
-                color: 'var(--pf-t--global--text--color--subtle)',
-                fontStyle: 'italic',
+                color: isRetryPending
+                  ? 'var(--pf-t--global--text--color--default)'
+                  : 'var(--pf-t--global--text--color--subtle)',
+                fontStyle: isRetryPending ? 'normal' : 'italic',
                 marginBottom: verificationLog ? 'var(--pf-t--global--spacer--lg)' : 0,
               }}
             >
-              Outcome assessment will be generated upon completion of health checks.
+              {isRetryPending
+                ? `Verification failed. Initiating retry ${attempt + 1} of ${maxAttempts}...`
+                : 'Outcome assessment will be generated upon completion of health checks.'}
             </Content>
 
             {/* Log footer */}
@@ -5663,10 +5686,11 @@ export const RemediationBlueprintPanel: React.FC<{
   const workflow = getPlanWorkflow(plan.id);
   const isAwaitingVerificationApproval =
     isVerifying
-    && verificationPolicy === 'manual'
-    && (workflow.verificationApprovalPending || !workflow.verification);
+    && (
+      (verificationPolicy === 'manual' && (workflow.verificationApprovalPending || !workflow.verification))
+      || workflow.verification?.requiresNewApproval === true
+    );
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
-  const [retryBanner, setRetryBanner] = useState<string | null>(null);
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
   const [isDenyModalOpen, setIsDenyModalOpen] = useState(false);
   const [isDenySelectOpen, setIsDenySelectOpen] = useState(false);
@@ -5707,7 +5731,6 @@ export const RemediationBlueprintPanel: React.FC<{
 
   useEffect(() => {
     setIsExecutionRunning(false);
-    setRetryBanner(null);
   }, [plan.id]);
 
   useEffect(() => {
@@ -5755,12 +5778,15 @@ export const RemediationBlueprintPanel: React.FC<{
     executionPolicy === 'auto' &&
     primaryOption?.reversible !== undefined &&
     primaryOption.reversible !== 'Reversible';
-  const phaseRequiresManualApproval = runPayload.phase.requiresApproval || reversibilityCircuitBreakerActive;
+  const phaseRequiresManualApproval =
+    runPayload.phase.requiresApproval
+    || reversibilityCircuitBreakerActive
+    || workflow.verification?.requiresNewApproval === true;
   const manualApprovalPhase = phaseRequiresManualApproval
     && (isPendingReadyForAnalysis || isProposed || isEscalating)
     ? runPayload.phase.name
     : null;
-  const isAutomaticPhase = !phaseRequiresManualApproval
+  const isAutomaticPhase = !phaseRequiresManualApproval && !isAwaitingVerificationApproval
     && (isPending || isProposed || isVerifying || isEscalating);
   /**
    * OLS-3724 mutual exclusivity:
@@ -5839,7 +5865,6 @@ export const RemediationBlueprintPanel: React.FC<{
     if (!selectedOption || !isAgenticAutomationEnabled) {
       return;
     }
-    setRetryBanner(null);
     executeRemediation(plan.id, {
       optionIndex: selectedOptionIndex,
       optionId: selectedOption.id,
@@ -5894,13 +5919,13 @@ export const RemediationBlueprintPanel: React.FC<{
       return;
     }
     const shouldPass = verification.attempt >= verification.maxAttempts;
-    const nextStatus = completeVerification(plan.id, shouldPass);
-    if (!shouldPass && nextStatus === 'Executing') {
-      setRetryBanner(
-        `Verification failed — retrying execution (attempt ${verification.attempt + 1} of ${verification.maxAttempts})`,
-      );
-    }
+    completeVerification(plan.id, shouldPass, verification.requiresNewApproval === true);
   }, [completeVerification, isAgenticAutomationEnabled, plan.id, workflow.verification]);
+
+  const handleVerificationRetry = useCallback(() => {
+    if (!isAgenticAutomationEnabled) return;
+    startVerification(plan.id, VERIFICATION_CHECK_LINES);
+  }, [isAgenticAutomationEnabled, plan.id, startVerification]);
 
   const handleApproveVerification = useCallback(() => {
     if (!isAgenticAutomationEnabled) return;
@@ -6424,10 +6449,6 @@ export const RemediationBlueprintPanel: React.FC<{
             </>
           ) : (
             <>
-              {retryBanner && (
-                <Alert variant="warning" isInline title={retryBanner} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
-              )}
-
               <div
                 style={{
                   opacity: !isAgenticAutomationEnabled ? 0.55 : 1,
@@ -6662,6 +6683,7 @@ export const RemediationBlueprintPanel: React.FC<{
           isVerifyingActive
           isLive={Boolean(workflow.verification) && isAgenticAutomationEnabled}
           onVerificationComplete={handleVerificationComplete}
+          onVerificationRetry={handleVerificationRetry}
         />
       )
     ) : undefined,

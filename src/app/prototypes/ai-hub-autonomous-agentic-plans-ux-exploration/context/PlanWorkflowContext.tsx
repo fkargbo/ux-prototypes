@@ -18,6 +18,8 @@ export type VerificationState = {
   checks: string[];
   outcome?: 'passed' | 'failed';
   completedAt?: string;
+  /** Backend safety flag: a changed proposal requires a fresh operator approval. */
+  requiresNewApproval?: boolean;
 };
 
 export type RevisionFeedbackEntry = {
@@ -69,7 +71,7 @@ type PlanWorkflowContextValue = {
   requestVerificationApproval: (planId: string, checks: string[]) => void;
   approveVerification: (planId: string) => void;
   startVerification: (planId: string, checks: string[]) => void;
-  completeVerification: (planId: string, success: boolean) => PlanStatus;
+  completeVerification: (planId: string, success: boolean, requiresNewApproval?: boolean) => PlanStatus;
   submitRevisionFeedback: (planId: string, text: string) => void;
   finishReAnalysis: (planId: string) => void;
   /** HITL: manually dispatches the AI analysis engine for a Pending run. Transitions runtimePhase → 'Analyzing'. */
@@ -193,6 +195,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
           maxAttempts,
           startedAt: new Date().toISOString(),
           checks,
+          requiresNewApproval: false,
         },
       });
     },
@@ -213,6 +216,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
           startedAt: new Date().toISOString(),
           outcome: undefined,
           completedAt: undefined,
+          requiresNewApproval: false,
         },
       });
     },
@@ -232,6 +236,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
           maxAttempts,
           startedAt: new Date().toISOString(),
           checks,
+          requiresNewApproval: false,
         },
       });
     },
@@ -239,7 +244,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
   );
 
   const completeVerification = useCallback(
-    (planId: string, success: boolean): PlanStatus => {
+    (planId: string, success: boolean, requiresNewApproval = false): PlanStatus => {
       const record = workflowByPlanId[planId] ?? createEmptyRecord();
       const verification = record.verification;
       if (!verification) {
@@ -257,11 +262,16 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (verification.attempt < verification.maxAttempts) {
         patchPlan(planId, {
-          runtimePhase: 'Executing',
-          verificationApprovalPending: false,
-          verification: { ...verification, outcome: 'failed', completedAt: new Date().toISOString() },
+          runtimePhase: 'Verifying',
+          verificationApprovalPending: requiresNewApproval,
+          verification: {
+            ...verification,
+            outcome: 'failed',
+            completedAt: new Date().toISOString(),
+            requiresNewApproval,
+          },
         });
-        return 'Executing';
+        return 'Verifying';
       }
 
       patchPlan(planId, {
