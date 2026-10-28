@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Content,
   ExpandableSection,
@@ -127,12 +127,10 @@ function stepIndicatorIcon(variant: TimelineStepVariant, isCurrent?: boolean): R
 function phaseAnchorId(event: string): string | undefined {
   if (event === 'agenticrun.analyze') return 'analysis-phase';
   if (event === 'agenticrun.human_approval') return 'remediation-phase';
-  if (event === 'agenticrun.execution.completed' || event === 'agenticrun.execute') {
-    return 'execution-phase';
-  }
-  if (event === 'agenticrun.verification.completed' || event === 'agenticrun.verify') {
-    return 'verification-phase';
-  }
+  if (event === 'agenticrun.execute') return 'execution-phase';
+  if (event === 'agenticrun.execution.completed') return 'execution-completed-phase';
+  if (event === 'agenticrun.verify') return 'verification-phase';
+  if (event === 'agenticrun.verification.completed') return 'verification-completed-phase';
   return undefined;
 }
 
@@ -142,21 +140,21 @@ const TimelineItem: React.FC<{
   meldedBody?: React.ReactNode;
   defaultExpanded?: boolean;
   terminalExtra?: React.ReactNode;
-}> = ({ step, evidence, meldedBody, defaultExpanded = false, terminalExtra }) => {
+  status: PlanStatus;
+  focusRef?: React.Ref<HTMLLIElement>;
+}> = ({ step, evidence, meldedBody, defaultExpanded = false, terminalExtra, status, focusRef }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const contentId = `timeline-evidence-${step.id}`;
-  const anchorId = phaseAnchorId(step.event);
+  const anchorId = step.id.startsWith('sr-exec-') ? undefined : phaseAnchorId(step.event);
 
-  // Re-apply default expansion when status-driven targets resolve after mount
-  // (e.g. Completed → execution/verification), without blocking later manual toggles.
+  // A phase change closes the previous section and opens the new focus. Manual
+  // toggles remain available until the run status changes again.
   useEffect(() => {
-    if (defaultExpanded) {
-      setIsExpanded(true);
-    }
-  }, [defaultExpanded, step.id]);
+    setIsExpanded(defaultExpanded);
+  }, [defaultExpanded, status, step.id]);
 
   return (
-    <li className="ols-agentic-run-timeline__item" id={anchorId}>
+    <li className="ols-agentic-run-timeline__item" id={anchorId} ref={focusRef} tabIndex={focusRef ? -1 : undefined}>
       <div className="ols-agentic-run-timeline__indicator" aria-hidden>
         {stepIndicatorIcon(step.variant, step.isCurrent)}
       </div>
@@ -237,22 +235,20 @@ function resolveMeldedBody(step: TimelineStep, slots: MeldedTimelineSlots | unde
   return undefined;
 }
 
-function shouldDefaultExpandStep(step: TimelineStep, defaultExpandedEvents: readonly string[]): boolean {
-  return defaultExpandedEvents.includes(step.event);
-}
-
 /** Logical phase ids for default expansion on Agentic Run Details load. */
 export type DefaultExpandedPhaseId =
   | 'analysis'
   | 'remediation'
   | 'execution'
-  | 'verification';
+  | 'verification'
+  | 'escalation';
 
 const PHASE_EVENT_CANDIDATES: Record<DefaultExpandedPhaseId, readonly string[]> = {
   analysis: ['agenticrun.analyze'],
   remediation: ['agenticrun.human_approval'],
   execution: ['agenticrun.execution.completed', 'agenticrun.execute'],
-  verification: ['agenticrun.verification.completed', 'agenticrun.verify'],
+  verification: ['agenticrun.verification.completed', 'agenticrun.verification.retry', 'agenticrun.verify'],
+  escalation: ['agenticrun.escalation.completed', 'agenticrun.escalate'],
 };
 
 /**
@@ -274,20 +270,19 @@ export function getDefaultExpandedPhaseId(runStatus: PlanStatus): DefaultExpande
       return 'remediation';
 
     case 'Completed':
-      // Prefer execution evidence (logs / outputs); verification is expanded as a secondary when present.
-      return 'execution';
-
     case 'Failed':
+    case 'Verifying':
+      return 'verification';
+
     case 'Executing':
     case 'Approved':
     case 'EmergencyStopped':
     case 'Plan aborted':
-    case 'Escalating':
-    case 'Escalated':
       return 'execution';
 
-    case 'Verifying':
-      return 'verification';
+    case 'Escalating':
+    case 'Escalated':
+      return 'escalation';
 
     default:
       return null;
@@ -295,11 +290,8 @@ export function getDefaultExpandedPhaseId(runStatus: PlanStatus): DefaultExpande
 }
 
 /**
- * Resolves audit-event name(s) to expand for the given status, preferring events
+ * Resolves the audit event to expand for the given status, preferring events
  * that exist in the rendered timeline (pending steps are already filtered out).
- *
- * Completed expands Execution and Verification (when both exist) so success evidence
- * is visible without scrolling past collapsed mid-timeline nodes.
  */
 export function getDefaultExpandedPhaseEvents(
   runStatus: PlanStatus,
@@ -307,15 +299,6 @@ export function getDefaultExpandedPhaseEvents(
 ): string[] {
   const has = (event: string) => availableEvents.includes(event);
   const firstMatch = (candidates: readonly string[]) => candidates.find(has);
-
-  if (runStatus === 'Completed') {
-    const events: string[] = [];
-    const exec = firstMatch(PHASE_EVENT_CANDIDATES.execution);
-    const verify = firstMatch(PHASE_EVENT_CANDIDATES.verification);
-    if (exec) events.push(exec);
-    if (verify) events.push(verify);
-    return events;
-  }
 
   const phaseId = getDefaultExpandedPhaseId(runStatus);
   if (!phaseId) {
@@ -325,6 +308,8 @@ export function getDefaultExpandedPhaseEvents(
   const candidates =
     phaseId === 'verification'
       ? [...PHASE_EVENT_CANDIDATES.verification, ...PHASE_EVENT_CANDIDATES.execution]
+      : phaseId === 'escalation'
+        ? [...PHASE_EVENT_CANDIDATES.escalation, ...PHASE_EVENT_CANDIDATES.verification]
       : PHASE_EVENT_CANDIDATES[phaseId];
 
   const match = firstMatch(candidates);
@@ -353,8 +338,10 @@ export function resolveDefaultExpandedEventsWithContent(
   }
 
   const fallbackCandidates =
-    phaseId === 'verification' || runStatus === 'Completed'
-      ? [...PHASE_EVENT_CANDIDATES.execution, ...PHASE_EVENT_CANDIDATES.verification, ...PHASE_EVENT_CANDIDATES.remediation, ...PHASE_EVENT_CANDIDATES.analysis]
+    phaseId === 'escalation'
+      ? [...PHASE_EVENT_CANDIDATES.escalation, ...PHASE_EVENT_CANDIDATES.verification, ...PHASE_EVENT_CANDIDATES.execution, ...PHASE_EVENT_CANDIDATES.remediation, ...PHASE_EVENT_CANDIDATES.analysis]
+      : phaseId === 'verification'
+        ? [...PHASE_EVENT_CANDIDATES.verification, ...PHASE_EVENT_CANDIDATES.execution, ...PHASE_EVENT_CANDIDATES.remediation, ...PHASE_EVENT_CANDIDATES.analysis]
       : phaseId === 'execution'
         ? [...PHASE_EVENT_CANDIDATES.execution, ...PHASE_EVENT_CANDIDATES.remediation, ...PHASE_EVENT_CANDIDATES.analysis]
         : phaseId === 'remediation'
@@ -795,6 +782,8 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   meldedSlots,
   defaultExpandedEvents = [],
 }) => {
+  const focusedItemRef = useRef<HTMLLIElement>(null);
+  const previousFocusKey = useRef<string | null>(null);
   const steps = buildTimelineSteps(status, createdAt, retryCount, isAwaitingAnalysisApproval)
     .filter((s) => s.variant !== 'pending')
     .map((s) => {
@@ -810,18 +799,45 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
       return s;
     });
 
+  const hasStepContent = (step: TimelineStep): boolean => Boolean(
+    resolveMeldedBody(step, meldedSlots)
+    || resolveTimelinePhaseEvidence(step, evidence, status),
+  );
   const statusExpandedEvents = resolveDefaultExpandedEventsWithContent(
     status,
     steps,
-    (event) => {
-      const step = steps.find((s) => s.event === event);
-      if (!step) return false;
-      const meldedBody = resolveMeldedBody(step, meldedSlots);
-      if (meldedBody) return true;
-      return Boolean(resolveTimelinePhaseEvidence(step, evidence, status));
-    },
+    (event) => steps.some((step) => step.event === event && hasStepContent(step)),
   );
-  const expandedEvents = Array.from(new Set([...defaultExpandedEvents, ...statusExpandedEvents]));
+  const preferredEvents = [...defaultExpandedEvents, ...statusExpandedEvents];
+  const focusedStep = steps.find((step) => step.isCurrent)
+    ?? [...steps].reverse().find((step) => preferredEvents.includes(step.event) && hasStepContent(step))
+    ?? steps[steps.length - 1];
+  const focusedStepId = focusedStep?.id;
+  const focusKey = `${evidence?.planId ?? createdAt}:${status}:${isAwaitingAnalysisApproval}:${focusedStepId}`;
+
+  useEffect(() => {
+    const isPhaseTransition = previousFocusKey.current !== null && previousFocusKey.current !== focusKey;
+    previousFocusKey.current = focusKey;
+    if (!focusedStepId) return undefined;
+
+    // Wait for the newly expanded section to settle before scrolling. This is
+    // scoped to the timeline so no second page-level effect can pull it back.
+    let innerFrame = 0;
+    const outerFrame = window.requestAnimationFrame(() => {
+      innerFrame = window.requestAnimationFrame(() => {
+        const item = focusedItemRef.current;
+        if (isPhaseTransition) item?.focus({ preventScroll: true });
+        item?.scrollIntoView?.({
+          behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 'auto' : 'smooth',
+          block: 'start',
+        });
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(outerFrame);
+      window.cancelAnimationFrame(innerFrame);
+    };
+  }, [focusKey, focusedStepId]);
 
   if (steps.length === 0) return null;
 
@@ -848,12 +864,11 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
               meldedBody={meldedBody}
               defaultExpanded={
                 hasExpandableContent
-                && (
-                  (step.isCurrent === true)
-                  || shouldDefaultExpandStep(step, expandedEvents)
-                )
+                && step.id === focusedStepId
               }
               terminalExtra={terminalExtra}
+              status={status}
+              focusRef={step.id === focusedStepId ? focusedItemRef : undefined}
             />
           );
         })}

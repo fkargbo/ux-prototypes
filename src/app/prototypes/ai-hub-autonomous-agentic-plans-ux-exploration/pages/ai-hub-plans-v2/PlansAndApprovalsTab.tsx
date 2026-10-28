@@ -4298,7 +4298,7 @@ const VerificationSummaryCard: React.FC<{
   onVerificationRetry?: () => void;
 }> = ({ plan, verificationLog, verification, isVerifyingActive = false, isLive = false, onVerificationComplete, onVerificationRetry }) => {
   const summary = isVerifyingActive ? null : PLAN_VERIFICATION_SUMMARY[plan.id];
-  const isInProgress = isVerifyingActive || !summary;
+  const isInProgress = isVerifyingActive;
 
   // Stream health check lines while live verification is running.
   const checkLines = (verification?.checks?.length ?? 0) > 0
@@ -4437,6 +4437,35 @@ const VerificationSummaryCard: React.FC<{
               </>
             )}
 
+          </CardBody>
+        </Card>
+      </>
+    );
+  }
+
+  // Some mock runs have no detailed verification fixture. A terminal run must
+  // still show a finished result, rather than an in-progress spinner.
+  if (!summary) {
+    const hasFailed = verification?.outcome === 'failed' || plan.status === 'Failed';
+    return (
+      <>
+        <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+          Verification summary
+        </Title>
+        <Card>
+          <CardBody>
+            <Alert variant={hasFailed ? 'danger' : 'success'} isInline title={hasFailed ? 'Verification failed' : 'Verification completed'}>
+              Detailed health check results are unavailable for this run.
+            </Alert>
+            {verificationLog && (
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                <LogExpandable
+                  idPrefix={`verif-log-${plan.id}`}
+                  toggleText="View verification logs"
+                  logText={verificationLog}
+                />
+              </div>
+            )}
           </CardBody>
         </Card>
       </>
@@ -6042,35 +6071,6 @@ export const RemediationBlueprintPanel: React.FC<{
   const stickyDownloadDisabled = isPending || isAnalyzing;
   const stickyDownloadTooltip = 'Plan is being generated';
   const stickyRootCause = { aggregatedFinding: analysisLogFinding, rootCauseNarrative: analysisLogNarrative };
-
-  // Keep this hook before the Pending INITIALIZING early return so the component
-  // executes the same hook sequence while the run transitions to READY_FOR_ANALYSIS.
-  useEffect(() => {
-    const targetId =
-      status === 'Analyzing' || status === 'Run aborted' || status === 'Acknowledged'
-        ? 'analysis-phase'
-        : status === 'Proposed' || status === 'Denied' || status === 'Pending'
-          ? 'remediation-phase'
-          : status === 'Completed'
-            || status === 'Failed'
-            || status === 'Executing'
-            || status === 'Approved'
-            || status === 'EmergencyStopped'
-            || status === 'Plan aborted'
-            || status === 'Escalating'
-            || status === 'Escalated'
-            ? 'execution-phase'
-            : status === 'Verifying'
-              ? 'verification-phase'
-              : null;
-    if (!targetId) {
-      return undefined;
-    }
-    const timer = window.setTimeout(() => {
-      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 200);
-    return () => window.clearTimeout(timer);
-  }, [plan.id, status]);
 
   if (!drawer && !isEscalating && !isPending && !isAnalyzing && !isRunAborted) return null;
 
