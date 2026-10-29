@@ -48,7 +48,7 @@ import { AngleDownIcon, AngleUpIcon, ColumnsIcon, EllipsisVIcon, ExternalLinkAlt
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { AgenticRunTimeline, type AgenticRunTimelineEvidenceContext, type MeldedTimelineSlots } from '../../components/AgenticRunTimeline';
+import { type AgenticRunPhaseTransitions, AgenticRunTimeline, type AgenticRunTimelineEvidenceContext, type MeldedTimelineSlots } from '../../components/AgenticRunTimeline';
 import { AgenticRunDetailsLayout } from '../../components/AgenticRunDetailsPageLayout';
 import { AgenticRunDetailsSectionHeading } from '../../components/AgenticRunDetailsSectionHeading';
 import { NamespaceResourceLink } from '../../components/NamespaceResourceLink';
@@ -124,6 +124,7 @@ import {
   resolveOptionRollbackPlan,
 } from './plansMvpConstants';
 import { getPlanDetailHref, resolvePlanDomainAnnotations } from './domainPlanNavigation';
+import { buildProposedVerificationScript } from './proposedVerificationPlans';
 import { downloadAnalysisReportMarkdown, downloadRemediationPlanMarkdown } from '../../utils/downloadRemediationPlan';
 import { ExpandableCodeBlock } from '../../components/ExpandableCodeBlock';
 import ResourceIcon from '../../components/ResourceIcon';
@@ -144,6 +145,8 @@ export type AgenticRunPayload = {
     name: AgenticRunPhaseName;
     requiresApproval: boolean;
   };
+  /** Audit data travels with the run rather than living in standalone timeline nodes. */
+  phaseTransitions: AgenticRunPhaseTransitions;
 };
 
 /** Icon semantic used in expandable row consolidated reasons. */
@@ -200,6 +203,8 @@ export interface PlanRow {
   traceId?: string;
   /** AgenticRun status payload, including the run-scoped approval policy snapshot. */
   agenticRun?: AgenticRunPayload;
+  /** Read-only commands proposed before a manual Verification gate is approved. */
+  proposedVerificationScript?: string;
 }
 
 const DEFAULT_AGENTIC_RUN_APPROVAL_POLICY: AgenticRunPayload['approvalPolicy'] = {
@@ -242,12 +247,48 @@ function buildAgenticRunPayload(
   existing?: AgenticRunPayload,
   configuredPolicy?: AgenticRunApprovalPolicy,
   configuredMaxRetryAttempts?: number,
+  transitionDetails?: {
+    selectedPlanName?: string;
+    executionApprovalMode?: 'manual' | 'auto';
+    executionApproverId?: string;
+    verificationApproved?: boolean;
+    verificationApprovalMode?: 'manual' | 'auto';
+    verificationApproverId?: string;
+  },
 ): AgenticRunPayload {
   const approvalPolicy = existing?.approvalPolicy ?? configuredPolicy ?? DEFAULT_AGENTIC_RUN_APPROVAL_POLICY;
   const phaseName = phaseNameForStatus(status);
+  const approvalRecord = (mode: 'manual' | 'auto') => ({
+    approvalMethod: mode === 'manual' ? 'manual' as const : 'automatic' as const,
+    approverId: mode === 'manual' ? '@mchen' : 'System (Configuration)',
+  });
+  const executionStarted = ['Approved', 'Executing', 'Verifying', 'Completed', 'Failed', 'Escalating', 'Escalated', 'EmergencyStopped', 'Plan aborted'].includes(status);
+  const verificationStarted = ['Verifying', 'Completed', 'Failed', 'Escalating', 'Escalated'].includes(status)
+    && !(status === 'Verifying' && approvalPolicy.verification === 'manual' && !transitionDetails?.verificationApproved);
+  const phaseTransitions: AgenticRunPhaseTransitions = {
+    ...(status !== 'Pending' ? {
+      Analysis: existing?.phaseTransitions?.Analysis ?? approvalRecord(approvalPolicy.analysis),
+    } : {}),
+    ...(executionStarted ? {
+      Execution: {
+        ...(existing?.phaseTransitions?.Execution ?? approvalRecord(transitionDetails?.executionApprovalMode ?? approvalPolicy.execution)),
+        ...(transitionDetails?.executionApprovalMode ? approvalRecord(transitionDetails.executionApprovalMode) : {}),
+        ...(transitionDetails?.executionApproverId ? { approverId: transitionDetails.executionApproverId } : {}),
+        selectedPlanName: transitionDetails?.selectedPlanName ?? existing?.phaseTransitions?.Execution?.selectedPlanName,
+      },
+    } : {}),
+    ...(verificationStarted ? {
+      Verification: {
+        ...(existing?.phaseTransitions?.Verification ?? approvalRecord(transitionDetails?.verificationApprovalMode ?? approvalPolicy.verification)),
+        ...(transitionDetails?.verificationApprovalMode ? approvalRecord(transitionDetails.verificationApprovalMode) : {}),
+        ...(transitionDetails?.verificationApproverId ? { approverId: transitionDetails.verificationApproverId } : {}),
+      },
+    } : {}),
+  };
   return {
     approvalPolicy,
     maxRetryAttempts: existing?.maxRetryAttempts ?? configuredMaxRetryAttempts ?? GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
+    phaseTransitions,
     phase: {
       name: phaseName,
       requiresApproval: requiresApprovalForPhase(status, phaseName, approvalPolicy),
@@ -1930,6 +1971,19 @@ limits.memory    62Gi    64Gi
 // etcdctl endpoint status --write-out=json | jq .[].Status.header.revision
 // 8423104   ← auto-compact set to 1h; last compaction was at revision 7891200 (>1h ago)`,
   },
+  'certmgr-renewal-pending': {
+    steps: [
+      { id: 's1', time: '04:08:00', status: 'done', icon: 'exclamation', title: 'Detected expiring ingress certificate', detail: 'ingress-tls expires in 6 days' },
+      { id: 's2', time: '04:08:10', status: 'done', icon: 'search', title: 'Inspected cert-manager Certificate', detail: 'Renewal has not started for ingress-tls' },
+      { id: 's3', time: '04:08:20', status: 'done', icon: 'check', title: 'Prepared renewal proposal', detail: 'Renew the certificate and verify the Secret and expiry date' },
+    ],
+    aggregatedFinding: 'The ingress-tls certificate expires in 6 days and cert-manager has not initiated renewal.',
+    rootCauseNarrative: 'The Certificate remains Ready, but its renewal window has begun without a new issuance attempt. Renewing it now avoids an ingress TLS outage.',
+    remediationProposal: 'Request renewal of ingress-tls through cert-manager, then verify the Certificate condition and the renewed TLS Secret.',
+    riskAssessment: 'Low — the existing certificate remains available while cert-manager issues a replacement.',
+    estimatedRecovery: '~2 minutes',
+    confidence: 'High',
+  },
   ...NEW_ALERT_INVESTIGATION_DRAWER_DATA,
 };
 
@@ -2509,6 +2563,36 @@ oc patch resourcequota/compute-resources -n auth-dev -p '{"spec":{"hard":{"reque
     { id: 'acs-netpol-o1', title: 'Patch deployment to remove hostNetwork + CoreDNS config fix', description: 'Set hostNetwork: false on the retail-checkout deployment and resolve the underlying DNS resolution issue by adding a CoreDNS stub zone for the affected service domain.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: "oc patch deployment/retail-checkout -n retail-prod --type='json' -p='[{\"op\": \"replace\", \"path\": \"/spec/template/spec/hostNetwork\", \"value\": false}]' && oc apply -f coredns-stub-zone.yaml" },
     { id: 'acs-netpol-o2', title: 'Add ACS admission controller policy exception (temporary)', description: 'Add a scoped policy exception in ACS to silence the P-2041 violation alert for retail-checkout while the DNS issue is resolved separately — shorter blast radius, does not fix the root cause.', risk: 'low', reversible: 'Reversible', model: 'fast', rawCommands: "roxctl policy add-exception --policy=P-2041 --deployment=retail-checkout --namespace=retail-prod --expiry='24h'" },
   ],
+  'certmgr-renewal-pending': [
+    {
+      id: 'certmgr-renewal-o1',
+      title: 'Renew ingress-tls through cert-manager',
+      description: 'Request a new certificate and verify that the Certificate and TLS Secret reflect the renewal.',
+      risk: 'low',
+      reversible: 'Reversible',
+      model: 'smart',
+      rawCommands: 'cmctl renew ingress-tls -n cert-manager',
+      commands: [
+        { label: 'pre-check', description: 'Inspect the Certificate before renewal', command: 'oc get certificate ingress-tls -n cert-manager' },
+        { label: 'mutation', description: 'Request renewal through cert-manager', command: 'cmctl renew ingress-tls -n cert-manager' },
+      ],
+      verificationSteps: {
+        description: 'Confirm cert-manager issued the replacement and updated the ingress TLS Secret.',
+        steps: [
+          { id: 'certificate-ready', command: 'oc get certificate ingress-tls -n cert-manager -o jsonpath={.status.conditions[?(@.type=="Ready")].status}', expected: 'Ready=True' },
+          { id: 'secret-updated', command: 'oc get secret ingress-tls -n cert-manager -o jsonpath={.metadata.resourceVersion}', expected: 'The TLS Secret has a newer resource version.' },
+          { id: 'expiry-extended', command: 'oc get secret ingress-tls -n cert-manager -o jsonpath={.data.tls\\.crt} | base64 -d | openssl x509 -noout -enddate', expected: 'The certificate expiry date has been extended.' },
+        ],
+      },
+      rbac: {
+        summary: 'Includes write: update certificates',
+        rules: [
+          { namespace: 'cert-manager', resource: 'certificates (cert-manager.io)', verbs: 'get, list, update', purpose: 'Request renewal for ingress-tls', isWrite: true },
+          { namespace: 'cert-manager', resource: 'secrets', verbs: 'get, list', purpose: 'Verify the renewed TLS Secret' },
+        ],
+      },
+    },
+  ],
   'prometheus-wal-emergency-stopped': [
     { id: 'prom-wal-o1', title: 'Full WAL repair with pre-execution snapshot (recommended)', description: 'Take a volume snapshot of the Prometheus PVC before initiating repair, then run tsdb repair on the corrupted WAL segments. The snapshot provides a rollback point if the repair corrupts additional data. Must be run in an offline write-isolated window (after 04:00 UTC).', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: `oc create -f prometheus-pvc-snapshot.yaml -n openshift-monitoring
 oc scale statefulset/prometheus-k8s --replicas=0 -n openshift-monitoring
@@ -2576,6 +2660,17 @@ interface PlanPostMortem {
 }
 
 const PLAN_POSTMORTEM: Record<string, PlanPostMortem> = {
+  'certmgr-renewal-pending': {
+    type: 'success',
+    executionDuration: '38s',
+    appliedAt: 'Tue 04:10:00 UTC',
+    recoveredAt: 'Tue 04:10:38 UTC',
+    rootCauseSummary: 'The ingress-tls certificate entered its renewal window without a new issuance attempt.',
+    remediationActionDelta: 'Requested renewal through cert-manager; the existing certificate remained available during issuance.',
+    executionTargets: ['prod-east-2'],
+    executionTargetsSC: ['ingress-tls', 'cert-manager'],
+    rawLog: '[04:10:00 UTC] Inspecting Certificate ingress-tls in cert-manager\n[04:10:12 UTC] Requesting renewal through cert-manager\n[04:10:38 UTC] Renewal request accepted; starting verification\nExit code: 0 — Execution succeeded.',
+  },
   tp5: {
     type: 'success',
     executionDuration: '43s',
@@ -2792,6 +2887,14 @@ Exit code: 0 — Execution succeeded.`,
 // ─── Execution & Verification Summary mock data ──────────────────────────────
 
 const PLAN_EXECUTION_SUMMARY: Record<string, ExecutionSummaryData> = {
+  'certmgr-renewal-pending': {
+    targetedRootCause: 'The ingress-tls certificate was nearing expiry without a new cert-manager issuance attempt.',
+    remediationDelta: 'Requested a replacement certificate while preserving the currently served TLS Secret.',
+    actionsTaken: [
+      { category: 'pre-check', status: 'Succeeded', description: 'Inspect the current Certificate', command: 'oc get certificate ingress-tls -n cert-manager', output: 'Certificate ingress-tls found; renewal window active.' },
+      { category: 'mutation', status: 'Succeeded', description: 'Request certificate renewal', command: 'cmctl renew ingress-tls -n cert-manager', output: 'Certificate ingress-tls renewal requested.' },
+    ],
+  },
   op1: {
     targetedRootCause: 'A clock skew of +847 ms on 3 OpenShift nodes caused Prometheus target scrapes to fail TLS certificate time-validation checks.',
     remediationDelta: 'Updated the NTP pool to ntp.corp.redhat.com on all 3 affected nodes and restarted chrony-sync-daemon to resynchronize clocks.',
@@ -2801,7 +2904,7 @@ const PLAN_EXECUTION_SUMMARY: Record<string, ExecutionSummaryData> = {
       { category: 'mutation', status: 'Succeeded', description: 'Update NTP pool config and restart chrony on node-3', command: 'chronyc makestep && systemctl restart chronyd', output: 'chrony-sync-daemon on node-3: restarted (offset was +843ms)' },
     ],
     mockAudit: {
-      selectedOptionTitle: 'Resync NTP on affected nodes via chrony',
+      selectedOptionTitle: 'Reconcile Prometheus operator ServiceMonitor targets and refresh TLS trust',
       approvedBy: 'Marcus Chen',
       approvedAt: 'Jun 9, 2026, 4:15 PM',
       maxAttempts: 3,
@@ -2861,6 +2964,18 @@ const PLAN_EXECUTION_SUMMARY: Record<string, ExecutionSummaryData> = {
 };
 
 const PLAN_VERIFICATION_SUMMARY: Record<string, VerificationSummaryData> = {
+  'certmgr-renewal-pending': {
+    outcomeAssessment: [
+      'The ingress-tls Certificate is Ready after renewal.',
+      'The TLS Secret was updated with the replacement certificate.',
+      'The renewed certificate has a later expiry date.',
+    ],
+    checks: [
+      { id: 'certificate-ready', status: 'Passed', command: 'oc get certificate ingress-tls -n cert-manager -o jsonpath={.status.conditions[?(@.type=="Ready")].status}', output: 'True' },
+      { id: 'secret-updated', status: 'Passed', command: 'oc get secret ingress-tls -n cert-manager -o jsonpath={.metadata.resourceVersion}', output: 'Resource version advanced after renewal.' },
+      { id: 'expiry-extended', status: 'Passed', command: 'oc get secret ingress-tls -n cert-manager -o jsonpath={.data.tls\\.crt} | base64 -d | openssl x509 -noout -enddate', output: 'The replacement certificate expires after the original certificate.' },
+    ],
+  },
   op1: {
     outcomeAssessment: [
       'Clock offset delta fell below 1 ms across all 3 nodes after NTP resynchronization.',
@@ -4149,7 +4264,7 @@ const ExecutionSummaryCard: React.FC<{
             <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '15ch' }}>
               {resolvedOptionTitle && (
                 <DescriptionListGroup>
-                  <DescriptionListTerm>Selected option</DescriptionListTerm>
+                  <DescriptionListTerm>Selected plan</DescriptionListTerm>
                   <DescriptionListDescription>{resolvedOptionTitle}</DescriptionListDescription>
                 </DescriptionListGroup>
               )}
@@ -5097,7 +5212,7 @@ const RemediationOptionCard: React.FC<{
       ) : null
     ) : null;
 
-  // Radio label — inline badges sit next to the "Select option N" text.
+  // Radio label — inline badges sit next to the "Select plan N" text.
   const radioLabel = (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
       <span style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'] }}>
@@ -5107,7 +5222,7 @@ const RemediationOptionCard: React.FC<{
         <Label color="blue" isCompact>AI Recommended</Label>
       )}
       {isOptionLocked && isFirst && (
-        <Label color="orange" isCompact>Approved option</Label>
+        <Label color="orange" isCompact>Approved plan</Label>
       )}
       <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
         {formatReversibilityLabel(option.reversible)}
@@ -5145,13 +5260,13 @@ const RemediationOptionCard: React.FC<{
                 aria-label={`Select plan ${index + 1}`}
               />
             ) : (
-              /* Terminal / execution phases — show "Option N" label instead of radio */
+              /* Terminal / execution phases — show "Plan N" label instead of radio */
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
                 <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'], marginBlock: 0 }}>
-                  Option {index + 1}
+                  Plan {index + 1}
                 </Content>
                 {isOptionLocked && isFirst && (
-                  <Label color="orange" isCompact>Approved option</Label>
+                  <Label color="orange" isCompact>Approved plan</Label>
                 )}
                 <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
                   {formatReversibilityLabel(option.reversible)}
@@ -5636,18 +5751,14 @@ function generateAbortedAnalysisLogs(planId: string): string {
   ].join('\n');
 }
 
-/**
- * Inline paused-state messaging for a run whose own status payload requires
- * operator approval. Approval controls remain centralized in the sticky toolbar.
- */
-const ManualApprovalAlert: React.FC<{ phaseName: AgenticRunPhaseName }> = ({
-  phaseName,
-}) => (
-  <Alert variant="info" isInline title="Awaiting Manual Approval">
-    This run has paused at the {phaseName} phase based on your configuration settings. Review the
-    proposed actions before continuing.
-  </Alert>
-);
+const CERTMGR_VERIFICATION_CHECK_LINES = [
+  'Checking Certificate Ready condition…',
+  'Certificate ingress-tls Ready=True',
+  'Checking ingress-tls Secret…',
+  'TLS Secret updated after renewal',
+  'Checking replacement certificate expiry…',
+  'Certificate validity extended',
+];
 
 export const RemediationBlueprintPanel: React.FC<{
   plan: PlanRow;
@@ -5711,8 +5822,12 @@ export const RemediationBlueprintPanel: React.FC<{
     startVerification,
     completeVerification,
     dispatchAnalysis,
+    finishReAnalysis,
   } = usePlanWorkflow();
   const workflow = getPlanWorkflow(plan.id);
+  const verificationChecks = plan.id === 'certmgr-renewal-pending'
+    ? CERTMGR_VERIFICATION_CHECK_LINES
+    : VERIFICATION_CHECK_LINES;
   const isAwaitingVerificationApproval =
     isVerifying
     && (
@@ -5755,6 +5870,16 @@ export const RemediationBlueprintPanel: React.FC<{
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan.id, analysisPolicy]);
 
+  // The certificate run starts as Pending. Once analysis is dispatched, its
+  // simulated result becomes a proposal after a short visible analysis phase.
+  useEffect(() => {
+    if (plan.id !== 'certmgr-renewal-pending' || !isAnalyzing || !isAgenticAutomationEnabled) {
+      return undefined;
+    }
+    const timer = window.setTimeout(() => finishReAnalysis(plan.id), 2000);
+    return () => window.clearTimeout(timer);
+  }, [finishReAnalysis, isAgenticAutomationEnabled, isAnalyzing, plan.id]);
+
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
 
@@ -5770,9 +5895,9 @@ export const RemediationBlueprintPanel: React.FC<{
     setIsExecutionRunning(true);
     const timer = window.setTimeout(() => {
       if (verificationPolicy === 'manual') {
-        requestVerificationApproval(plan.id, VERIFICATION_CHECK_LINES);
+        requestVerificationApproval(plan.id, verificationChecks);
       } else {
-        startVerification(plan.id, VERIFICATION_CHECK_LINES);
+        startVerification(plan.id, verificationChecks);
       }
       setIsExecutionRunning(false);
     }, 4000);
@@ -5784,6 +5909,7 @@ export const RemediationBlueprintPanel: React.FC<{
     requestVerificationApproval,
     startVerification,
     verificationPolicy,
+    verificationChecks,
     workflow.verification?.attempt,
   ]);
 
@@ -5811,9 +5937,11 @@ export const RemediationBlueprintPanel: React.FC<{
     runPayload.phase.requiresApproval
     || reversibilityCircuitBreakerActive
     || workflow.verification?.requiresNewApproval === true;
-  const manualApprovalPhase = phaseRequiresManualApproval
-    && (isPendingReadyForAnalysis || isProposed || isEscalating)
-    ? runPayload.phase.name
+  const manualApprovalPhase = !isClusterUpdatePlan && !isAnalysisOnly && (
+    (phaseRequiresManualApproval && (isPendingReadyForAnalysis || isProposed))
+    || isAwaitingVerificationApproval
+  )
+    ? runPayload.phase?.name ?? ''
     : null;
   const isAutomaticPhase = !phaseRequiresManualApproval && !isAwaitingVerificationApproval
     && (isPending || isProposed || isVerifying || isEscalating);
@@ -5884,6 +6012,11 @@ export const RemediationBlueprintPanel: React.FC<{
     : (isExecutionPhase || isTerminal
         ? (visibleOptions[0] ?? options[0] ?? null)
         : null);
+  const hasEmbeddedExecutionApproval = Boolean(workflow.executionApproval)
+    && (isExecuting || isTerminal)
+    && !isClusterUpdatePlan
+    && !isAnalysisOnly
+    && (isExecuting ? visibleOptions.length > 0 : terminalVisibleOptions.length > 0);
   const selectedOptionIndex = workflow.executionApproval?.optionIndex
     ?? Math.max(0, options.findIndex((opt) => opt.id === selectedOption?.id));
 
@@ -5931,7 +6064,7 @@ export const RemediationBlueprintPanel: React.FC<{
         optionId: primaryOption.id,
         optionTitle: primaryOption.title,
         maxAttempts: configMaxRetryAttempts,
-      });
+      }, 'auto');
       setIsAutoExecuteQueued(false);
     }, 2000);
     return () => {
@@ -5947,14 +6080,15 @@ export const RemediationBlueprintPanel: React.FC<{
     if (!verification || verification.outcome) {
       return;
     }
-    const shouldPass = verification.attempt >= verification.maxAttempts;
+    const shouldPass = plan.id === 'certmgr-renewal-pending'
+      || verification.attempt >= verification.maxAttempts;
     completeVerification(plan.id, shouldPass, verification.requiresNewApproval === true);
   }, [completeVerification, isAgenticAutomationEnabled, plan.id, workflow.verification]);
 
   const handleVerificationRetry = useCallback(() => {
     if (!isAgenticAutomationEnabled) return;
-    startVerification(plan.id, VERIFICATION_CHECK_LINES);
-  }, [isAgenticAutomationEnabled, plan.id, startVerification]);
+    startVerification(plan.id, verificationChecks);
+  }, [isAgenticAutomationEnabled, plan.id, startVerification, verificationChecks]);
 
   const handleApproveVerification = useCallback(() => {
     if (!isAgenticAutomationEnabled) return;
@@ -5964,12 +6098,13 @@ export const RemediationBlueprintPanel: React.FC<{
     }
     // Supports a directly seeded Verifying run whose workflow record has not
     // been initialized by the execution simulator yet.
-    startVerification(plan.id, VERIFICATION_CHECK_LINES);
+    startVerification(plan.id, verificationChecks, 'manual');
   }, [
     approveVerification,
     isAgenticAutomationEnabled,
     plan.id,
     startVerification,
+    verificationChecks,
     workflow.verificationApprovalPending,
   ]);
 
@@ -5982,8 +6117,10 @@ export const RemediationBlueprintPanel: React.FC<{
     [isTerminal, isExecuting, isVerifying, plan],
   );
   const summaryExecutionLog = summaryPostMortem?.rawLog ?? summaryPostMortem?.failureTrace ?? '';
-  const summaryVerificationLog = workflow.verification?.checks.join('\n') ?? (
-    isTerminal || isVerifying ? generateVerificationLogs(plan.id) : ''
+  const summaryVerificationLog = isAwaitingVerificationApproval ? '' : (
+    workflow.verification?.checks.join('\n') ?? (
+      isTerminal || isVerifying ? generateVerificationLogs(plan.id) : ''
+    )
   );
   const summaryEscalationLog = (isEscalated || isEscalating) ? generateEscalationLogs(plan.id) : '';
 
@@ -5994,7 +6131,7 @@ export const RemediationBlueprintPanel: React.FC<{
         ? buildActiveExecutionLogLines(plan, execOption).join('\n')
         : '';
     const verificationLog =
-      isVerifying || isTerminal || isEscalating || isEscalated
+      !isAwaitingVerificationApproval && (isVerifying || isTerminal || isEscalating || isEscalated)
         ? (workflow.verification?.checks.join('\n') ?? generateVerificationLogs(plan.id))
         : '';
     return {
@@ -6007,6 +6144,8 @@ export const RemediationBlueprintPanel: React.FC<{
       rootCauseNarrative: drawer?.rootCauseNarrative,
       executionLogText: executionLog,
       verificationLogText: verificationLog,
+      proposedVerificationScript: plan.proposedVerificationScript ?? buildProposedVerificationScript(plan),
+      isAwaitingVerificationApproval,
       escalationLogText: summaryEscalationLog || undefined,
       traceId: plan.traceId,
       runStatus: status,
@@ -6023,6 +6162,7 @@ export const RemediationBlueprintPanel: React.FC<{
     isEscalating,
     isEmergencyStopped,
     isExecutionPhase,
+    isAwaitingVerificationApproval,
     isPendingReadyForAnalysis,
     isTerminal,
     isVerifying,
@@ -6604,7 +6744,7 @@ export const RemediationBlueprintPanel: React.FC<{
         <ModalHeader title="Execute remediation?" labelId="execute-remediation-confirm-title" />
         <ModalBody>
           <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-            You&apos;re about to run the automated script for Option {selectedOptionIndex + 1}:{' '}
+            You&apos;re about to run the automated script for Plan {selectedOptionIndex + 1}:{' '}
             <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
           </Content>
           {selectedOption?.reversible === 'Irreversible' && (
@@ -6660,7 +6800,7 @@ export const RemediationBlueprintPanel: React.FC<{
 
   const meldedTimelineSlots: MeldedTimelineSlots = {
     analysisPhaseStarted: meldedAnalysisPhaseContent,
-    humanApprovalRequested: meldedHumanApprovalContent,
+    humanApprovalRequested: isPendingReadyForAnalysis ? undefined : meldedHumanApprovalContent,
     executionPhaseCompleted: (isVerifying || isTerminal || isEscalating || isEscalated || isEmergencyStopped || isPlanAborted) ? (
       <ExecutionSummaryCard
         plan={plan}
@@ -6673,9 +6813,7 @@ export const RemediationBlueprintPanel: React.FC<{
       />
     ) : undefined,
     verificationPhaseStarted: isVerifying ? (
-      isAwaitingVerificationApproval ? (
-        <ManualApprovalAlert phaseName="Verification" />
-      ) : (
+      isAwaitingVerificationApproval ? undefined : (
         <VerificationSummaryCard
           plan={plan}
           verificationLog={summaryVerificationLog}
@@ -6775,6 +6913,20 @@ export const RemediationBlueprintPanel: React.FC<{
               </Button>
             </ActionListItem>
           </>
+        ) : isCompleted && plan.id === 'certmgr-renewal-pending' ? (
+          <ActionListItem>
+            <Button
+              variant="link"
+              icon={<RhUiDownloadIcon />}
+              onClick={() => {
+                if (selectedOption) {
+                  downloadRemediationPlanMarkdown(plan, selectedOption, stickyRootCause);
+                }
+              }}
+            >
+              Download plan
+            </Button>
+          </ActionListItem>
         ) : (
           <>
             <ActionListItem>
@@ -6851,11 +7003,6 @@ export const RemediationBlueprintPanel: React.FC<{
           <StackItem>
             <AgenticRunDetailsSectionHeading showAiDisclaimer={isRunAborted} />
           </StackItem>
-          {manualApprovalPhase && !isClusterUpdatePlan && !isAnalysisOnly && (
-            <StackItem>
-              <ManualApprovalAlert phaseName={manualApprovalPhase} />
-            </StackItem>
-          )}
           {isRunAborted ? (
             <StackItem>
               <Alert
@@ -6967,6 +7114,11 @@ export const RemediationBlueprintPanel: React.FC<{
               retryCount={Math.max(0, (workflow.verification?.attempt ?? 1) - 1)}
               isCapabilitiesDisabled={!isAgenticAutomationEnabled}
               isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
+              executionApprovalMode={executionPolicy}
+              isAwaitingVerificationApproval={isAwaitingVerificationApproval}
+              phaseTransitions={runPayload.phaseTransitions}
+              hasEmbeddedExecutionApproval={hasEmbeddedExecutionApproval}
+              manualApprovalPhase={manualApprovalPhase}
               evidence={timelineEvidence}
               meldedSlots={meldedTimelineSlots}
             />
@@ -7030,6 +7182,19 @@ export function buildPlansForPerspective(
         applyScRemediationPatches(PLAN_REMEDIATION_OPTIONS[row.id] ?? [], row.id, isSingleCluster),
         drawerData?.confidence,
       );
+      const workflowRecord = workflowByPlanId[row.id];
+      const transitionDetails = {
+        selectedPlanName: workflowRecord?.executionApproval?.optionTitle
+          ?? remediationOptions[0]?.title
+          ?? PLAN_EXECUTION_SUMMARY[row.id]?.mockAudit?.selectedOptionTitle,
+        executionApprovalMode: workflowRecord?.executionApproval?.approvalMode,
+        executionApproverId: workflowRecord?.executionApproval?.approverId,
+        verificationApproved: Boolean(workflowRecord?.verification)
+          && !workflowRecord?.verificationApprovalPending
+          && !workflowRecord?.verification?.requiresNewApproval,
+        verificationApprovalMode: workflowRecord?.verification?.approvalMode,
+        verificationApproverId: workflowRecord?.verification?.approverId,
+      };
       const baseRow: PlanRow = {
         ...normalizedRow,
         status: normalizePlanStatus(normalizedRow.status),
@@ -7038,7 +7203,9 @@ export function buildPlansForPerspective(
           normalizedRow.agenticRun,
           runtime.approvalPolicy,
           runtime.maxRetryAttempts,
+          transitionDetails,
         ),
+        proposedVerificationScript: buildProposedVerificationScript(normalizedRow),
         name: identity?.name ?? row.id,
         synopsis: identity?.synopsis ?? normalizedRow.synopsis,
         namespace: identity?.namespace,
@@ -7076,7 +7243,7 @@ export function buildPlansForPerspective(
         resolvedRow = {
           ...baseRow,
           status: abortStatus,
-          agenticRun: buildAgenticRunPayload(abortStatus, baseRow.agenticRun),
+          agenticRun: buildAgenticRunPayload(abortStatus, baseRow.agenticRun, undefined, undefined, transitionDetails),
           terminatedAt: abortEntry.terminatedAt,
         };
       } else {
@@ -7085,7 +7252,7 @@ export function buildPlansForPerspective(
           resolvedRow = {
             ...baseRow,
             status: workflowPhase,
-            agenticRun: buildAgenticRunPayload(workflowPhase, baseRow.agenticRun),
+            agenticRun: buildAgenticRunPayload(workflowPhase, baseRow.agenticRun, undefined, undefined, transitionDetails),
           };
         }
       }

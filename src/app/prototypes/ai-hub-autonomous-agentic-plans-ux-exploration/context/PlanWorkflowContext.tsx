@@ -9,6 +9,8 @@ export type ExecutionApproval = {
   maxAttempts: number;
   approvedAt: string;
   approvedBy: string;
+  approverId?: string;
+  approvalMode?: 'manual' | 'auto';
 };
 
 export type VerificationState = {
@@ -18,6 +20,8 @@ export type VerificationState = {
   checks: string[];
   outcome?: 'passed' | 'failed';
   completedAt?: string;
+  approvalMode?: 'manual' | 'auto';
+  approverId?: string;
   /** Backend safety flag: a changed proposal requires a fresh operator approval. */
   requiresNewApproval?: boolean;
 };
@@ -64,13 +68,14 @@ type PlanWorkflowContextValue = {
   executeRemediation: (
     planId: string,
     approval: Omit<ExecutionApproval, 'approvedAt' | 'approvedBy'>,
+    approvalMode?: 'manual' | 'auto',
   ) => void;
   acknowledgePlan: (planId: string) => void;
   clearExecutionApproval: (planId: string) => void;
   startExecution: (planId: string) => void;
   requestVerificationApproval: (planId: string, checks: string[]) => void;
   approveVerification: (planId: string) => void;
-  startVerification: (planId: string, checks: string[]) => void;
+  startVerification: (planId: string, checks: string[], approvalMode?: 'manual' | 'auto') => void;
   completeVerification: (planId: string, success: boolean, requiresNewApproval?: boolean) => PlanStatus;
   submitRevisionFeedback: (planId: string, text: string) => void;
   finishReAnalysis: (planId: string) => void;
@@ -81,6 +86,7 @@ type PlanWorkflowContextValue = {
 const PlanWorkflowContext = createContext<PlanWorkflowContextValue | null>(null);
 
 const MOCK_APPROVER = 'Marcus Chen';
+const MOCK_APPROVER_ID = '@mchen';
 
 export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [workflowByPlanId, setWorkflowByPlanId] = useState<PlanWorkflowSnapshot>({});
@@ -122,6 +128,8 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
             minute: '2-digit',
           }),
           approvedBy: approval.approvedBy ?? MOCK_APPROVER,
+          approverId: approval.approverId ?? MOCK_APPROVER_ID,
+          approvalMode: approval.approvalMode ?? 'manual',
         },
         runtimePhase: 'Approved',
       });
@@ -130,7 +138,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
   );
 
   const executeRemediation = useCallback(
-    (planId: string, approval: Omit<ExecutionApproval, 'approvedAt' | 'approvedBy'>) => {
+    (planId: string, approval: Omit<ExecutionApproval, 'approvedAt' | 'approvedBy'>, approvalMode: 'manual' | 'auto' = 'manual') => {
       patchPlan(planId, {
         executionApproval: {
           ...approval,
@@ -141,7 +149,9 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
             hour: 'numeric',
             minute: '2-digit',
           }),
-          approvedBy: MOCK_APPROVER,
+          approvedBy: approvalMode === 'auto' ? 'System (Configuration)' : MOCK_APPROVER,
+          approverId: approvalMode === 'auto' ? 'System (Configuration)' : MOCK_APPROVER_ID,
+          approvalMode,
         },
         runtimePhase: 'Executing',
         verification: null,
@@ -217,6 +227,8 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
           outcome: undefined,
           completedAt: undefined,
           requiresNewApproval: false,
+          approvalMode: 'manual',
+          approverId: MOCK_APPROVER_ID,
         },
       });
     },
@@ -224,10 +236,12 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
   );
 
   const startVerification = useCallback(
-    (planId: string, checks: string[]) => {
+    (planId: string, checks: string[], approvalMode: 'manual' | 'auto' = 'auto') => {
       const approval = workflowByPlanId[planId]?.executionApproval;
       const maxAttempts = approval?.maxAttempts ?? GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS;
-      const priorAttempt = workflowByPlanId[planId]?.verification?.attempt ?? 0;
+      const priorVerification = workflowByPlanId[planId]?.verification;
+      const priorAttempt = priorVerification?.attempt ?? 0;
+      const retainedMode = priorVerification?.approvalMode ?? approvalMode;
       patchPlan(planId, {
         runtimePhase: 'Verifying',
         verificationApprovalPending: false,
@@ -237,6 +251,8 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
           startedAt: new Date().toISOString(),
           checks,
           requiresNewApproval: false,
+          approvalMode: retainedMode,
+          approverId: retainedMode === 'manual' ? priorVerification?.approverId ?? MOCK_APPROVER_ID : 'System (Configuration)',
         },
       });
     },

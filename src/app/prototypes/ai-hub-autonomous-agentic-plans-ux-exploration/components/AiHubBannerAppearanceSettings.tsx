@@ -12,6 +12,7 @@ import {
 import type { MenuToggleElement } from '@patternfly/react-core';
 import { CogIcon } from '@patternfly/react-icons';
 import { useAiHubAppearance } from '../context/AiHubAppearanceContext';
+import { usePrototypeReset } from '../context/PrototypeResetContext';
 import '@patternfly/react-styles/css/components/Menu/menu.css';
 import '@patternfly/react-styles/css/components/MenuToggle/menu-toggle.css';
 
@@ -40,11 +41,33 @@ export const AiHubBannerAppearanceSettings: React.FC = () => {
     setIsRtl,
     themeTriggerAriaLabel,
   } = useAiHubAppearance();
+  const { resetPrototype } = usePrototypeReset();
 
   const [isOpen, setIsOpen] = useState(false);
 
+  const handleResetAreaClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.detail === 3) {
+      resetPrototype();
+    }
+  };
+
   return (
     <div className="ols-ai-hub-banner-appearance">
+      <div
+        className="ols-ai-hub-banner-appearance__reset-area"
+        aria-hidden="true"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        onClick={handleResetAreaClick}
+        onDoubleClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+      />
       <Dropdown
         className="ols-ai-hub-banner-appearance__dropdown ws-full-page-utils__dropdown"
         isOpen={isOpen}

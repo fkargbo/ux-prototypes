@@ -1019,6 +1019,13 @@ body:has(.ols-ai-hub-page),
   align-items: center;
 }
 
+.ols-ai-hub-banner-appearance__reset-area {
+  flex: 0 0 calc(var(--pf-t--global--spacer--xl) * 2);
+  height: var(--pf-t--global--spacer--xl);
+  margin-inline-end: var(--pf-t--global--spacer--sm);
+  user-select: none;
+}
+
 .ols-ai-hub-banner-appearance__dropdown.pf-v6-c-menu {
   border-color: var(--pf-t--global--border--color--default) !important;
 }

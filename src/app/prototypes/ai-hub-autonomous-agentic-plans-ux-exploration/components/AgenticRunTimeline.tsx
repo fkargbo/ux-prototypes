@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Content,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
   ExpandableSection,
   Title,
 } from '@patternfly/react-core';
@@ -23,6 +28,14 @@ import './agenticRunTimeline.css';
 
 export type TimelineStepVariant = 'success' | 'info' | 'warning' | 'danger' | 'pending';
 
+export type PhaseTransitionApproval = {
+  approvalMethod: 'manual' | 'automatic';
+  approverId: string;
+  selectedPlanName?: string;
+};
+
+export type AgenticRunPhaseTransitions = Partial<Record<'Analysis' | 'Execution' | 'Verification', PhaseTransitionApproval>>;
+
 export interface TimelineStep {
   /** Unique step id */
   id: string;
@@ -36,6 +49,7 @@ export interface TimelineStep {
   variant: TimelineStepVariant;
   /** Whether this is the currently active step (shows spinner-style emphasis) */
   isCurrent?: boolean;
+  phaseTransition?: PhaseTransitionApproval;
 }
 
 /** Contextual evidence surfaced inline on expandable timeline phases (HPUX-2106). */
@@ -49,6 +63,8 @@ export interface AgenticRunTimelineEvidenceContext {
   rootCauseNarrative?: string;
   executionLogText?: string;
   verificationLogText?: string;
+  proposedVerificationScript?: string;
+  isAwaitingVerificationApproval?: boolean;
   escalationLogText?: string;
   traceId?: string;
   runStatus: PlanStatus;
@@ -71,6 +87,36 @@ type TimelinePhaseEvidence = {
   toggleExpanded: string;
   content: (isExpanded: boolean) => React.ReactNode;
 };
+
+function approvalPhaseCopy(phaseName: string | null | undefined, status: PlanStatus): string {
+  const phase = phaseName?.trim();
+  if (phase) return phase;
+  if (status === 'Pending') return 'Analysis';
+  if (status === 'Proposed') return 'Execution';
+  if (status === 'Verifying') return 'Verification';
+  return 'current';
+}
+
+const ManualApprovalNotice: React.FC<{ phaseName: string }> = ({ phaseName }) => (
+  <Alert variant="info" isInline title="Awaiting manual approval">
+    This run has paused at the {phaseName} phase based on your configuration settings. Review the proposed actions before continuing.
+  </Alert>
+);
+
+const PhaseTransitionMetadata: React.FC<{ transition: PhaseTransitionApproval; isExecution: boolean }> = ({ transition, isExecution }) => (
+  <DescriptionList isHorizontal isCompact horizontalTermWidthModifier={{ default: '15ch' }}>
+    <DescriptionListGroup>
+      <DescriptionListTerm>Approved by</DescriptionListTerm>
+      <DescriptionListDescription>{transition.approverId}</DescriptionListDescription>
+    </DescriptionListGroup>
+    {isExecution && transition.selectedPlanName && (
+      <DescriptionListGroup>
+        <DescriptionListTerm>Selected plan</DescriptionListTerm>
+        <DescriptionListDescription>{transition.selectedPlanName}</DescriptionListDescription>
+      </DescriptionListGroup>
+    )}
+  </DescriptionList>
+);
 
 // ─── PatternFly Timeline (semantic list + PF tokens; HPUX-2106) ───────────────
 
@@ -138,11 +184,12 @@ const TimelineItem: React.FC<{
   step: TimelineStep;
   evidence: TimelinePhaseEvidence | null;
   meldedBody?: React.ReactNode;
+  manualApprovalPhase?: string;
   defaultExpanded?: boolean;
   terminalExtra?: React.ReactNode;
   status: PlanStatus;
   focusRef?: React.Ref<HTMLLIElement>;
-}> = ({ step, evidence, meldedBody, defaultExpanded = false, terminalExtra, status, focusRef }) => {
+}> = ({ step, evidence, meldedBody, manualApprovalPhase, defaultExpanded = false, terminalExtra, status, focusRef }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const contentId = `timeline-evidence-${step.id}`;
   const anchorId = step.id.startsWith('sr-exec-') ? undefined : phaseAnchorId(step.event);
@@ -179,30 +226,41 @@ const TimelineItem: React.FC<{
         {terminalExtra && (
           <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>{terminalExtra}</div>
         )}
-        {meldedBody && (
+        {(meldedBody || evidence || manualApprovalPhase || step.phaseTransition) && (
           <ExpandableSection
             toggleId={`${contentId}-toggle`}
             contentId={contentId}
             isExpanded={isExpanded}
             onToggle={(_event, expanded) => setIsExpanded(expanded)}
-            toggleTextCollapsed="Show phase details"
-            toggleTextExpanded="Hide phase details"
+            toggleTextCollapsed={meldedBody || manualApprovalPhase || step.phaseTransition ? 'Show phase details' : evidence?.toggleCollapsed}
+            toggleTextExpanded={meldedBody || manualApprovalPhase || step.phaseTransition ? 'Hide phase details' : evidence?.toggleExpanded}
           >
-            <div id={contentId} style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-              {meldedBody}
+            <div style={{
+              marginTop: 'var(--pf-t--global--spacer--sm)',
+              paddingBottom: manualApprovalPhase === 'Analysis' && !meldedBody && !evidence
+                ? 'var(--pf-t--global--spacer--md)'
+                : undefined,
+            }}>
+              {step.phaseTransition && (
+                <div style={meldedBody || evidence ? { marginBottom: 'var(--pf-t--global--spacer--md)' } : undefined}>
+                  <PhaseTransitionMetadata
+                    transition={step.phaseTransition}
+                    isExecution={step.event === 'agenticrun.execute'}
+                  />
+                </div>
+              )}
+              {manualApprovalPhase && <ManualApprovalNotice phaseName={manualApprovalPhase} />}
+              {meldedBody && (
+                <div style={manualApprovalPhase ? { marginTop: 'var(--pf-t--global--spacer--md)' } : undefined}>
+                  {meldedBody}
+                </div>
+              )}
+              {evidence && (
+                <div style={meldedBody || manualApprovalPhase ? { marginTop: 'var(--pf-t--global--spacer--md)' } : undefined}>
+                  {evidence.content(isExpanded)}
+                </div>
+              )}
             </div>
-          </ExpandableSection>
-        )}
-        {!meldedBody && evidence && (
-          <ExpandableSection
-            toggleId={`${contentId}-toggle`}
-            contentId={contentId}
-            isExpanded={isExpanded}
-            onToggle={(_event, expanded) => setIsExpanded(expanded)}
-            toggleTextCollapsed={evidence.toggleCollapsed}
-            toggleTextExpanded={evidence.toggleExpanded}
-          >
-            <div id={contentId}>{evidence.content(isExpanded)}</div>
           </ExpandableSection>
         )}
       </div>
@@ -210,19 +268,23 @@ const TimelineItem: React.FC<{
   );
 };
 
-function resolveMeldedBody(step: TimelineStep, slots: MeldedTimelineSlots | undefined): React.ReactNode | undefined {
+function resolveMeldedBody(
+  step: TimelineStep,
+  slots: MeldedTimelineSlots | undefined,
+  status: PlanStatus,
+): React.ReactNode | undefined {
   if (!slots) return undefined;
   const { event } = step;
   if (event === 'agenticrun.analyze' && slots.analysisPhaseStarted) return slots.analysisPhaseStarted;
   if (event === 'agenticrun.human_approval' && slots.humanApprovalRequested) return slots.humanApprovalRequested;
   if (
     (event === 'agenticrun.execution.completed'
-      || event === 'agenticrun.execute'
-      || event.startsWith('sr-exec-'))
+      || (event === 'agenticrun.execute' && (status === 'EmergencyStopped' || status === 'Plan aborted')))
     && slots.executionPhaseCompleted
   ) {
     return slots.executionPhaseCompleted;
   }
+  if (event === 'agenticrun.execute' && slots.humanApprovalRequested) return slots.humanApprovalRequested;
   if (
     (event === 'agenticrun.verification.completed' || event === 'agenticrun.verification.retry')
     && slots.verificationPhaseCompleted
@@ -436,6 +498,20 @@ function resolveTimelinePhaseEvidence(
   }
 
   if (event === 'agenticrun.verify') {
+    if (ctx.isAwaitingVerificationApproval && step.isCurrent) {
+      if (!ctx.proposedVerificationScript?.trim()) return null;
+      return {
+        toggleCollapsed: 'View verification plan',
+        toggleExpanded: 'Hide verification plan',
+        content: () => (
+          <ExpandableCodeBlock
+            id={`timeline-verify-plan-${ctx.planId}-${step.id}`}
+            code={ctx.proposedVerificationScript ?? ''}
+            codeStyle={{ fontSize: '12px', maxHeight: '240px', overflowY: 'auto' }}
+          />
+        ),
+      };
+    }
     if (!ctx.verificationLogText?.trim()) return null;
     if (!step.isCurrent) return null;
     return {
@@ -493,8 +569,14 @@ export function buildTimelineSteps(
   createdAt: string = new Date().toISOString(),
   retryCount = 0,
   isAwaitingAnalysisApproval = false,
+  executionApprovalMode?: 'manual' | 'auto',
+  isAwaitingVerificationApproval = false,
+  phaseTransitions: AgenticRunPhaseTransitions = {},
 ): TimelineStep[] {
   const t = (min: number) => offsetTimestamp(createdAt, min);
+  const proposedApprovalLabel = executionApprovalMode === 'auto'
+    ? 'Remediation plan ready — executing automatically'
+    : 'Human approval requested - Execution';
 
   // Helper to build a step
   const step = (
@@ -519,6 +601,7 @@ export function buildTimelineSteps(
   const failed = (id: string, event: string, label: string, offset: number) => step(id, event, label, 'danger',  offset);
   const warn   = (id: string, event: string, label: string, offset: number) => step(id, event, label, 'warning', offset);
 
+  const rawSteps = (() => {
   switch (status) {
     // ── Pre-analysis ──────────────────────────────────────────────────────────
     case 'Pending':
@@ -527,7 +610,7 @@ export function buildTimelineSteps(
       if (isAwaitingAnalysisApproval) {
         return [
           done  ('s1', 'agenticrun.received',            'Run created — controller dispatched', 0),
-          active('s2', 'agenticrun.human_approval',       'Human approval requested — awaiting analysis approval', 1),
+          active('s2', 'agenticrun.human_approval',       'Human approval requested - Analysis', 1),
           waiting('s3', 'agenticrun.analyze',             'Analysis phase started'),
           waiting('s4', 'agenticrun.analysis.completed',  'Analysis completed'),
           waiting('s5', 'agenticrun.execute',             'Execution phase started'),
@@ -541,7 +624,6 @@ export function buildTimelineSteps(
         active('s1', 'agenticrun.received',  'Run created — controller dispatched', 0),
         waiting('s2', 'agenticrun.analyze',   'Analysis phase started'),
         waiting('s3', 'agenticrun.analysis.completed', 'Analysis completed'),
-        waiting('s4', 'agenticrun.human_approval',     'Human approval recorded'),
         waiting('s5', 'agenticrun.execute',            'Execution phase started'),
         waiting('s6', 'agenticrun.execution.completed','Execution phase completed'),
         waiting('s7', 'agenticrun.verify',             'Verification phase started'),
@@ -554,7 +636,6 @@ export function buildTimelineSteps(
         done ('s1', 'agenticrun.received',  'Run created — controller dispatched', 0),
         active('s2', 'agenticrun.analyze',   'Analysis phase started', 1),
         waiting('s3', 'agenticrun.analysis.completed', 'Analysis completed'),
-        waiting('s4', 'agenticrun.human_approval',     'Human approval recorded'),
         waiting('s5', 'agenticrun.execute',            'Execution phase started'),
         waiting('s6', 'agenticrun.execution.completed','Execution phase completed'),
         waiting('s7', 'agenticrun.verify',             'Verification phase started'),
@@ -568,7 +649,7 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',           'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',             'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed',  'Analysis completed', 4),
-        active('s4', 'agenticrun.human_approval',      'Human approval requested', 5),
+        active('s4', 'agenticrun.human_approval',      proposedApprovalLabel, 5),
         waiting('s5', 'agenticrun.execute',             'Execution phase started'),
         waiting('s6', 'agenticrun.execution.completed', 'Execution phase completed'),
         waiting('s7', 'agenticrun.verify',              'Verification phase started'),
@@ -604,7 +685,6 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',           'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',             'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed',  'Analysis completed', 4),
-        done  ('s4', 'agenticrun.human_approval',      'Human approval requested', 6),
         ...retrySteps,
         active('s5', 'agenticrun.execute',             execLabel, 7 + retryCount * 8),
         waiting('s6', 'agenticrun.execution.completed', 'Execution phase completed'),
@@ -620,10 +700,11 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',            'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',              'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed',   'Analysis completed', 4),
-        done  ('s4', 'agenticrun.human_approval',       'Human approval requested', 6),
         done  ('s5', 'agenticrun.execute',              'Execution phase started', 7),
         done  ('s6', 'agenticrun.execution.completed',  'Execution phase completed', 14),
-        active('s7', 'agenticrun.verify',               'Verification phase started', 15),
+        active('s7', 'agenticrun.verify',               isAwaitingVerificationApproval
+          ? 'Human approval requested - Verification'
+          : 'Verification phase started', 15),
         waiting('s8', 'agenticrun.verification.completed', 'Verification phase completed'),
         waiting('s9', 'agenticrun.terminal',            'Terminal state reached'),
       ];
@@ -634,7 +715,6 @@ export function buildTimelineSteps(
         done('s1', 'agenticrun.received',             'Run created — controller dispatched', 0),
         done('s2', 'agenticrun.analyze',               'Analysis phase started', 1),
         done('s3', 'agenticrun.analysis.completed',    'Analysis completed', 4),
-        done('s4', 'agenticrun.human_approval',        'Human approval requested', 6),
         done('s5', 'agenticrun.execute',               'Execution phase started', 7),
         done('s6', 'agenticrun.execution.completed',   'Execution phase completed', 14),
         done('s7', 'agenticrun.verify',                'Verification phase started', 15),
@@ -648,7 +728,6 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',            'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',              'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed',   'Analysis completed', 4),
-        done  ('s4', 'agenticrun.human_approval',       'Human approval requested', 6),
         done  ('s5', 'agenticrun.execute',              'Execution phase started', 7),
         done  ('s6', 'agenticrun.execution.completed',  'Execution phase completed', 14),
         done  ('s7', 'agenticrun.verify',               'Verification phase started', 15),
@@ -664,7 +743,6 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',            'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',              'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed',   'Analysis completed', 4),
-        done  ('s4', 'agenticrun.human_approval',       'Human approval requested', 6),
         done  ('s5', 'agenticrun.execute',              'Execution phase started', 7),
         done  ('s6', 'agenticrun.execution.completed',  'Execution phase completed', 14),
         done  ('s7', 'agenticrun.verify',               'Verification phase started', 15),
@@ -680,7 +758,6 @@ export function buildTimelineSteps(
         done('s1', 'agenticrun.received',              'Run created — controller dispatched', 0),
         done('s2', 'agenticrun.analyze',                'Analysis phase started', 1),
         done('s3', 'agenticrun.analysis.completed',     'Analysis completed', 4),
-        done('s4', 'agenticrun.human_approval',         'Human approval requested', 6),
         done('s5', 'agenticrun.execute',                'Execution phase started', 7),
         done('s6', 'agenticrun.execution.completed',    'Execution completed', 14),
         done('s7', 'agenticrun.verify',                 'Verification phase started', 15),
@@ -709,7 +786,6 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',  'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',    'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed', 'Analysis completed', 4),
-        done  ('s4', 'agenticrun.human_approval',     'Human approval requested', 6),
         done  ('s5', 'agenticrun.execute',            'Execution phase started', 7),
         failed('s6', 'agenticrun.terminal',           'Execution stopped — cluster may be in partial state', 11),
       ];
@@ -720,7 +796,6 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',           'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',             'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed',  'Analysis completed', 4),
-        done  ('s4', 'agenticrun.human_approval',      'Human approval requested', 6),
         active('s5', 'agenticrun.execute',             'Execution phase started', 7),
         waiting('s6', 'agenticrun.execution.completed','Execution phase completed'),
         waiting('s7', 'agenticrun.verify',             'Verification phase started'),
@@ -742,6 +817,22 @@ export function buildTimelineSteps(
         done('s1', 'agenticrun.received', 'Run created — controller dispatched', 0),
       ];
   }
+  })();
+
+  return rawSteps.map((item) => {
+      const phase = item.event === 'agenticrun.analyze' ? 'Analysis'
+        : item.event === 'agenticrun.execute' ? 'Execution'
+          : item.event === 'agenticrun.verify' ? 'Verification'
+            : null;
+      const transition = phase ? phaseTransitions[phase] : undefined;
+      if (!transition || !item.label.startsWith(`${phase} phase started`)) return item;
+      const approvalLabel = transition.approvalMethod === 'manual' ? 'Manually approved' : 'Automatically approved';
+      return {
+        ...item,
+        label: `${item.label} — ${approvalLabel}`,
+        phaseTransition: transition,
+      };
+  });
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -761,6 +852,16 @@ interface AgenticRunTimelineProps {
    * active step, reflecting that the run is gated on manual analysis approval.
    */
   isAwaitingAnalysisApproval?: boolean;
+  /** Run-specific execution policy; supplied for lifecycle simulations with an automatic gate. */
+  executionApprovalMode?: 'manual' | 'auto';
+  /** True only while the manual verification gate is waiting for operator approval. */
+  isAwaitingVerificationApproval?: boolean;
+  /** Run-scoped audit records for phase starts. */
+  phaseTransitions?: AgenticRunPhaseTransitions;
+  /** The visible plan card already contains the execution actor and selected plan. */
+  hasEmbeddedExecutionApproval?: boolean;
+  /** Phase from this run's paused approval payload; null means no manual gate. */
+  manualApprovalPhase?: string | null;
   /** Mock evidence payloads keyed by audit event — drives per-phase expandables (legacy / non-melded). */
   evidence?: AgenticRunTimelineEvidenceContext;
   /** Melded run-details bodies nested under chronological phases (HPUX-2106). */
@@ -778,30 +879,50 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   retryCount = 0,
   isCapabilitiesDisabled = false,
   isAwaitingAnalysisApproval = false,
+  executionApprovalMode,
+  isAwaitingVerificationApproval = false,
+  phaseTransitions,
+  hasEmbeddedExecutionApproval = false,
+  manualApprovalPhase = null,
   evidence,
   meldedSlots,
   defaultExpandedEvents = [],
 }) => {
   const focusedItemRef = useRef<HTMLLIElement>(null);
   const previousFocusKey = useRef<string | null>(null);
-  const steps = buildTimelineSteps(status, createdAt, retryCount, isAwaitingAnalysisApproval)
+  const approvalPhase = manualApprovalPhase !== null
+    ? approvalPhaseCopy(manualApprovalPhase, status)
+    : null;
+  const steps = buildTimelineSteps(
+    status, createdAt, retryCount, isAwaitingAnalysisApproval,
+    executionApprovalMode, isAwaitingVerificationApproval, phaseTransitions,
+  )
     .filter((s) => s.variant !== 'pending')
     .map((s) => {
+      const approvalStep = approvalPhase && s.isCurrent;
+      const visibleStep = hasEmbeddedExecutionApproval && s.event === 'agenticrun.execute'
+        ? { ...s, phaseTransition: undefined }
+        : s;
+      const labeledStep = approvalStep
+        ? { ...visibleStep, label: `Human approval requested - ${approvalPhase === 'current' ? 'Current phase' : approvalPhase}` }
+        : visibleStep;
       if (isCapabilitiesDisabled && s.variant === 'info') {
         return {
-          ...s,
+          ...labeledStep,
           variant: 'warning' as TimelineStepVariant,
           description: s.description
             ? `${s.description} — suspended by administrator`
             : 'Suspended — agentic capabilities disabled by administrator',
         };
       }
-      return s;
+      return labeledStep;
     });
 
   const hasStepContent = (step: TimelineStep): boolean => Boolean(
-    resolveMeldedBody(step, meldedSlots)
-    || resolveTimelinePhaseEvidence(step, evidence, status),
+    resolveMeldedBody(step, meldedSlots, status)
+    || resolveTimelinePhaseEvidence(step, evidence, status)
+    || step.phaseTransition
+    || (approvalPhase && step.isCurrent),
   );
   const statusExpandedEvents = resolveDefaultExpandedEventsWithContent(
     status,
@@ -848,20 +969,24 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
       </Title>
       <Timeline aria-label="Agentic run timeline">
         {steps.map((step) => {
-          const meldedBody = resolveMeldedBody(step, meldedSlots);
-          const evidenceResolved =
-            meldedBody ? null : resolveTimelinePhaseEvidence(step, evidence, status);
+          // Analysis has not been authorized yet; no plan or evidence exists to show.
+          const isAwaitingAnalysisApproval = approvalPhase === 'Analysis' && step.isCurrent;
+          const meldedBody = isAwaitingAnalysisApproval ? undefined : resolveMeldedBody(step, meldedSlots, status);
+          const evidenceResolved = isAwaitingAnalysisApproval || (meldedBody && step.event !== 'agenticrun.execute')
+            ? null
+            : resolveTimelinePhaseEvidence(step, evidence, status);
           const terminalExtra =
             step.event === 'agenticrun.terminal'
               ? (meldedSlots?.terminal ?? null)
               : undefined;
-          const hasExpandableContent = Boolean(meldedBody || evidenceResolved);
+          const hasExpandableContent = Boolean(meldedBody || evidenceResolved || step.phaseTransition || (approvalPhase && step.isCurrent));
           return (
             <TimelineItem
               key={step.id}
               step={step}
               evidence={evidenceResolved}
               meldedBody={meldedBody}
+              manualApprovalPhase={step.isCurrent ? approvalPhase ?? undefined : undefined}
               defaultExpanded={
                 hasExpandableContent
                 && step.id === focusedStepId

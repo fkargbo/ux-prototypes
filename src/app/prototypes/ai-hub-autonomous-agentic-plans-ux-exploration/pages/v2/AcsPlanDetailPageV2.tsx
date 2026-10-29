@@ -4,7 +4,6 @@ import {
   Alert,
   Breadcrumb,
   BreadcrumbItem,
-  Button,
   Content,
   Flex,
   FlexItem,
@@ -13,18 +12,18 @@ import {
 } from '@patternfly/react-core';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
-  buildPlansForPerspective,
   NamespaceResourceLink,
   PlanResourceBadge,
+  type PlanRow,
   RemediationBlueprintPanel,
   StatusLabel,
   WaitingApprovalPlanMeta,
-  type PlanRow,
+  buildPlansForPerspective,
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
 import {
+  PLANS_LIST_PATH,
   buildPrototypeHref,
   perspectiveKeyFromShellName,
-  PLANS_LIST_PATH,
   resolveDrillPerspectiveKey,
   writePlanRemediationDrillSession,
 } from '../v2PlanRemediationDrillSession';
@@ -94,7 +93,6 @@ export const AcsPlanDetailPageV2: React.FC = () => {
   useEffect(() => {
     setLocallyDenied(false);
   }, [planSlug]);
-
 
   if (!planSlug || !plan) return null;
 
