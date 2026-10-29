@@ -1,0 +1,52 @@
+/* v3 hub header: credits chip (same layout as `.ols-aio-token-counter` in autonomous-ai-observe.css). */
+
+.ols-aio-token-counter {
+  width: 200px;
+  box-sizing: border-box;
+}
+
+.ols-aio-token-counter__row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: var(--pf-t--global--spacer--md);
+  width: 100%;
+}
+
+.ols-aio-token-counter__label {
+  font-size: var(--pf-t--global--font--size--body--sm);
+  font-weight: var(--pf-t--global--font--weight--body--bold);
+  color: var(--pf-t--global--text--color--subtle);
+  letter-spacing: 0.02em;
+}
+
+.ols-aio-token-counter__value {
+  justify-self: end;
+  text-align: right;
+  font-size: var(--pf-t--global--font--size--body--sm);
+  color: var(--pf-t--global--text--color--subtle);
+  white-space: nowrap;
+}
+
+.ols-aio-token-counter__value strong {
+  color: var(--pf-t--global--text--color--link--default);
+}
+
+.ols-aio-token-counter .pf-v6-c-progress {
+  margin-top: 0;
+}
+
+.ols-aio-token-counter__progress-wrap {
+  display: block;
+  width: 100%;
+  margin-top: var(--pf-t--global--spacer--xs);
+}
+
+.ols-aio-token-counter__progress-wrap .pf-v6-c-progress {
+  width: 100%;
+}
+
+.ols-aio-token-counter__progress.pf-v6-c-progress {
+  grid-template-columns: 1fr;
+  grid-gap: 0;
+}

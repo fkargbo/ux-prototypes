@@ -69,7 +69,6 @@ export const TroubleshootingPlansTab: React.FC = () => {
   }, [
     filteredRows.length,
     plansFilter.searchInputValue,
-    plansFilter.searchCategory,
     plansFilter.statusFilters,
     plansFilter.triggerDomainFilters,
   ]);

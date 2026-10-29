@@ -17,7 +17,8 @@ export type PlanStatus =
   | 'Escalating'        // Escalated=Unknown — escalation in progress
   | 'Escalated'         // Escalated=True — terminal, requires human intervention
   | 'EmergencyStopped'  // EmergencyStopped=True — halted by operator override
-  | 'Plan aborted';     // Prototype alias for EmergencyStopped (legacy)
+  | 'Plan aborted'     // Prototype alias for EmergencyStopped (legacy — execution-phase halt)
+  | 'Run aborted';     // Analysis phase canceled before execution began (OLS-3719)
 
 /** Maps legacy mock seed values to backend-aligned labels. */
 export const LEGACY_STATUS_TO_PLAN_STATUS: Record<string, PlanStatus> = {
@@ -27,6 +28,7 @@ export const LEGACY_STATUS_TO_PLAN_STATUS: Record<string, PlanStatus> = {
   Completed: 'Completed',
   Failed: 'Failed',
   'Plan aborted': 'Plan aborted',
+  'Run aborted': 'Run aborted',
 };
 
 export function normalizePlanStatus(status: string): PlanStatus {

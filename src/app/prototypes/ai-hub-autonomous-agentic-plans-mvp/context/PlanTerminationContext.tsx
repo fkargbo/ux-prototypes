@@ -3,6 +3,8 @@ import type { PlanWorkflowSnapshot } from './PlanWorkflowContext';
 
 export type TerminatedPlanEntry = {
   terminatedAt: string;
+  /** Which phase was active when the run was stopped. Determines 'Run aborted' vs 'Plan aborted'. */
+  phase: 'analysis' | 'execution';
 };
 
 export type TerminatedPlanState = Record<string, TerminatedPlanEntry>;
@@ -14,7 +16,7 @@ export type PlanExecutionRuntime = {
 
 type PlanTerminationContextValue = {
   abortedPlans: TerminatedPlanState;
-  registerPlanTermination: (planId: string, terminatedAt: string) => void;
+  registerPlanTermination: (planId: string, terminatedAt: string, phase: TerminatedPlanEntry['phase']) => void;
   getPlanTermination: (planId: string) => TerminatedPlanEntry | undefined;
 };
 
@@ -23,10 +25,10 @@ const PlanTerminationContext = createContext<PlanTerminationContextValue | null>
 export const PlanTerminationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [abortedPlans, setAbortedPlans] = useState<TerminatedPlanState>({});
 
-  const registerPlanTermination = useCallback((planId: string, terminatedAt: string) => {
+  const registerPlanTermination = useCallback((planId: string, terminatedAt: string, phase: TerminatedPlanEntry['phase']) => {
     setAbortedPlans((prev) => ({
       ...prev,
-      [planId]: { terminatedAt },
+      [planId]: { terminatedAt, phase },
     }));
   }, []);
 

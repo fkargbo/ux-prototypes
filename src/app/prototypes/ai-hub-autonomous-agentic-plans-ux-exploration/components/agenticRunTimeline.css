@@ -1,0 +1,59 @@
+/**
+ * Vertical agentic-run timeline — PF token–aligned layout for HPUX-2106.
+ * Uses semantic list markup; pairs with ExpandableSection for phase evidence.
+ */
+.ols-agentic-run-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  padding-top: var(--pf-t--global--spacer--md);
+}
+
+.ols-agentic-run-timeline__item {
+  display: flex;
+  gap: var(--pf-t--global--spacer--md);
+  position: relative;
+  padding-bottom: var(--pf-t--global--spacer--lg);
+}
+
+.ols-agentic-run-timeline__item:last-child {
+  padding-bottom: 0;
+}
+
+.ols-agentic-run-timeline__item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 30px;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--pf-t--global--border--color--default);
+}
+
+.ols-agentic-run-timeline__indicator {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  border-radius: 50%;
+  border: 2px solid var(--pf-t--global--border--color--default);
+  background-color: var(--pf-t--global--background--color--primary--default);
+}
+
+.ols-agentic-run-timeline__indicator svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ols-agentic-run-timeline__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ols-agentic-run-timeline__content .pf-v6-c-expandable-section {
+  margin-top: var(--pf-t--global--spacer--sm);
+}

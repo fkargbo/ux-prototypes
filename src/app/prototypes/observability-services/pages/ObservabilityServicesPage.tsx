@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Alert,
   AlertActionCloseButton,
@@ -7,19 +7,65 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { CAPABILITY_CARDS, STACK_SUMMARY_STATS } from '../data';
-import { StackSummaryRibbon } from '../components/StackSummaryRibbon';
+import {
+  CAPABILITY_CARDS_V2_DAY0,
+  CAPABILITY_CARDS_V2_DAY1,
+  OPERATIONAL_KPI_STATS,
+  OPERATIONAL_KPI_STATS_V2_DAY0,
+} from '../data';
+import { CAPABILITY_CARDS_V1, OPERATIONAL_KPI_STATS_V1 } from '../data.v1';
+import { OperationalKPIRibbon } from '../components/OperationalKPIRibbon';
 import { CapabilityLayout } from '../components/CapabilityLayout';
 import { ProjectSwitcher } from '../components/ProjectSwitcher';
+import { VersionSelector, usePrototypeVersion } from '../components/VersionSelector';
+import {
+  SimulationStepBanner,
+  type SimulationStep,
+} from '../components/SimulationStepBanner';
+import { useInjectBannerActions } from '@app/core/BannerActionsContext';
 import '../observability-services.css';
 
 /**
  * Observe → Observability services
  * Post–Cluster Observability Operator installation hub.
- * Surfaces capability readiness — not live telemetry health.
+ *
+ * Versioning via URL search param (controls surfaced in the prototype banner):
+ *   ?version=v1  →  v1.0.0 legacy baseline (frozen)
+ *   (no param)   →  v2.0.0 Day 0 / Day 1 simulation (default)
+ *
+ * v2 simulation:
+ *   Day 0 — COO installed, MonitoringStack CR not configured.
+ *   Day 1 — MonitoringStack configured; Metrics & Alerting becomes active.
+ *   Transition triggered by the SimulationStepBanner button OR by clicking
+ *   the "Configure" dep-action on the MonitoringStack CR dep row.
  */
 export const ObservabilityServicesPage: React.FC = () => {
   const [isScopeAlertVisible, setIsScopeAlertVisible] = useState(true);
+  const [simulationStep, setSimulationStep] = useState<SimulationStep>('day0');
+
+  const version = usePrototypeVersion();
+  useInjectBannerActions(<VersionSelector />);
+
+  const isV1 = version === 'v1';
+  const kpiStats = isV1
+    ? OPERATIONAL_KPI_STATS_V1
+    : simulationStep === 'day0'
+      ? OPERATIONAL_KPI_STATS_V2_DAY0
+      : OPERATIONAL_KPI_STATS;
+
+  const v2Cards =
+    simulationStep === 'day0' ? CAPABILITY_CARDS_V2_DAY0 : CAPABILITY_CARDS_V2_DAY1;
+
+  // Called by CapabilityCard when an inline dep-action button is clicked.
+  // Clicking "Install COO" (dep id 'coo-operator') on any card advances Day 0 → Day 1.
+  const handleDepAction = useCallback(
+    (depId: string) => {
+      if (depId === 'coo-operator' && simulationStep === 'day0') {
+        setSimulationStep('day1');
+      }
+    },
+    [simulationStep],
+  );
 
   return (
     <div className="ols-obs-services-page">
@@ -29,17 +75,17 @@ export const ObservabilityServicesPage: React.FC = () => {
 
       <div className="template-page-heading">
         <Title headingLevel="h1" size="2xl">
-          Overview
+          Observability services
         </Title>
         <Content component="p">
-          Manage and monitor your metrics, logs, and traces from a single, unified hub.
+          Manage observability capabilities and access cluster tools for metrics, logs, and traces.
         </Content>
         {isScopeAlertVisible ? (
           <Alert
             className="ols-obs-services-alert"
             variant="info"
             isInline
-            title="Cluster-wide observability scope"
+            title="Cluster-wide scope"
             actionClose={
               <AlertActionCloseButton
                 title="Close scope information"
@@ -47,9 +93,7 @@ export const ObservabilityServicesPage: React.FC = () => {
               />
             }
           >
-            This hub reflects observability capabilities configured on the current cluster. Status
-            labels indicate operator enablement and configuration readiness, rather than live
-            telemetry severity.
+            Status labels show configuration readiness across the cluster, not live telemetry severity.
           </Alert>
         ) : null}
       </div>
@@ -61,14 +105,31 @@ export const ObservabilityServicesPage: React.FC = () => {
       >
         <Stack hasGutter>
           <StackItem>
-            <StackSummaryRibbon stats={STACK_SUMMARY_STATS} />
+            <OperationalKPIRibbon stats={kpiStats} />
           </StackItem>
 
           <StackItem>
-            <CapabilityLayout capabilities={CAPABILITY_CARDS} />
+            {isV1 ? (
+              <CapabilityLayout capabilities={CAPABILITY_CARDS_V1} collapsible={false} />
+            ) : (
+              <CapabilityLayout
+                capabilities={v2Cards}
+                collapsible={false}
+                onDepAction={handleDepAction}
+              />
+            )}
           </StackItem>
         </Stack>
       </div>
+
+      {/* Floating prototype control — fixed bottom-left, outside the page design */}
+      {!isV1 ? (
+        <SimulationStepBanner
+          step={simulationStep}
+          onAdvance={() => setSimulationStep('day1')}
+          onReset={() => setSimulationStep('day0')}
+        />
+      ) : null}
     </div>
   );
 };

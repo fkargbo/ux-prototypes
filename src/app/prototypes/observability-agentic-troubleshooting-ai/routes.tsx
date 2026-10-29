@@ -14,8 +14,8 @@ import {
   CreateSilenceFleetManagementGate,
 } from './pages/AlertingFleetManagementGate';
 import { Content, PageSection } from '@patternfly/react-core';
-import { AiHubAppearanceProvider } from './context/AiHubAppearanceContext';
 import { AiHubBannerAppearanceSettings } from './components/AiHubBannerAppearanceSettings';
+import { FeedbackPanelWrapper } from './components/FeedbackPanelWrapper';
 import { TroubleshootingPlansPage } from './pages/TroubleshootingPlansPage';
 import { TroubleshootingPlanDetail } from './pages/TroubleshootingPlanDetail';
 import { RecommendationHubPage } from './pages/ai-hub-v4/RecommendationHubPage';
@@ -208,8 +208,8 @@ export const routes: RouteConfig[] = [
   },
 ];
 
-/** Theme state for AI Hub banner appearance controls. */
-export const prototypeRootWrapper = AiHubAppearanceProvider;
+/** Theme state for AI Hub banner appearance controls + feedback side panel. */
+export const prototypeRootWrapper = FeedbackPanelWrapper;
 
 /** Banner toolbar: before version picker (see `PrototypeLayout`). */
 export const bannerBeforeVersionPicker = <AiHubBannerAppearanceSettings />;
