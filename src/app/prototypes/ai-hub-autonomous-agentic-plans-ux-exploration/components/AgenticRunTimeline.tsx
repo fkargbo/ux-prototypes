@@ -7,6 +7,7 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   ExpandableSection,
+  Label,
   Title,
 } from '@patternfly/react-core';
 import {
@@ -209,11 +210,19 @@ const TimelineItem: React.FC<{
         <Content
           component="p"
           style={{
-            fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
             marginBottom: step.description ? 'var(--pf-t--global--spacer--xs)' : 0,
+            ...(manualApprovalPhase ? {
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 'var(--pf-t--global--spacer--sm)',
+            } : {}),
           }}
         >
-          {step.label}
+          <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'] }}>
+            {step.label}
+          </span>
+          {manualApprovalPhase && <Label color="purple" isCompact>Needs approval</Label>}
         </Content>
         {step.description && (
           <Content

@@ -119,6 +119,7 @@ test.each([
   );
   const activeItem = screen.getByText(`Human approval requested - ${props.phase}`).closest('li');
   expect(activeItem).toHaveTextContent(`Human approval requested - ${props.phase}`);
+  expect(activeItem).toHaveTextContent('Needs approval');
   expect(activeItem?.querySelector('button')).toHaveAttribute('aria-expanded', 'true');
   const notice = screen.getByText('Awaiting manual approval').closest('.pf-v6-c-alert');
   expect(notice).toHaveTextContent(`This run has paused at the ${props.phase} phase based on your configuration settings.`);
@@ -142,6 +143,7 @@ test('omits manual approval messaging during automatic execution and falls back 
     <AgenticRunTimeline status="Proposed" executionApprovalMode="auto" createdAt="2026-09-01T12:00:00Z" />,
   );
   expect(screen.queryByText('Awaiting manual approval')).not.toBeInTheDocument();
+  expect(screen.queryByText('Needs approval')).not.toBeInTheDocument();
   rerender(
     <AgenticRunTimeline
       status="Verifying"
@@ -152,6 +154,9 @@ test('omits manual approval messaging during automatic execution and falls back 
   );
   expect(screen.getByText('Human approval requested - Verification')).toBeInTheDocument();
   expect(screen.getByText('Awaiting manual approval')).toBeInTheDocument();
+  expect(screen.getByText('Needs approval')).toBeInTheDocument();
+  rerender(<AgenticRunTimeline status="Completed" createdAt="2026-09-01T12:00:00Z" />);
+  expect(screen.queryByText('Needs approval')).not.toBeInTheDocument();
 });
 
 test('shows proposed commands before verification approval and recorded logs only after it starts', () => {
