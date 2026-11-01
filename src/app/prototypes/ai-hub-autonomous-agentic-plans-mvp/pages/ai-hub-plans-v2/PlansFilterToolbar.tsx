@@ -114,6 +114,9 @@ function planMatchesAttributeFilters(
 }
 
 export function resolvePlanTargetCluster(plan: PlanRow): string {
+  if (plan.clusterName?.trim()) {
+    return plan.clusterName.trim();
+  }
   if (plan.targetCluster?.trim()) {
     return plan.targetCluster.trim();
   }
@@ -124,11 +127,13 @@ export function resolvePlanTargetCluster(plan: PlanRow): string {
   return assignAgenticRunTargetCluster(plan.id);
 }
 
-/** Normalizes drill-down rows so targetCluster is always set for multicluster UI. */
+/** Normalizes drill-down rows so clusterName is always available in multicluster mode. */
 export function withAgenticRunTargetCluster(plan: PlanRow): PlanRow {
+  const clusterName = resolvePlanTargetCluster(plan);
   return {
     ...plan,
-    targetCluster: resolvePlanTargetCluster(plan),
+    clusterName,
+    targetCluster: plan.targetCluster ?? clusterName,
   };
 }
 
@@ -202,13 +207,7 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
       count += clusterFilters.length;
     }
     return count;
-  }, [
-    includeClusterFilter,
-    includeTriggerDomainFilter,
-    statusFilters.length,
-    triggerDomainFilters.length,
-    clusterFilters.length,
-  ]);
+  }, [clusterFilters.length, includeClusterFilter, includeTriggerDomainFilter, statusFilters.length, triggerDomainFilters.length]);
 
   const hasActiveAttributeFilters = activeFilterCount > 0;
   const hasActiveTextSearch = searchInputValue.trim().length > 0;
@@ -268,6 +267,8 @@ export interface PlansFilterToolbarProps {
   /** Full unfiltered row set — used to compute per-option counts in the filter dropdowns. */
   rows?: PlanRow[];
   pagination?: React.ReactNode;
+  /** Optional control rendered after the search input — e.g. a column management button. */
+  columnManagementControl?: React.ReactNode;
   statusFilters: PlanRow['status'][];
   triggerDomainFilters: string[];
   clusterFilters: string[];
@@ -292,6 +293,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   clusterFilterOptions = [],
   triggerDomainOptions = TRIGGER_DOMAIN_FILTER_OPTIONS,
   pagination,
+  columnManagementControl,
   rows = [],
   statusFilters,
   triggerDomainFilters,
@@ -331,10 +333,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
     const counts: Record<string, number> = {};
     for (const row of rows) {
       const cluster = resolvePlanTargetCluster(row);
-      if (cluster === '—') {
-        continue;
-      }
-      counts[cluster] = (counts[cluster] ?? 0) + 1;
+      if (cluster !== '—') counts[cluster] = (counts[cluster] ?? 0) + 1;
     }
     return counts;
   }, [rows]);
@@ -359,9 +358,9 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
       }
     },
     [
-      clusterOptionSet,
-      includeClusterFilter,
       includeTriggerDomainFilter,
+      includeClusterFilter,
+      clusterOptionSet,
       triggerDomainOptions,
       setStatusFilters,
       setTriggerDomainFilters,
@@ -534,6 +533,9 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                 )}
               </div>
             </FlexItem>
+            {columnManagementControl && (
+              <FlexItem>{columnManagementControl}</FlexItem>
+            )}
           </Flex>
         </FlexItem>
 

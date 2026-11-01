@@ -26,6 +26,7 @@ export function resolveAnalysisLogsLifecycle(status: PlanStatus): AnalysisLogsLi
       return 'failed';
     case 'EmergencyStopped':
     case 'Plan aborted':
+    case 'Run aborted':
       return 'cancelled';
     default:
       return 'completed';
@@ -147,6 +148,10 @@ export type AnalysisLogsExpandableProps = {
   idPrefix?: string;
   /** When true, show Streaming / Completed / Failed badge beside the toggle. */
   showLifecycleBadge?: boolean;
+  /** Log viewer only — parent ExpandableSection owns the toggle (timeline phases). */
+  embedded?: boolean;
+  /** When `embedded`, mirrors parent ExpandableSection open state (streaming / scroll). */
+  embeddedExpanded?: boolean;
 };
 
 /**
@@ -161,6 +166,8 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
   lifecycle,
   idPrefix = 'analysis-log',
   showLifecycleBadge = false,
+  embedded = false,
+  embeddedExpanded = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState('');
@@ -170,6 +177,7 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
   const isLive = lifecycle === 'live';
   const canDownload = lifecycle === 'completed' || lifecycle === 'failed' || lifecycle === 'cancelled';
   const toggleLabel = isExpanded ? 'Hide analysis logs' : 'View analysis logs';
+  const panelExpanded = embedded ? embeddedExpanded : isExpanded;
 
   const allLines = useMemo(
     () => generateAnalysisLogs(planId, finding, narrative).split('\n'),
@@ -184,7 +192,7 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
 
   // Append mock lines while live and expanded.
   useEffect(() => {
-    if (!isLive || !isExpanded) return undefined;
+    if (!isLive || !panelExpanded) return undefined;
     const timer = window.setInterval(() => {
       setStreamedCount((prev) => {
         if (prev >= allLines.length) return prev;
@@ -192,7 +200,7 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
       });
     }, 700);
     return () => window.clearInterval(timer);
-  }, [isLive, isExpanded, allLines.length]);
+  }, [isLive, panelExpanded, allLines.length]);
 
   const rawLogs = allLines.slice(0, streamedCount).join('\n');
   const fullLogs = allLines.join('\n');
@@ -208,23 +216,8 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  return (
-    <ExpandableSection
-      toggleText=""
-      toggleContent={
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-          <FlexItem>{toggleLabel}</FlexItem>
-          {showLifecycleBadge ? <FlexItem>{lifecycleToggleBadge(lifecycle)}</FlexItem> : null}
-        </Flex>
-      }
-      isExpanded={isExpanded}
-      onToggle={(_e, expanded) => {
-        setIsExpanded(expanded);
-        if (!expanded) setQuery('');
-      }}
-      style={{ marginBottom: 0 }}
-    >
-      <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+  const logViewerPanel = (
+      <div style={{ marginTop: embedded ? 0 : 'var(--pf-t--global--spacer--sm)' }}>
         <Flex
           justifyContent={{ default: 'justifyContentSpaceBetween' }}
           alignItems={{ default: 'alignItemsCenter' }}
@@ -285,6 +278,29 @@ export const AnalysisLogsExpandable: React.FC<AnalysisLogsExpandableProps> = ({
           scrollToRow={isLive && displayLines.length > 0 ? displayLines.length - 1 : undefined}
         />
       </div>
+  );
+
+  if (embedded) {
+    return logViewerPanel;
+  }
+
+  return (
+    <ExpandableSection
+      toggleText=""
+      toggleContent={
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <FlexItem>{toggleLabel}</FlexItem>
+          {showLifecycleBadge ? <FlexItem>{lifecycleToggleBadge(lifecycle)}</FlexItem> : null}
+        </Flex>
+      }
+      isExpanded={isExpanded}
+      onToggle={(_e, expanded) => {
+        setIsExpanded(expanded);
+        if (!expanded) setQuery('');
+      }}
+      style={{ marginBottom: 0 }}
+    >
+      {logViewerPanel}
     </ExpandableSection>
   );
 };

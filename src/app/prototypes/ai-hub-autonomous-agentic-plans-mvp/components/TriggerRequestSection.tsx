@@ -1,19 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Button,
+  ClipboardCopyButton,
+  CodeBlock,
+  CodeBlockAction,
+  CodeBlockCode,
   EmptyState,
   EmptyStateBody,
+  ExpandableSection,
   Flex,
   FlexItem,
+  Label,
   Popover,
   Title,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import {
+  ExclamationCircleIcon,
+  ExclamationTriangleIcon,
+  InfoCircleIcon,
+  OutlinedQuestionCircleIcon,
+} from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import {
   AnalysisLogsExpandable,
   type AnalysisLogsLifecycle,
 } from './AnalysisLogsExpandable';
+import { NamespaceResourceBadge } from './NamespaceResourceLink';
+import type {
+  AlertInvestigationAlertRow,
+  AlertInvestigationCardData,
+} from '../pages/ai-hub-plans-v2/alertInvestigationPlans';
 import type { PlanStatus } from '../types/planStatus';
+import './triggerRequestSection.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,6 +43,11 @@ const TRACE_LINK_VISIBLE_STATUSES: ReadonlySet<PlanStatus> = new Set([
   'Completed',
   'Failed',
 ]);
+
+/** Visible body rows before the alert table scrolls (header stays sticky). */
+const ALERT_TABLE_MAX_VISIBLE_ROWS = 3;
+/** Compact header + 3 body rows — keeps storm payloads scrollable without growing the card. */
+const ALERT_TABLE_SCROLL_MAX_HEIGHT = `calc(2.25rem + ${ALERT_TABLE_MAX_VISIBLE_ROWS} * 2.75rem)`;
 
 export type TriggerRequestSectionProps = {
   /** Raw `spec.request` prompt / alert event string. */
@@ -44,6 +68,10 @@ export type TriggerRequestSectionProps = {
   traceId?: string;
   /** Current run status — combined with `traceId` to decide whether to show "View trace". */
   runStatus?: PlanStatus;
+  /** When false, analysis logs render only on the Timeline (Agentic run details). */
+  showAnalysisLogs?: boolean;
+  /** When set, render the formatted Alert analysis card above the raw payload. */
+  alertInvestigation?: AlertInvestigationCardData;
 };
 
 // ─── Builder (mock spec.request from plan metadata) ───────────────────────────
@@ -68,8 +96,9 @@ export function buildAgenticRunRequest(plan: {
   severity: string;
   namespace?: string;
   triggerDomain: string;
+  alertName?: string;
 }): string {
-  const alertname = toAlertName(plan.name ?? plan.id);
+  const alertname = plan.alertName ?? toAlertName(plan.name ?? plan.id);
   const namespace = plan.namespace ?? 'default';
   return [
     `alertname="${alertname}" severity="${plan.severity}" namespace="${namespace}"`,
@@ -80,12 +109,48 @@ export function buildAgenticRunRequest(plan: {
   ].join('\n');
 }
 
+function SeverityBadge({ severity }: { severity: AlertInvestigationAlertRow['severity'] }) {
+  if (severity === 'critical') {
+    return (
+      <Label color="red" isCompact icon={<ExclamationCircleIcon />}>
+        Critical
+      </Label>
+    );
+  }
+  if (severity === 'info') {
+    return (
+      <Label color="purple" isCompact icon={<InfoCircleIcon />}>
+        Info
+      </Label>
+    );
+  }
+  return (
+    <Label color="yellow" isCompact icon={<ExclamationTriangleIcon />}>
+      Warning
+    </Label>
+  );
+}
+
+function alertingHref(options: {
+  alertName: string;
+  clusterId?: string;
+}): string {
+  const params = new URLSearchParams();
+  params.set('tab', 'alerts');
+  params.set('scope', 'ai-hub');
+  params.set('alertName', options.alertName);
+  if (options.clusterId) {
+    params.set('cluster', options.clusterId);
+  }
+  return `/core/observe/alerting?${params.toString()}`;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
  * Analysis request section — matches Root cause analysis section structure
- * (title row + `ols-aio-rca-box` body). Renders `spec.request` as plain
- * multi-line text and hosts "View analysis logs" at the bottom.
+ * (title row + `ols-aio-rca-box` body). For alert-triggered runs, surfaces a
+ * compact Alert analysis table; raw payload stays in a collapsed expandable.
  */
 export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   request,
@@ -96,13 +161,28 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
   analysisFailedToInitialize = false,
   traceId,
   runStatus,
+  showAnalysisLogs = true,
+  alertInvestigation,
 }) => {
+  const navigate = useNavigate();
+  const [isRawPayloadExpanded, setIsRawPayloadExpanded] = useState(false);
+  const [isRawPayloadCopied, setIsRawPayloadCopied] = useState(false);
   const hasRequest = Boolean(request?.trim());
   const emptyMessage = analysisFailedToInitialize
     ? 'Analysis failed to initialize.'
     : 'Analysis request data unavailable.';
   const showTraceLink =
     Boolean(traceId) && Boolean(runStatus) && TRACE_LINK_VISIBLE_STATUSES.has(runStatus as PlanStatus);
+  const rawPayloadCodeId = `analysis-request-raw-${planId}`;
+  const rawPayloadCopyId = `${rawPayloadCodeId}-copy`;
+  const alertRows = alertInvestigation?.alerts ?? [];
+
+  const handleCopyRawPayload = () => {
+    if (!request) return;
+    navigator.clipboard.writeText(request);
+    setIsRawPayloadCopied(true);
+    window.setTimeout(() => setIsRawPayloadCopied(false), 2000);
+  };
 
   return (
     <div className="ols-ai-hub-trigger-request">
@@ -113,7 +193,7 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
         style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
       >
         <FlexItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             <FlexItem>
               <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
                 Analysis request
@@ -155,7 +235,155 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
         className="ols-aio-rca-box"
         style={{ borderRadius: '16px', overflow: 'hidden' }}
       >
-        {hasRequest ? (
+        {alertInvestigation ? (
+          <>
+            <Title
+              headingLevel="h5"
+              size="md"
+              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+            >
+              Alert analysis
+            </Title>
+
+            {alertRows.length > 0 ? (
+              <div
+                className="ols-alert-analysis-table-scroll"
+                style={{
+                  maxHeight: ALERT_TABLE_SCROLL_MAX_HEIGHT,
+                  overflowY: alertRows.length > ALERT_TABLE_MAX_VISIBLE_ROWS ? 'auto' : 'visible',
+                }}
+              >
+                <Table
+                  className="ols-alert-analysis-table"
+                  aria-label="Correlated alerts for this analysis"
+                  variant="compact"
+                  isStickyHeader
+                  gridBreakPoint=""
+                >
+                  <Thead>
+                    <Tr>
+                      <Th modifier="nowrap">Alert name</Th>
+                      <Th modifier="nowrap">Severity</Th>
+                      <Th modifier="nowrap">Namespace</Th>
+                      <Th modifier="nowrap">Trigger domain</Th>
+                      <Th modifier="nowrap" screenReaderText="Actions" />
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {alertRows.map((row) => (
+                      <Tr key={`${row.alertName}-${row.namespace}`}>
+                        <Td dataLabel="Alert name" modifier="nowrap">
+                          <span
+                            className="ols-alert-analysis-table__truncate"
+                            style={{
+                              fontFamily: 'var(--pf-t--global--font--family--mono)',
+                              fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                            }}
+                            title={row.alertName}
+                          >
+                            {row.alertName}
+                          </span>
+                        </Td>
+                        <Td dataLabel="Severity" modifier="nowrap">
+                          <SeverityBadge severity={row.severity} />
+                        </Td>
+                        <Td dataLabel="Namespace" modifier="nowrap">
+                          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+                            <FlexItem>
+                              <NamespaceResourceBadge />
+                            </FlexItem>
+                            <FlexItem style={{ minWidth: 0 }}>
+                              <span className="ols-alert-analysis-table__truncate" title={row.namespace}>
+                                {row.namespace}
+                              </span>
+                            </FlexItem>
+                          </Flex>
+                        </Td>
+                        <Td dataLabel="Trigger domain" modifier="nowrap">
+                          <span className="ols-alert-analysis-table__truncate" title={row.triggerDomainLabel}>
+                            {row.triggerDomainLabel}
+                          </span>
+                        </Td>
+                        <Td dataLabel="Actions" modifier="nowrap">
+                          <Button
+                            variant="link"
+                            isInline
+                            onClick={() => {
+                              navigate(
+                                alertingHref({
+                                  alertName: row.alertName,
+                                  clusterId: row.clusterId,
+                                }),
+                              );
+                            }}
+                            aria-label={`View alert ${row.alertName} in Observe Alerting`}
+                          >
+                            View alert
+                          </Button>
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </div>
+            ) : null}
+
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+              <span className="ols-aio-text-overline">Alert summary</span>
+              <p
+                style={{
+                  margin: 'var(--pf-t--global--spacer--xs) 0 0',
+                  color: 'var(--pf-t--global--text--color--regular)',
+                  fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                }}
+              >
+                {alertInvestigation.summary}
+              </p>
+            </div>
+
+            {hasRequest ? (
+              <ExpandableSection
+                toggleText={isRawPayloadExpanded ? 'Hide raw alert payload' : 'View raw alert payload'}
+                isExpanded={isRawPayloadExpanded}
+                onToggle={(_event, expanded) => setIsRawPayloadExpanded(expanded)}
+              >
+                <CodeBlock
+                  actions={
+                    <CodeBlockAction>
+                      <ClipboardCopyButton
+                        id={rawPayloadCopyId}
+                        textId={rawPayloadCodeId}
+                        aria-label="Copy raw alert payload to clipboard"
+                        onClick={handleCopyRawPayload}
+                        exitDelay={1000}
+                        variant="plain"
+                      >
+                        {isRawPayloadCopied ? 'Copied!' : 'Copy'}
+                      </ClipboardCopyButton>
+                    </CodeBlockAction>
+                  }
+                >
+                  <CodeBlockCode
+                    id={rawPayloadCodeId}
+                    style={{
+                      fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                      maxHeight: '280px',
+                      overflowY: 'auto',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {request}
+                  </CodeBlockCode>
+                </CodeBlock>
+              </ExpandableSection>
+            ) : (
+              <EmptyState variant="xs">
+                <EmptyStateBody>{emptyMessage}</EmptyStateBody>
+              </EmptyState>
+            )}
+          </>
+        ) : hasRequest ? (
           <pre
             style={{
               margin: 0,
@@ -179,16 +407,17 @@ export const TriggerRequestSection: React.FC<TriggerRequestSectionProps> = ({
           </EmptyState>
         )}
 
-        <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
-          <AnalysisLogsExpandable
-            planId={planId}
-            finding={logFinding}
-            narrative={logNarrative}
-            lifecycle={logsLifecycle}
-            idPrefix="analysis-request-log"
-          />
-        </div>
-
+        {showAnalysisLogs && (
+          <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+            <AnalysisLogsExpandable
+              planId={planId}
+              finding={logFinding}
+              narrative={logNarrative}
+              lifecycle={logsLifecycle}
+              idPrefix="analysis-request-log"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

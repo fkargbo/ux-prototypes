@@ -144,3 +144,90 @@ export const AgenticCapabilitiesHeaderSwitch: React.FC<AgenticCapabilitiesHeader
     </>
   );
 };
+
+/**
+ * Standalone Enable / Disable AI action button with confirmation modal.
+ * Intended for page-heading toolbars — place after the settings (cog) icon.
+ */
+export const AgenticCapabilitiesActionButton: React.FC = () => {
+  const location = useLocation();
+  const { activePerspective } = useActivePerspective();
+  const perspectiveKey =
+    readPerspectiveFromSearch(new URLSearchParams(location.search))
+    ?? perspectiveKeyFromShellName(activePerspective)
+    ?? DEFAULT_PROTOTYPE_PERSPECTIVE;
+  const isSingleCluster = perspectiveKey === 'core-platforms';
+  const clusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
+  const { isAgentActiveForCluster, setAgentActiveForCluster } = useAgenticCapabilities();
+  const isActive = isAgentActiveForCluster(clusterId);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+  const unstickHover = () => {
+    requestAnimationFrame(() => {
+      document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true }));
+    });
+  };
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.currentTarget.blur();
+    if (isActive) {
+      setIsConfirmOpen(true);
+    } else {
+      setAgentActiveForCluster(clusterId, true);
+      unstickHover();
+    }
+  };
+
+  const handleConfirmDisable = () => {
+    setAgentActiveForCluster(clusterId, false);
+    setIsConfirmOpen(false);
+    unstickHover();
+  };
+
+  const handleModalClose = () => {
+    setIsConfirmOpen(false);
+    unstickHover();
+  };
+
+  return (
+    <>
+      <Button variant={isActive ? 'danger' : 'primary'} onClick={handleClick}>
+        {isActive ? 'Disable agentic runs' : 'Enable agentic runs'}
+      </Button>
+      <Popover
+        headerContent="Cluster agentic capabilities"
+        bodyContent={AgenticCapabilitiesPopoverBody}
+        position="bottom-end"
+      >
+        <Button
+          variant="plain"
+          aria-label="More information about Agentic capabilities"
+          icon={<HelpIcon />}
+          style={{ padding: 0 }}
+        />
+      </Popover>
+
+      <Modal
+        variant={ModalVariant.small}
+        isOpen={isConfirmOpen}
+        onClose={handleModalClose}
+        aria-labelledby="disable-ai-title"
+      >
+        <ModalHeader title="Disable agentic runs?" labelId="disable-ai-title" />
+        <ModalBody>
+          Immediately stops all active runs and background analysis for this cluster. Any runs currently in
+          progress will be permanently terminated. You can re-enable agentic capabilities at any time to start
+          new runs.
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="danger" onClick={handleConfirmDisable}>
+            Disable agentic runs
+          </Button>
+          <Button variant="link" onClick={handleModalClose}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </>
+  );
+};

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { FlexItem, Label } from '@patternfly/react-core';
 import { NamespaceResourceLink } from './NamespaceResourceLink';
 import { useMulticlusterDevMode } from '../context/MulticlusterDevContext';
@@ -23,12 +23,7 @@ export const AgenticRunDetailMetadataLabels: React.FC<AgenticRunDetailMetadataLa
 }) => {
   const { isMultiClusterMode } = useMulticlusterDevMode();
   const activeRun = withAgenticRunTargetCluster(plan);
-  const targetCluster = resolvePlanTargetCluster(activeRun);
-
-  useEffect(() => {
-    // DEV ONLY - REMOVE FOR PRODUCTION — verify drill-down row payload during multicluster review.
-    console.log('Current Run Data:', activeRun);
-  }, [plan]);
+  const targetCluster = activeRun.clusterName ?? resolvePlanTargetCluster(activeRun);
 
   return (
     <>
