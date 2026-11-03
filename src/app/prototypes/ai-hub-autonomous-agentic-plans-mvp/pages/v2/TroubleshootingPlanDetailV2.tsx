@@ -30,6 +30,7 @@ import {
 } from '../v2PlanRemediationDrillSession';
 import { resolvePlanDomainAnnotations } from '../ai-hub-plans-v2/domainPlanNavigation';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
+import { usePlanWorkflow } from '../../context/PlanWorkflowContext';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 import '../ai-hub-page.css';
@@ -54,6 +55,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
     : activePerspective === 'Core platforms';
 
   const planExecutionRuntime = usePlanBuildRuntime();
+  const { getPlanWorkflow } = usePlanWorkflow();
   const navigationState = location.state as TroubleshootingPlanDetailLocationState | null;
 
   /** Local denial override — transitions a Proposed plan to Denied without mutating mock data. */
@@ -123,6 +125,18 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
   const effectivePlan: PlanRow = locallyDenied
     ? { ...plan, status: 'Denied' as PlanRow['status'] }
     : plan;
+  const workflow = getPlanWorkflow(effectivePlan.id);
+  const currentStatus = effectivePlan.status === 'Denied'
+    ? effectivePlan.status
+    : workflow.runtimePhase ?? effectivePlan.status;
+  const verificationApprovalGateReached = currentStatus === 'Verifying'
+    && (
+      workflow.verificationApprovalPending
+      || (
+        effectivePlan.agenticRun?.phase.name === 'Verification'
+        && effectivePlan.agenticRun.phase.approvalGateReached
+      )
+    );
 
   const planDisplayName = plan.name ?? plan.id;
 
@@ -167,7 +181,11 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
             style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
           >
             <FlexItem>
-              <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
+              <StatusLabel
+                status={currentStatus}
+                terminatedAt={effectivePlan.terminatedAt}
+                displayTextOverride={verificationApprovalGateReached ? 'Verification phase' : undefined}
+              />
             </FlexItem>
           </Flex>
           <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>

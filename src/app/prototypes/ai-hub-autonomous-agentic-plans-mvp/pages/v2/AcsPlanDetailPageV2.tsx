@@ -112,8 +112,19 @@ export const AcsPlanDetailPageV2: React.FC = () => {
   const effectivePlan: PlanRow = locallyDenied
     ? { ...plan, status: 'Denied' as PlanRow['status'] }
     : plan;
-  const analysisApprovalGateReached = effectivePlan.status === 'Pending'
-    && getPlanWorkflow(effectivePlan.id).analysisApprovalGateReached;
+  const workflow = getPlanWorkflow(effectivePlan.id);
+  const currentStatus = effectivePlan.status === 'Denied'
+    ? effectivePlan.status
+    : workflow.runtimePhase ?? effectivePlan.status;
+  const analysisApprovalGateReached = currentStatus === 'Pending' && workflow.analysisApprovalGateReached;
+  const verificationApprovalGateReached = currentStatus === 'Verifying'
+    && (
+      workflow.verificationApprovalPending
+      || (
+        effectivePlan.agenticRun?.phase.name === 'Verification'
+        && effectivePlan.agenticRun.phase.approvalGateReached
+      )
+    );
 
   const planDisplayName = plan.name ?? plan.id;
 
@@ -171,10 +182,14 @@ export const AcsPlanDetailPageV2: React.FC = () => {
           >
             <FlexItem>
               <StatusLabel
-                status={effectivePlan.status}
+                status={currentStatus}
                 terminatedAt={effectivePlan.terminatedAt}
                 displayStatus={analysisApprovalGateReached ? 'Analyzing' : undefined}
-                displayTextOverride={analysisApprovalGateReached ? 'Analysis phase' : undefined}
+                displayTextOverride={analysisApprovalGateReached
+                  ? 'Analysis phase'
+                  : verificationApprovalGateReached
+                    ? 'Verification phase'
+                    : undefined}
               />
             </FlexItem>
           </Flex>

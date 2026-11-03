@@ -3311,7 +3311,7 @@ const STATUS_DISPLAY_TEXT: Partial<Record<PlanStatus, string>> = {
   'Run aborted':      'Analysis stopped',
   'Plan aborted':     'Execution stopped',
   'Proposed':         'Execution phase',
-  'Verifying':        'Verification phase',
+  'Verifying':        'Verifying',
   'Escalating':       'Escalation phase',
 };
 
@@ -3918,8 +3918,18 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             {(() => {
               const workflow = getPlanWorkflow(row.id);
               const analysisApprovalGateReached = row.status === 'Pending' && workflow.analysisApprovalGateReached;
+              const verificationApprovalGateReached = row.status === 'Verifying'
+                && (
+                  workflow.verificationApprovalPending
+                  || (
+                    row.agenticRun?.phase.name === 'Verification'
+                    && row.agenticRun.phase.approvalGateReached
+                  )
+                );
               const awaitingApprovalPhase = analysisApprovalGateReached
                 ? 'Analysis'
+                : verificationApprovalGateReached
+                  ? 'Verification'
                 : row.agenticRun?.phase.approvalGateReached
                   ? row.agenticRun.phase.name
                   : undefined;
@@ -3929,7 +3939,11 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
               terminatedAt={row.terminatedAt}
               awaitingApprovalPhase={awaitingApprovalPhase}
               displayStatus={analysisApprovalGateReached ? 'Analyzing' : undefined}
-              displayTextOverride={analysisApprovalGateReached ? 'Analysis phase' : undefined}
+              displayTextOverride={analysisApprovalGateReached
+                ? 'Analysis phase'
+                : verificationApprovalGateReached
+                  ? 'Verification phase'
+                  : undefined}
             />
               );
             })()}
