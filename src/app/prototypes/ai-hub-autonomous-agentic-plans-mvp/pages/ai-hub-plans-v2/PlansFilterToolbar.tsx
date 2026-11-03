@@ -22,22 +22,22 @@ export type PlansSearchCategory = 'name';
 export const AGENTIC_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['status'] }[] = [
   { label: 'Pending',           value: 'Pending' },
   { label: 'Analyzing',         value: 'Analyzing' },
-  { label: 'Proposed',          value: 'Proposed' },
+  { label: 'Execution phase',   value: 'Proposed' },
   { label: 'Executing',         value: 'Executing' },
-  { label: 'Verifying',         value: 'Verifying' },
+  { label: 'Verification phase', value: 'Verifying' },
   { label: 'Completed',         value: 'Completed' },
   { label: 'Failed',            value: 'Failed' },
   { label: 'Denied',            value: 'Denied' },
-  { label: 'Escalating',        value: 'Escalating' },
+  { label: 'Escalation phase',  value: 'Escalating' },
   { label: 'Escalated',         value: 'Escalated' },
   { label: 'Emergency stopped', value: 'EmergencyStopped' },
 ];
 
 export const TROUBLESHOOTING_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['status'] }[] = [
   { label: 'Analyzing',         value: 'Analyzing' },
-  { label: 'Proposed',          value: 'Proposed' },
+  { label: 'Execution phase',   value: 'Proposed' },
   { label: 'Executing',         value: 'Executing' },
-  { label: 'Verifying',         value: 'Verifying' },
+  { label: 'Verification phase', value: 'Verifying' },
   { label: 'Completed',         value: 'Completed' },
   { label: 'Escalated',         value: 'Escalated' },
   { label: 'Emergency stopped', value: 'EmergencyStopped' },

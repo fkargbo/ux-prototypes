@@ -30,6 +30,7 @@ import {
 } from '../v2PlanRemediationDrillSession';
 import { resolvePlanDomainAnnotations } from '../ai-hub-plans-v2/domainPlanNavigation';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
+import { usePlanWorkflow } from '../../context/PlanWorkflowContext';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 import { getClusterUpdateHref } from '../v2PerspectiveUrl';
@@ -53,6 +54,7 @@ export const PlanRemediationPageV2: React.FC = () => {
     : activePerspective === 'Core platforms';
 
   const planExecutionRuntime = usePlanBuildRuntime();
+  const { getPlanWorkflow } = usePlanWorkflow();
   const navigationState = location.state as { plan?: PlanRow } | null;
 
   const plan = useMemo(() => {
@@ -139,6 +141,8 @@ export const PlanRemediationPageV2: React.FC = () => {
   const effectivePlan: PlanRow = locallyDenied
     ? { ...plan, status: 'Denied' as PlanRow['status'] }
     : plan;
+  const analysisApprovalGateReached = effectivePlan.status === 'Pending'
+    && getPlanWorkflow(effectivePlan.id).analysisApprovalGateReached;
 
   const planDisplayName = plan.name ?? plan.id;
 
@@ -183,7 +187,12 @@ export const PlanRemediationPageV2: React.FC = () => {
             style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
           >
             <FlexItem>
-              <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
+              <StatusLabel
+                status={effectivePlan.status}
+                terminatedAt={effectivePlan.terminatedAt}
+                displayStatus={analysisApprovalGateReached ? 'Analyzing' : undefined}
+                displayTextOverride={analysisApprovalGateReached ? 'Analysis phase' : undefined}
+              />
             </FlexItem>
           </Flex>
           <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>

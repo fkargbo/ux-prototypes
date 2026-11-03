@@ -222,7 +222,7 @@ const TimelineItem: React.FC<{
           <span style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'] }}>
             {step.label}
           </span>
-          {manualApprovalPhase && <Label color="purple" isCompact>Needs approval</Label>}
+          {manualApprovalPhase && <Label color="purple" isCompact>Awaiting approval</Label>}
         </Content>
         {step.description && (
           <Content

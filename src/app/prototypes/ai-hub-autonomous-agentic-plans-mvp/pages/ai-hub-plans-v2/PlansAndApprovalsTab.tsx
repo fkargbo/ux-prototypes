@@ -145,7 +145,10 @@ export type AgenticRunPayload = {
   /** Backend phase status used by the details view to decide whether the run is paused. */
   phase: {
     name: AgenticRunPhaseName;
+    /** The configured policy requires a manual decision for this phase. */
     requiresApproval: boolean;
+    /** The run has reached that manual approval gate. */
+    approvalGateReached: boolean;
   };
   /** Audit data travels with the run rather than living in standalone timeline nodes. */
   phaseTransitions: AgenticRunPhaseTransitions;
@@ -264,6 +267,12 @@ function buildAgenticRunPayload(
 ): AgenticRunPayload {
   const approvalPolicy = existing?.approvalPolicy ?? configuredPolicy ?? DEFAULT_AGENTIC_RUN_APPROVAL_POLICY;
   const phaseName = phaseNameForStatus(status);
+  const phaseRequiresApproval = requiresApprovalForPhase(status, phaseName, approvalPolicy);
+  // Pending includes an INITIALIZING sub-state. The run must finish that
+  // transition before the Analysis approval gate can be surfaced.
+  const approvalGateReached = phaseRequiresApproval
+    && status !== 'Pending'
+    && !(phaseName === 'Verification' && transitionDetails?.verificationApproved === true);
   const approvalRecord = (mode: 'manual' | 'auto') => ({
     approvalMethod: mode === 'manual' ? 'manual' as const : 'automatic' as const,
     approverId: mode === 'manual' ? '@mchen' : 'System (Configuration)',
@@ -297,7 +306,8 @@ function buildAgenticRunPayload(
     phaseTransitions,
     phase: {
       name: phaseName,
-      requiresApproval: requiresApprovalForPhase(status, phaseName, approvalPolicy),
+      requiresApproval: phaseRequiresApproval,
+      approvalGateReached,
     },
   };
 }
@@ -3300,6 +3310,9 @@ const STATUS_DISPLAY_TEXT: Partial<Record<PlanStatus, string>> = {
   'EmergencyStopped': 'Emergency stopped',
   'Run aborted':      'Analysis stopped',
   'Plan aborted':     'Execution stopped',
+  'Proposed':         'Execution phase',
+  'Verifying':        'Verification phase',
+  'Escalating':       'Escalation phase',
 };
 
 const STATUS_ICON_ROW_STYLE: React.CSSProperties = {
@@ -3315,17 +3328,28 @@ const STATUS_ICON_ROW_STYLE: React.CSSProperties = {
  * icon and plain body-weight text sit inline without a background chip.
  * Aborted / stopped states retain a tooltip for cluster-impact context.
  */
-export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }> = ({
+export const StatusLabel: React.FC<{
+  status: PlanStatus;
+  terminatedAt?: string;
+  /** Current phase when the table row is paused for manual approval. */
+  awaitingApprovalPhase?: AgenticRunPhaseName;
+  /** Optional phase visual used when a Pending run has reached Analysis approval. */
+  displayStatus?: PlanStatus;
+  displayTextOverride?: string;
+}> = ({
   status,
   terminatedAt,
+  awaitingApprovalPhase,
+  displayStatus = status,
+  displayTextOverride,
 }) => {
-  const displayText = STATUS_DISPLAY_TEXT[status] ?? status;
+  const displayText = displayTextOverride ?? STATUS_DISPLAY_TEXT[displayStatus] ?? displayStatus;
   const iconEl = (
     <span
       aria-hidden="true"
-      style={{ color: STATUS_ICON_CSS_COLOR[status], display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+      style={{ color: STATUS_ICON_CSS_COLOR[displayStatus], display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
     >
-      {STATUS_VISUAL[status].icon}
+      {STATUS_VISUAL[displayStatus].icon}
     </span>
   );
 
@@ -3372,9 +3396,20 @@ export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }
   }
 
   return (
-    <span style={STATUS_ICON_ROW_STYLE}>
-      {iconEl}
-      {displayText}
+    <span style={{ ...STATUS_ICON_ROW_STYLE, flexWrap: 'wrap' }}>
+      <span style={STATUS_ICON_ROW_STYLE}>
+        {iconEl}
+        {displayText}
+      </span>
+      {awaitingApprovalPhase && (
+        <Label
+          color="purple"
+          isCompact
+          aria-label={`Awaiting approval for ${awaitingApprovalPhase} phase`}
+        >
+          Awaiting approval
+        </Label>
+      )}
     </span>
   );
 };
@@ -3771,6 +3806,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   onSort,
   hiddenColumns,
 }) => {
+  const { getPlanWorkflow } = usePlanWorkflow();
   const isColHidden = (key: ColumnKey) => hiddenColumns?.has(key) ?? false;
   const tokensHidden = isColHidden('tokensConsumed');
   // Hidden by default when column prefs are absent (matches Manage columns default).
@@ -3879,7 +3915,24 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
           ) : null}
 
           <Td dataLabel="Status">
-            <StatusLabel status={row.status} terminatedAt={row.terminatedAt} />
+            {(() => {
+              const workflow = getPlanWorkflow(row.id);
+              const analysisApprovalGateReached = row.status === 'Pending' && workflow.analysisApprovalGateReached;
+              const awaitingApprovalPhase = analysisApprovalGateReached
+                ? 'Analysis'
+                : row.agenticRun?.phase.approvalGateReached
+                  ? row.agenticRun.phase.name
+                  : undefined;
+              return (
+            <StatusLabel
+              status={row.status}
+              terminatedAt={row.terminatedAt}
+              awaitingApprovalPhase={awaitingApprovalPhase}
+              displayStatus={analysisApprovalGateReached ? 'Analyzing' : undefined}
+              displayTextOverride={analysisApprovalGateReached ? 'Analysis phase' : undefined}
+            />
+              );
+            })()}
           </Td>
 
           {!tokensHidden && (
@@ -5858,6 +5911,7 @@ export const RemediationBlueprintPanel: React.FC<{
     completeVerification,
     dispatchAnalysis,
     finishReAnalysis,
+    markAnalysisApprovalGateReached,
   } = usePlanWorkflow();
   const workflow = getPlanWorkflow(plan.id);
   const verificationChecks = plan.id === 'certmgr-renewal-pending'
@@ -5893,6 +5947,7 @@ export const RemediationBlueprintPanel: React.FC<{
       if (analysisPolicy === 'auto') {
         dispatchAnalysis(plan.id);
       } else {
+        markAnalysisApprovalGateReached(plan.id);
         setPendingSubState('READY_FOR_ANALYSIS');
         onPendingInitializingChange?.(false);
       }
@@ -5903,7 +5958,7 @@ export const RemediationBlueprintPanel: React.FC<{
       onPendingInitializingChange?.(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan.id, analysisPolicy]);
+  }, [analysisPolicy, dispatchAnalysis, markAnalysisApprovalGateReached, onPendingInitializingChange, plan.id]);
 
   // The certificate run starts as Pending. Once analysis is dispatched, its
   // simulated result becomes a proposal after a short visible analysis phase.

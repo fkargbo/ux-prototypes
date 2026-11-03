@@ -33,6 +33,8 @@ export type RevisionFeedbackEntry = {
 
 export type PlanWorkflowRecord = {
   runtimePhase: PlanStatus | null;
+  /** Pending initialization has completed and the Analysis approval gate is active. */
+  analysisApprovalGateReached: boolean;
   executionApproval: ExecutionApproval | null;
   verification: VerificationState | null;
   verificationApprovalPending: boolean;
@@ -45,6 +47,7 @@ export type PlanWorkflowSnapshot = Record<string, PlanWorkflowRecord>;
 
 const EMPTY_RECORD: PlanWorkflowRecord = {
   runtimePhase: null,
+  analysisApprovalGateReached: false,
   executionApproval: null,
   verification: null,
   verificationApprovalPending: false,
@@ -61,6 +64,7 @@ type PlanWorkflowContextValue = {
   workflowByPlanId: PlanWorkflowSnapshot;
   getPlanWorkflow: (planId: string) => PlanWorkflowRecord;
   getRuntimePhase: (planId: string) => PlanStatus | null;
+  markAnalysisApprovalGateReached: (planId: string) => void;
   registerExecutionApproval: (
     planId: string,
     approval: Omit<ExecutionApproval, 'approvedAt' | 'approvedBy'> & Partial<Pick<ExecutionApproval, 'approvedAt' | 'approvedBy'>>,
@@ -113,6 +117,13 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const getRuntimePhase = useCallback(
     (planId: string) => workflowByPlanId[planId]?.runtimePhase ?? null,
     [workflowByPlanId],
+  );
+
+  const markAnalysisApprovalGateReached = useCallback(
+    (planId: string) => {
+      patchPlan(planId, { analysisApprovalGateReached: true });
+    },
+    [patchPlan],
   );
 
   const registerExecutionApproval = useCallback(
@@ -349,6 +360,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       workflowByPlanId,
       getPlanWorkflow,
       getRuntimePhase,
+      markAnalysisApprovalGateReached,
       registerExecutionApproval,
       executeRemediation,
       acknowledgePlan,
@@ -366,6 +378,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       workflowByPlanId,
       getPlanWorkflow,
       getRuntimePhase,
+      markAnalysisApprovalGateReached,
       registerExecutionApproval,
       executeRemediation,
       acknowledgePlan,
