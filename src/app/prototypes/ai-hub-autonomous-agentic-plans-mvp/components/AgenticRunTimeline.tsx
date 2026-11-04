@@ -79,6 +79,7 @@ export type MeldedTimelineSlots = {
   executionPhaseCompleted?: React.ReactNode;
   verificationPhaseStarted?: React.ReactNode;
   verificationPhaseCompleted?: React.ReactNode;
+  escalationPhaseStarted?: React.ReactNode;
   /** Extra content below terminal timestamp (e.g. status badge). */
   terminal?: React.ReactNode;
 };
@@ -98,11 +99,41 @@ function approvalPhaseCopy(phaseName: string | null | undefined, status: PlanSta
   return 'current';
 }
 
-const ManualApprovalNotice: React.FC<{ phaseName: string }> = ({ phaseName }) => (
-  <Alert variant="info" isInline title="Awaiting manual approval">
-    This run has paused at the {phaseName} phase based on your configuration settings. Review the proposed actions before continuing.
-  </Alert>
-);
+const MANUAL_APPROVAL_NOTICE_COPY: Record<string, { title: string; body: string; variant: 'info' | 'danger' }> = {
+  Analysis: {
+    title: 'Awaiting manual approval',
+    body: 'Review the proposed diagnostic actions before authorizing the agent to investigate the cluster.',
+    variant: 'info',
+  },
+  Execution: {
+    title: 'Awaiting manual approval',
+    body: 'Review the proposed remediation and expected impact before authorizing changes to the cluster.',
+    variant: 'info',
+  },
+  Verification: {
+    title: 'Awaiting manual approval',
+    body: 'Review the proposed checks before authorizing the agent to validate the resolution.',
+    variant: 'info',
+  },
+  Escalation: {
+    title: 'Manual intervention required',
+    body: 'Review the failure logs below. The agent cannot proceed and requires you to take over manual troubleshooting.',
+    variant: 'danger',
+  },
+};
+
+const ManualApprovalNotice: React.FC<{ phaseName: string }> = ({ phaseName }) => {
+  const copy = MANUAL_APPROVAL_NOTICE_COPY[phaseName] ?? {
+    title: 'Awaiting manual approval',
+    body: `Review the ${phaseName.toLowerCase()} phase details before continuing.`,
+    variant: 'info' as const,
+  };
+  return (
+    <Alert variant={copy.variant} isInline title={copy.title}>
+      {copy.body}
+    </Alert>
+  );
+};
 
 const PhaseTransitionMetadata: React.FC<{ transition: PhaseTransitionApproval; isExecution: boolean }> = ({ transition, isExecution }) => (
   <DescriptionList isHorizontal isCompact horizontalTermWidthModifier={{ default: '15ch' }}>
@@ -302,6 +333,9 @@ function resolveMeldedBody(
   }
   if (event === 'agenticrun.verify' && slots.verificationPhaseStarted) {
     return slots.verificationPhaseStarted;
+  }
+  if (event === 'agenticrun.escalate' && slots.escalationPhaseStarted) {
+    return slots.escalationPhaseStarted;
   }
   return undefined;
 }

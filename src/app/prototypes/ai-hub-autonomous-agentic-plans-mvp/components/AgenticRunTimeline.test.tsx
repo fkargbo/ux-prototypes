@@ -99,6 +99,7 @@ test.each([
   { status: 'Pending' as const, phase: 'Analysis', isAwaitingAnalysisApproval: true },
   { status: 'Proposed' as const, phase: 'Execution', executionApprovalMode: 'manual' as const },
   { status: 'Verifying' as const, phase: 'Verification', isAwaitingVerificationApproval: true },
+  { status: 'Escalating' as const, phase: 'Escalation' },
 ])('renders the $phase manual gate first inside the active timeline details', (props) => {
   render(
     <AgenticRunTimeline
@@ -119,12 +120,21 @@ test.each([
   );
   const activeItem = screen.getByText(`Human approval requested - ${props.phase}`).closest('li');
   expect(activeItem).toHaveTextContent(`Human approval requested - ${props.phase}`);
-  expect(activeItem).toHaveTextContent('Needs approval');
+  expect(activeItem).toHaveTextContent('Awaiting approval');
   expect(activeItem?.querySelector('button')).toHaveAttribute('aria-expanded', 'true');
-  const notice = screen.getByText('Awaiting manual approval').closest('.pf-v6-c-alert');
-  expect(notice).toHaveTextContent(`This run has paused at the ${props.phase} phase based on your configuration settings.`);
+  const expectedNotice = props.phase === 'Escalation'
+    ? 'Manual intervention required'
+    : 'Awaiting manual approval';
+  const notice = screen.getByText(expectedNotice).closest('.pf-v6-c-alert');
+  const expectedBody = {
+    Analysis: 'Review the proposed diagnostic actions before authorizing the agent to investigate the cluster.',
+    Execution: 'Review the proposed remediation and expected impact before authorizing changes to the cluster.',
+    Verification: 'Review the proposed checks before authorizing the agent to validate the resolution.',
+    Escalation: 'Review the failure logs below. The agent cannot proceed and requires you to take over manual troubleshooting.',
+  }[props.phase];
+  expect(notice).toHaveTextContent(expectedBody);
   const followingContent = activeItem?.querySelector('.pf-v6-c-alert + div');
-  if (props.phase === 'Analysis') {
+  if (props.phase === 'Analysis' || props.phase === 'Escalation') {
     expect(followingContent).toBeNull();
     expect(notice?.parentElement?.children).toHaveLength(1);
     expect((notice?.parentElement as HTMLElement).style.paddingBottom)

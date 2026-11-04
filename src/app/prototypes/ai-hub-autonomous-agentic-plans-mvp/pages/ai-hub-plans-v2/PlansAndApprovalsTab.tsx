@@ -6041,9 +6041,10 @@ export const RemediationBlueprintPanel: React.FC<{
     runPayload.phase.requiresApproval
     || reversibilityCircuitBreakerActive
     || workflow.verification?.requiresNewApproval === true;
-  const manualApprovalPhase = !isClusterUpdatePlan && !isAnalysisOnly && (
-    (phaseRequiresManualApproval && (isPendingReadyForAnalysis || isProposed))
+  const manualApprovalPhase = !isAnalysisOnly && (
+    (!isClusterUpdatePlan && phaseRequiresManualApproval && (isPendingReadyForAnalysis || isProposed))
     || isAwaitingVerificationApproval
+    || (isEscalating && escalationPolicy === 'manual')
   )
     ? runPayload.phase?.name ?? ''
     : null;
@@ -6938,6 +6939,18 @@ export const RemediationBlueprintPanel: React.FC<{
         isLive={false}
       />
     ) : undefined,
+    escalationPhaseStarted: isEscalating && escalationPolicy === 'auto' ? (
+      <Alert
+        isInline
+        variant="danger"
+        title="Automated remediation retries exhausted"
+      >
+        The autonomous agent failed to resolve this issue after {configMaxRetryAttempts} retry attempt{configMaxRetryAttempts !== 1 ? 's' : ''}.{' '}
+        {escalationPolicy === 'auto'
+          ? 'Routing incident to configured external channels (PagerDuty / ITSM).'
+          : 'Escalation handoff is in progress, and human intervention is now required.'}
+      </Alert>
+    ) : undefined,
     terminal: (
       <StatusLabel status={status} terminatedAt={plan.terminatedAt} />
     ),
@@ -6946,7 +6959,7 @@ export const RemediationBlueprintPanel: React.FC<{
   const agenticRunActionsFooter = !isRunAborted ? (
     <>
       <ActionList style={{ '--pf-v6-c-action-list--ColumnGap': 'var(--pf-t--global--spacer--gap--action-to-action--default)' } as React.CSSProperties}>
-        {isClusterUpdatePlan ? (
+        {isClusterUpdatePlan && !(isEscalating && escalationPolicy === 'manual') ? (
           <ActionListItem>
             <Button
               variant="primary"
@@ -7014,6 +7027,36 @@ export const RemediationBlueprintPanel: React.FC<{
                 }}
               >
                 Download plan
+              </Button>
+            </ActionListItem>
+          </>
+        ) : isEscalating && escalationPolicy === 'manual' ? (
+          <>
+            <ActionListItem>
+              <Button
+                variant="danger"
+                isDisabled={!isAgenticAutomationEnabled}
+                onClick={handleAcknowledgePlan}
+              >
+                Escalate manually
+              </Button>
+            </ActionListItem>
+            <ActionListItem>
+              <Button
+                variant="secondary"
+                isDisabled={!isAgenticAutomationEnabled || !selectedOption}
+                onClick={() => {
+                  if (selectedOption) {
+                    executeRemediation(plan.id, {
+                      optionIndex: selectedOptionIndex,
+                      optionId: selectedOption.id,
+                      optionTitle: selectedOption.title,
+                      maxAttempts: configMaxRetryAttempts,
+                    });
+                  }
+                }}
+              >
+                Retry execution
               </Button>
             </ActionListItem>
           </>
@@ -7129,53 +7172,6 @@ export const RemediationBlueprintPanel: React.FC<{
               </Alert>
             </StackItem>
           ) : null}
-          {isEscalating && (
-            <StackItem>
-              <Alert
-                isInline
-                variant="danger"
-                title="Automated remediation retries exhausted"
-              >
-                The autonomous agent failed to resolve this issue after {configMaxRetryAttempts} retry attempt{configMaxRetryAttempts !== 1 ? 's' : ''}.{' '}
-                {escalationPolicy === 'auto'
-                  ? 'Routing incident to configured external channels (PagerDuty / ITSM).'
-                  : 'Escalation handoff is in progress, and human intervention is now required.'}
-              </Alert>
-            </StackItem>
-          )}
-          {isEscalating && escalationPolicy === 'manual' && (
-            <StackItem>
-              <Flex gap={{ default: 'gapSm' }}>
-                <FlexItem>
-                  <Button
-                    variant="danger"
-                    isDisabled={!isAgenticAutomationEnabled}
-                    onClick={handleAcknowledgePlan}
-                  >
-                    Escalate manually
-                  </Button>
-                </FlexItem>
-                <FlexItem>
-                  <Button
-                    variant="secondary"
-                    isDisabled={!isAgenticAutomationEnabled}
-                    onClick={() => {
-                      if (selectedOption) {
-                        executeRemediation(plan.id, {
-                          optionIndex: selectedOptionIndex,
-                          optionId: selectedOption.id,
-                          optionTitle: selectedOption.title,
-                          maxAttempts: configMaxRetryAttempts,
-                        });
-                      }
-                    }}
-                  >
-                    Retry execution
-                  </Button>
-                </FlexItem>
-              </Flex>
-            </StackItem>
-          )}
           {isEscalated && (
             <StackItem>
               <Alert
