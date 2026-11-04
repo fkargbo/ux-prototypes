@@ -126,12 +126,13 @@ test.each([
     ? 'Manual intervention required'
     : 'Awaiting manual approval';
   const notice = screen.getByText(expectedNotice).closest('.pf-v6-c-alert');
-  const expectedBody = {
-    Analysis: 'Review the proposed diagnostic actions before authorizing the agent to investigate the cluster.',
-    Execution: 'Review the proposed remediation and expected impact before authorizing changes to the cluster.',
-    Verification: 'Review the proposed checks before authorizing the agent to validate the resolution.',
-    Escalation: 'Review the failure logs below. The agent cannot proceed and requires you to take over manual troubleshooting.',
-  }[props.phase];
+  const expectedBody = props.phase === 'Analysis'
+    ? 'Review the proposed diagnostic actions before authorizing the agent to investigate the cluster.'
+    : props.phase === 'Execution'
+      ? 'Review the proposed remediation and expected impact before authorizing changes to the cluster.'
+      : props.phase === 'Verification'
+        ? 'Review the proposed checks before authorizing the agent to validate the resolution.'
+        : 'Review the failure logs below. The agent cannot proceed and requires you to take over manual troubleshooting.';
   expect(notice).toHaveTextContent(expectedBody);
   const followingContent = activeItem?.querySelector('.pf-v6-c-alert + div');
   if (props.phase === 'Analysis' || props.phase === 'Escalation') {
