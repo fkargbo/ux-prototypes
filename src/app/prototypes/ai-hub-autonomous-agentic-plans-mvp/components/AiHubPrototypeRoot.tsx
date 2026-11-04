@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, AlertGroup } from '@patternfly/react-core';
+import { Alert, AlertActionCloseButton, AlertGroup } from '@patternfly/react-core';
 import { AiHubAppearanceProvider } from '../context/AiHubAppearanceContext';
 import { AgenticCapabilitiesProvider } from '../context/AgenticCapabilitiesContext';
 import { ApprovalPolicyProvider } from '../context/ApprovalPolicyContext';
@@ -67,6 +67,7 @@ export const AiHubPrototypeRoot: React.FC<{ children: React.ReactNode }> = ({ ch
             title="Prototype reset"
             timeout={4000}
             onTimeout={() => setShowResetNotice(false)}
+            actionClose={<AlertActionCloseButton onClose={() => setShowResetNotice(false)} />}
           >
             Run states and phase configuration were restored to their initial mock values.
           </Alert>
