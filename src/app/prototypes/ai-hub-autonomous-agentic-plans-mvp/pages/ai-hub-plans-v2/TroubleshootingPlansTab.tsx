@@ -19,6 +19,7 @@ import {
   writePlanRemediationDrillSession,
 } from '../planRemediationDrillSession';
 import { getPlanDetailHref } from './domainPlanNavigation';
+import { withAgenticRunTargetCluster } from './PlansFilterToolbar';
 import {
   PlansTableCore,
   buildPlansForPerspective,
@@ -28,9 +29,11 @@ import { isNewAlertInvestigationPlanVisible } from './alertInvestigationPlans';
 import {
   OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS,
   PlansFilterToolbar,
+  resolvePlanTargetCluster,
   TROUBLESHOOTING_STATUS_FILTER_OPTIONS,
   usePlansFilterState,
 } from './PlansFilterToolbar';
+import { useMulticlusterDevMode } from '../../context/MulticlusterDevContext';
 
 const DEFAULT_PER_PAGE = 10;
 
@@ -43,8 +46,12 @@ export const TroubleshootingPlansTab: React.FC = () => {
   const planExecutionRuntime = usePlanBuildRuntime();
   const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
   const { deletePlan, isPlanDeleted } = useDeletedPlans();
+  const { isMultiClusterMode } = useMulticlusterDevMode();
 
-  const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true });
+  const plansFilter = usePlansFilterState({
+    includeTriggerDomainFilter: true,
+    includeClusterFilter: isMultiClusterMode,
+  });
 
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
@@ -59,6 +66,20 @@ export const TroubleshootingPlansTab: React.FC = () => {
     );
   }, [isSingleCluster, planExecutionRuntime, isPlanDeleted]);
 
+  const clusterFilterOptions = useMemo(() => {
+    if (!isMultiClusterMode) {
+      return [];
+    }
+    const clusters = new Set<string>();
+    for (const row of observabilityPlans) {
+      const target = resolvePlanTargetCluster(row);
+      if (target !== '—') {
+        clusters.add(target);
+      }
+    }
+    return [...clusters].sort((a, b) => a.localeCompare(b));
+  }, [isMultiClusterMode, observabilityPlans]);
+
   const filteredRows = useMemo(
     () => plansFilter.filterRows(observabilityPlans),
     [observabilityPlans, plansFilter.filterRows],
@@ -69,9 +90,9 @@ export const TroubleshootingPlansTab: React.FC = () => {
   }, [
     filteredRows.length,
     plansFilter.searchInputValue,
-    plansFilter.searchCategory,
     plansFilter.statusFilters,
     plansFilter.triggerDomainFilters,
+    plansFilter.clusterFilters,
   ]);
 
   useEffect(() => {
@@ -92,7 +113,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
         perspectiveKeyFromShellName(activePerspective)
         ?? (isSingleCluster ? 'core-platforms' : 'fleet-management');
       writePlanRemediationDrillSession({ perspectiveKey });
-      navigate(getPlanDetailHref(plan, perspectiveKey));
+      navigate(getPlanDetailHref(plan, perspectiveKey), { state: { plan: withAgenticRunTargetCluster(plan) } });
     },
     [activePerspective, isSingleCluster, navigate],
   );
@@ -104,6 +125,8 @@ export const TroubleshootingPlansTab: React.FC = () => {
           filterAriaLabel="Filter troubleshooting plans"
           statusOptions={TROUBLESHOOTING_STATUS_FILTER_OPTIONS}
           triggerDomainOptions={OBSERVABILITY_TRIGGER_DOMAIN_OPTIONS}
+          includeClusterFilter={isMultiClusterMode}
+          clusterFilterOptions={clusterFilterOptions}
           rows={observabilityPlans}
           pagination={
             <Pagination
@@ -140,6 +163,7 @@ export const TroubleshootingPlansTab: React.FC = () => {
             onDeletePlan={deletePlan}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
             showTriggerDomainColumn={false}
+            showTargetClusterColumn={isMultiClusterMode}
           />
         )}
       </StackItem>

@@ -16,7 +16,8 @@ export const config: PrototypeConfig = {
     name: 'SRE / Platform engineer',
     role: 'Reviewing and approving autonomous agent remediation plans',
   },
-  perspectives: ['core-platforms', 'fleet-management'],
+  /** Hub agentic runs MVP — Core platforms only; other perspectives visible but disabled in the switcher. */
+  perspectives: ['core-platforms'],
   tags: ['AI Hub', 'Agents', 'Autonomous', 'Remediation', 'MVP'],
   createdAt: '2026-06-09',
   updatedAt: '2026-06-09',

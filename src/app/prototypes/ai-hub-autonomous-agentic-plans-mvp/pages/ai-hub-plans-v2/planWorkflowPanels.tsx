@@ -145,7 +145,7 @@ export const ProposalApprovalArtifact: React.FC<{ approval: ExecutionApproval }>
     </Flex>
     <DescriptionList isHorizontal isAutoColumnWidths isCompact>
       <DescriptionListGroup>
-        <DescriptionListTerm>Option</DescriptionListTerm>
+        <DescriptionListTerm>Plan</DescriptionListTerm>
         <DescriptionListDescription>
           {approval.optionIndex + 1} — {approval.optionTitle}
         </DescriptionListDescription>

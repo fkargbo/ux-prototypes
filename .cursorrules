@@ -212,3 +212,40 @@ If you answered "yes" to affecting other prototypes or modifying shared componen
 
 **Key Takeaway:** Every prototype is an isolated environment. All changes must be contained within that prototype's directory. Never modify shared components to add prototype-specific behavior.
 
+
+# Working agreement
+
+  Work safely, accurately, and efficiently. Preserve user data, credentials,
+  and unrelated work.
+
+  ## Scope and approval
+
+  - Before a material change, inspect relevant state; state scope, risks,
+  verification, and rollback or containment.
+  - A clear request authorizes a scoped, reversible local source or test edit
+  after that plan. Pause if scope materially expands or outcome is unclear.
+  - Require explicit approval for external writes, credentials, canonical-
+  data changes or restores, dependencies, destructive/shared/production
+  actions, and known or uncertain indirect external effects.
+  - Before a bug fix or feature, find an applicable issue. If none exists,
+  draft it, obtain approval, create it once, and verify it. Never close
+  issues without explicit approval. Use `Ref #N` or `Addresses #N` in
+  commits.
+
+  ## Data and integrations
+
+  - Never expose secrets in code, logs, screenshots, commits, issues, or
+  responses.
+  - Treat integration operations by their actual effect, not their name or
+  HTTP method. If side effects are uncertain, require approval.
+  - Draft the exact external payload, get approval, execute once, and verify
+  the saved result. Do not retry an uncertain write.
+
+  ## Engineering
+
+  - Investigate root causes before fixes; audit related occurrences within
+  approved scope.
+  - Verify proportionally; report evidence, limitations, and remaining work.
+  - Preserve unrelated work. Avoid duplicate reads, tests, and tool calls.
+  - Keep detailed, task-specific rules in referenced guides rather than this
+  global file.

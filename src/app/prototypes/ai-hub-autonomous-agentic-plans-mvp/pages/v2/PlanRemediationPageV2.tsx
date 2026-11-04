@@ -1,24 +1,24 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Breadcrumb,
   BreadcrumbItem,
   Flex,
   FlexItem,
-  Label,
   Title,
 } from '@patternfly/react-core';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
-  NamespaceResourceLink,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
   WaitingApprovalPlanMeta,
   type PlanRow,
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
+import { withAgenticRunTargetCluster } from '../ai-hub-plans-v2/PlansFilterToolbar';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
+import { AgenticRunDetailMetadataLabels } from '../../components/AgenticRunDetailMetadataLabels';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import {
   buildPrototypeHref,
@@ -30,6 +30,7 @@ import {
 } from '../v2PlanRemediationDrillSession';
 import { resolvePlanDomainAnnotations } from '../ai-hub-plans-v2/domainPlanNavigation';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
+import { usePlanWorkflow } from '../../context/PlanWorkflowContext';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 import { getClusterUpdateHref } from '../v2PerspectiveUrl';
@@ -37,6 +38,7 @@ import '../ai-hub-page.css';
 
 export const PlanRemediationPageV2: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { planSlug } = useParams<{ planSlug: string }>();
   const [searchParams] = useSearchParams();
   const { activePerspective, setPerspectiveByKey } = useActivePerspective();
@@ -52,11 +54,21 @@ export const PlanRemediationPageV2: React.FC = () => {
     : activePerspective === 'Core platforms';
 
   const planExecutionRuntime = usePlanBuildRuntime();
+  const { getPlanWorkflow } = usePlanWorkflow();
+  const navigationState = location.state as { plan?: PlanRow } | null;
 
   const plan = useMemo(() => {
     if (!planSlug) return null;
-    return buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find((row) => row.name === planSlug) ?? null;
-  }, [isSingleCluster, planSlug, planExecutionRuntime]);
+    const decoded = decodeURIComponent(planSlug);
+    const catalogPlan = buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find(
+      (row) => row.name === decoded || row.id === decoded,
+    );
+    if (catalogPlan) return withAgenticRunTargetCluster(catalogPlan);
+    if (navigationState?.plan && (navigationState.plan.name === decoded || navigationState.plan.id === decoded)) {
+      return withAgenticRunTargetCluster(navigationState.plan);
+    }
+    return null;
+  }, [isSingleCluster, navigationState?.plan, planExecutionRuntime, planSlug]);
 
   const planDomain = useMemo(
     () => (plan ? resolvePlanDomainAnnotations(plan) : null),
@@ -117,6 +129,7 @@ export const PlanRemediationPageV2: React.FC = () => {
 
   /** Local denial override — transitions a Proposed plan to Denied without mutating mock data. */
   const [locallyDenied, setLocallyDenied] = useState(false);
+  const [isInitializingPhase, setIsInitializingPhase] = useState(false);
 
   useEffect(() => {
     setLocallyDenied(false);
@@ -128,6 +141,19 @@ export const PlanRemediationPageV2: React.FC = () => {
   const effectivePlan: PlanRow = locallyDenied
     ? { ...plan, status: 'Denied' as PlanRow['status'] }
     : plan;
+  const workflow = getPlanWorkflow(effectivePlan.id);
+  const currentStatus = effectivePlan.status === 'Denied'
+    ? effectivePlan.status
+    : workflow.runtimePhase ?? effectivePlan.status;
+  const analysisApprovalGateReached = currentStatus === 'Pending' && workflow.analysisApprovalGateReached;
+  const verificationApprovalGateReached = currentStatus === 'Verifying'
+    && (
+      workflow.verificationApprovalPending
+      || (
+        effectivePlan.agenticRun?.phase.name === 'Verification'
+        && effectivePlan.agenticRun.phase.approvalGateReached
+      )
+    );
 
   const planDisplayName = plan.name ?? plan.id;
 
@@ -163,14 +189,7 @@ export const PlanRemediationPageV2: React.FC = () => {
                 </FlexItem>
               </Flex>
             </FlexItem>
-            {plan.namespace ? (
-              <FlexItem>
-                <NamespaceResourceLink name={plan.namespace} />
-              </FlexItem>
-            ) : null}
-            <FlexItem>
-              <Label color="grey" variant="outline" isCompact>Trigger domain: {plan.triggerDomain}</Label>
-            </FlexItem>
+            <AgenticRunDetailMetadataLabels plan={plan} />
           </Flex>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
@@ -179,7 +198,16 @@ export const PlanRemediationPageV2: React.FC = () => {
             style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
           >
             <FlexItem>
-              <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
+              <StatusLabel
+                status={currentStatus}
+                terminatedAt={effectivePlan.terminatedAt}
+                displayStatus={analysisApprovalGateReached ? 'Analyzing' : undefined}
+                displayTextOverride={analysisApprovalGateReached
+                  ? 'Analysis phase'
+                  : verificationApprovalGateReached
+                    ? 'Verification phase'
+                    : undefined}
+              />
             </FlexItem>
           </Flex>
           <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
@@ -192,7 +220,7 @@ export const PlanRemediationPageV2: React.FC = () => {
       <div className="template-page-content" role="main" aria-label={`Plan remediation: ${planDisplayName}`}>
         <div
           className="ols-plan-remediation-drilldown"
-          style={effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
+          style={isInitializingPhase && effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
         >
           <AgenticKillSwitchBanner />
           <RemediationBlueprintPanel
@@ -201,6 +229,7 @@ export const PlanRemediationPageV2: React.FC = () => {
             onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
             onStartNewInvestigation={navigateBackToPlans}
             onRemediateInClusterUpdates={openClusterUpdateUi}
+            onPendingInitializingChange={setIsInitializingPhase}
           />
         </div>
       </div>

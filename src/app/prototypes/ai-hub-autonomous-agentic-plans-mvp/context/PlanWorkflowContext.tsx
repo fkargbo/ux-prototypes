@@ -9,6 +9,8 @@ export type ExecutionApproval = {
   maxAttempts: number;
   approvedAt: string;
   approvedBy: string;
+  approverId?: string;
+  approvalMode?: 'manual' | 'auto';
 };
 
 export type VerificationState = {
@@ -18,6 +20,10 @@ export type VerificationState = {
   checks: string[];
   outcome?: 'passed' | 'failed';
   completedAt?: string;
+  approvalMode?: 'manual' | 'auto';
+  approverId?: string;
+  /** Backend safety flag: a changed proposal requires a fresh operator approval. */
+  requiresNewApproval?: boolean;
 };
 
 export type RevisionFeedbackEntry = {
@@ -27,8 +33,11 @@ export type RevisionFeedbackEntry = {
 
 export type PlanWorkflowRecord = {
   runtimePhase: PlanStatus | null;
+  /** Pending initialization has completed and the Analysis approval gate is active. */
+  analysisApprovalGateReached: boolean;
   executionApproval: ExecutionApproval | null;
   verification: VerificationState | null;
+  verificationApprovalPending: boolean;
   revisionHistory: RevisionFeedbackEntry[];
   revisionCount: number;
   isReAnalyzing: boolean;
@@ -38,8 +47,10 @@ export type PlanWorkflowSnapshot = Record<string, PlanWorkflowRecord>;
 
 const EMPTY_RECORD: PlanWorkflowRecord = {
   runtimePhase: null,
+  analysisApprovalGateReached: false,
   executionApproval: null,
   verification: null,
+  verificationApprovalPending: false,
   revisionHistory: [],
   revisionCount: 0,
   isReAnalyzing: false,
@@ -53,6 +64,7 @@ type PlanWorkflowContextValue = {
   workflowByPlanId: PlanWorkflowSnapshot;
   getPlanWorkflow: (planId: string) => PlanWorkflowRecord;
   getRuntimePhase: (planId: string) => PlanStatus | null;
+  markAnalysisApprovalGateReached: (planId: string) => void;
   registerExecutionApproval: (
     planId: string,
     approval: Omit<ExecutionApproval, 'approvedAt' | 'approvedBy'> & Partial<Pick<ExecutionApproval, 'approvedAt' | 'approvedBy'>>,
@@ -60,12 +72,15 @@ type PlanWorkflowContextValue = {
   executeRemediation: (
     planId: string,
     approval: Omit<ExecutionApproval, 'approvedAt' | 'approvedBy'>,
+    approvalMode?: 'manual' | 'auto',
   ) => void;
   acknowledgePlan: (planId: string) => void;
   clearExecutionApproval: (planId: string) => void;
   startExecution: (planId: string) => void;
-  startVerification: (planId: string, checks: string[]) => void;
-  completeVerification: (planId: string, success: boolean) => PlanStatus;
+  requestVerificationApproval: (planId: string, checks: string[]) => void;
+  approveVerification: (planId: string) => void;
+  startVerification: (planId: string, checks: string[], approvalMode?: 'manual' | 'auto') => void;
+  completeVerification: (planId: string, success: boolean, requiresNewApproval?: boolean) => PlanStatus;
   submitRevisionFeedback: (planId: string, text: string) => void;
   finishReAnalysis: (planId: string) => void;
   /** HITL: manually dispatches the AI analysis engine for a Pending run. Transitions runtimePhase → 'Analyzing'. */
@@ -75,6 +90,7 @@ type PlanWorkflowContextValue = {
 const PlanWorkflowContext = createContext<PlanWorkflowContextValue | null>(null);
 
 const MOCK_APPROVER = 'Marcus Chen';
+const MOCK_APPROVER_ID = '@mchen';
 
 export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [workflowByPlanId, setWorkflowByPlanId] = useState<PlanWorkflowSnapshot>({});
@@ -103,6 +119,13 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
     [workflowByPlanId],
   );
 
+  const markAnalysisApprovalGateReached = useCallback(
+    (planId: string) => {
+      patchPlan(planId, { analysisApprovalGateReached: true });
+    },
+    [patchPlan],
+  );
+
   const registerExecutionApproval = useCallback(
     (planId: string, approval: Omit<ExecutionApproval, 'approvedAt' | 'approvedBy'> & Partial<Pick<ExecutionApproval, 'approvedAt' | 'approvedBy'>>) => {
       patchPlan(planId, {
@@ -116,6 +139,8 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
             minute: '2-digit',
           }),
           approvedBy: approval.approvedBy ?? MOCK_APPROVER,
+          approverId: approval.approverId ?? MOCK_APPROVER_ID,
+          approvalMode: approval.approvalMode ?? 'manual',
         },
         runtimePhase: 'Approved',
       });
@@ -124,7 +149,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
   );
 
   const executeRemediation = useCallback(
-    (planId: string, approval: Omit<ExecutionApproval, 'approvedAt' | 'approvedBy'>) => {
+    (planId: string, approval: Omit<ExecutionApproval, 'approvedAt' | 'approvedBy'>, approvalMode: 'manual' | 'auto' = 'manual') => {
       patchPlan(planId, {
         executionApproval: {
           ...approval,
@@ -135,10 +160,13 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
             hour: 'numeric',
             minute: '2-digit',
           }),
-          approvedBy: MOCK_APPROVER,
+          approvedBy: approvalMode === 'auto' ? 'System (Configuration)' : MOCK_APPROVER,
+          approverId: approvalMode === 'auto' ? 'System (Configuration)' : MOCK_APPROVER_ID,
+          approvalMode,
         },
         runtimePhase: 'Executing',
         verification: null,
+        verificationApprovalPending: false,
       });
     },
     [patchPlan],
@@ -157,6 +185,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
         executionApproval: null,
         runtimePhase: 'Proposed',
         verification: null,
+        verificationApprovalPending: false,
       });
     },
     [patchPlan],
@@ -164,23 +193,77 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const startExecution = useCallback(
     (planId: string) => {
-      patchPlan(planId, { runtimePhase: 'Executing', verification: null });
+      patchPlan(planId, {
+        runtimePhase: 'Executing',
+        verification: null,
+        verificationApprovalPending: false,
+      });
     },
     [patchPlan],
   );
 
-  const startVerification = useCallback(
+  const requestVerificationApproval = useCallback(
     (planId: string, checks: string[]) => {
-      const approval = workflowByPlanId[planId]?.executionApproval;
+      const record = workflowByPlanId[planId] ?? createEmptyRecord();
+      const approval = record.executionApproval;
       const maxAttempts = approval?.maxAttempts ?? GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS;
-      const priorAttempt = workflowByPlanId[planId]?.verification?.attempt ?? 0;
+      const priorAttempt = record.verification?.attempt ?? 0;
       patchPlan(planId, {
         runtimePhase: 'Verifying',
+        verificationApprovalPending: true,
         verification: {
           attempt: priorAttempt + 1,
           maxAttempts,
           startedAt: new Date().toISOString(),
           checks,
+          requiresNewApproval: false,
+        },
+      });
+    },
+    [patchPlan, workflowByPlanId],
+  );
+
+  const approveVerification = useCallback(
+    (planId: string) => {
+      const record = workflowByPlanId[planId] ?? createEmptyRecord();
+      if (!record.verification) {
+        return;
+      }
+      patchPlan(planId, {
+        runtimePhase: 'Verifying',
+        verificationApprovalPending: false,
+        verification: {
+          ...record.verification,
+          startedAt: new Date().toISOString(),
+          outcome: undefined,
+          completedAt: undefined,
+          requiresNewApproval: false,
+          approvalMode: 'manual',
+          approverId: MOCK_APPROVER_ID,
+        },
+      });
+    },
+    [patchPlan, workflowByPlanId],
+  );
+
+  const startVerification = useCallback(
+    (planId: string, checks: string[], approvalMode: 'manual' | 'auto' = 'auto') => {
+      const approval = workflowByPlanId[planId]?.executionApproval;
+      const maxAttempts = approval?.maxAttempts ?? GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS;
+      const priorVerification = workflowByPlanId[planId]?.verification;
+      const priorAttempt = priorVerification?.attempt ?? 0;
+      const retainedMode = priorVerification?.approvalMode ?? approvalMode;
+      patchPlan(planId, {
+        runtimePhase: 'Verifying',
+        verificationApprovalPending: false,
+        verification: {
+          attempt: priorAttempt + 1,
+          maxAttempts,
+          startedAt: new Date().toISOString(),
+          checks,
+          requiresNewApproval: false,
+          approvalMode: retainedMode,
+          approverId: retainedMode === 'manual' ? priorVerification?.approverId ?? MOCK_APPROVER_ID : 'System (Configuration)',
         },
       });
     },
@@ -188,7 +271,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
   );
 
   const completeVerification = useCallback(
-    (planId: string, success: boolean): PlanStatus => {
+    (planId: string, success: boolean, requiresNewApproval = false): PlanStatus => {
       const record = workflowByPlanId[planId] ?? createEmptyRecord();
       const verification = record.verification;
       if (!verification) {
@@ -198,6 +281,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (success) {
         patchPlan(planId, {
           runtimePhase: 'Completed',
+          verificationApprovalPending: false,
           verification: { ...verification, outcome: 'passed', completedAt: new Date().toISOString() },
         });
         return 'Completed';
@@ -205,14 +289,21 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (verification.attempt < verification.maxAttempts) {
         patchPlan(planId, {
-          runtimePhase: 'Executing',
-          verification: { ...verification, outcome: 'failed', completedAt: new Date().toISOString() },
+          runtimePhase: 'Verifying',
+          verificationApprovalPending: requiresNewApproval,
+          verification: {
+            ...verification,
+            outcome: 'failed',
+            completedAt: new Date().toISOString(),
+            requiresNewApproval,
+          },
         });
-        return 'Executing';
+        return 'Verifying';
       }
 
       patchPlan(planId, {
         runtimePhase: 'Failed',
+        verificationApprovalPending: false,
         verification: { ...verification, outcome: 'failed', completedAt: new Date().toISOString() },
       });
       return 'Failed';
@@ -236,6 +327,7 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       patchPlan(planId, {
         executionApproval: null,
         verification: null,
+        verificationApprovalPending: false,
         runtimePhase: 'Analyzing',
         isReAnalyzing: true,
         revisionHistory: [...record.revisionHistory, entry],
@@ -268,11 +360,14 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       workflowByPlanId,
       getPlanWorkflow,
       getRuntimePhase,
+      markAnalysisApprovalGateReached,
       registerExecutionApproval,
       executeRemediation,
       acknowledgePlan,
       clearExecutionApproval,
       startExecution,
+      requestVerificationApproval,
+      approveVerification,
       startVerification,
       completeVerification,
       submitRevisionFeedback,
@@ -283,11 +378,14 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
       workflowByPlanId,
       getPlanWorkflow,
       getRuntimePhase,
+      markAnalysisApprovalGateReached,
       registerExecutionApproval,
       executeRemediation,
       acknowledgePlan,
       clearExecutionApproval,
       startExecution,
+      requestVerificationApproval,
+      approveVerification,
       startVerification,
       completeVerification,
       submitRevisionFeedback,

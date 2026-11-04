@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  ActionList,
+  ActionListItem,
   Alert,
   Button,
   Card,
@@ -8,6 +10,11 @@ import {
   CardHeader,
   Checkbox,
   Content,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
@@ -28,18 +35,22 @@ import {
   Pagination,
   PaginationVariant,
   Popover,
+  Radio,
   Skeleton,
   Spinner,
+  SearchInput,
   Stack,
   StackItem,
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { CheckCircleIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiDownloadIcon, SearchIcon } from '@patternfly/react-icons';
+import { AngleDownIcon, AngleUpIcon, ColumnsIcon, EllipsisVIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiBanIcon, RhUiCheckCircleFillIcon, RhUiDownloadIcon, RhUiErrorFillIcon, RhUiInProgressIcon, RhUiPauseCircleIcon, RhUiPendingIcon, RhUiRunningIcon, RhUiSyncIcon, RhUiWarningFillIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { AgenticRunTimeline } from '../../components/AgenticRunTimeline';
+import { type AgenticRunPhaseTransitions, AgenticRunTimeline, type AgenticRunTimelineEvidenceContext, type MeldedTimelineSlots } from '../../components/AgenticRunTimeline';
+import { AgenticRunDetailsLayout } from '../../components/AgenticRunDetailsPageLayout';
+import { AgenticRunDetailsSectionHeading } from '../../components/AgenticRunDetailsSectionHeading';
 import { NamespaceResourceLink } from '../../components/NamespaceResourceLink';
 import {
   buildAgenticRunRequest,
@@ -65,6 +76,7 @@ import {
   resolveDisplayDomain,
   usePlansFilterState,
 } from './PlansFilterToolbar';
+import { assignAgenticRunTargetCluster } from './agenticRunTargetClusters';
 import '../../components/autonomousAiObserve/autonomous-ai-observe.css';
 import {
   SC_PLAN_ROW_PATCHES,
@@ -74,6 +86,8 @@ import {
   applyScRemediationPatches,
 } from './singleClusterPlanSimulation';
 import {
+  getAlertInvestigationCard,
+  getAlertInvestigationPrimaryAlertName,
   NEW_ALERT_INVESTIGATION_DRAWER_DATA,
   NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
   NEW_ALERT_INVESTIGATION_PLANS,
@@ -91,9 +105,11 @@ import {
 } from '../../context/AgenticCapabilitiesContext';
 import { useDeletedPlans } from '../../context/DeletedPlansContext';
 import { DeleteAgenticRunModal } from '../../components/DeleteAgenticRunModal';
-import { usePlanTermination, type PlanExecutionRuntime } from '../../context/PlanTerminationContext';
+import type { PlanExecutionRuntime } from '../../context/PlanTerminationContext';
 import { usePlanWorkflow } from '../../context/PlanWorkflowContext';
+import type { AgenticRunApprovalPolicy } from '../../context/ApprovalPolicyContext';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
+import { useMulticlusterDevMode } from '../../context/MulticlusterDevContext';
 import type { PlanStatus } from '../../types/planStatus';
 import { normalizePlanStatus } from '../../types/planStatus';
 import {
@@ -107,14 +123,36 @@ import {
   GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
   MVP_PLAN_IDS,
   normalizeTriggerDomain,
+  resolveOptionRollbackPlan,
 } from './plansMvpConstants';
 import { getPlanDetailHref, resolvePlanDomainAnnotations } from './domainPlanNavigation';
+import { buildProposedVerificationScript } from './proposedVerificationPlans';
 import { downloadAnalysisReportMarkdown, downloadRemediationPlanMarkdown } from '../../utils/downloadRemediationPlan';
 import { ExpandableCodeBlock } from '../../components/ExpandableCodeBlock';
+import ResourceIcon from '../../components/ResourceIcon';
+import { LogViewer } from '@patternfly/react-log-viewer';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PlanSeverity = 'critical' | 'warning';
+
+type AgenticRunPhaseName = 'Analysis' | 'Execution' | 'Verification' | 'Escalation';
+
+export type AgenticRunPayload = {
+  /** Snapshot of the phase policy stored with this run when it was created. */
+  approvalPolicy: AgenticRunApprovalPolicy;
+  maxRetryAttempts: number;
+  /** Backend phase status used by the details view to decide whether the run is paused. */
+  phase: {
+    name: AgenticRunPhaseName;
+    /** The configured policy requires a manual decision for this phase. */
+    requiresApproval: boolean;
+    /** The run has reached that manual approval gate. */
+    approvalGateReached: boolean;
+  };
+  /** Audit data travels with the run rather than living in standalone timeline nodes. */
+  phaseTransitions: AgenticRunPhaseTransitions;
+};
 
 /** Icon semantic used in expandable row consolidated reasons. */
 type ReasonIconType = 'sync' | 'alert' | 'warning' | 'gear' | 'ban' | 'wrench' | 'search';
@@ -138,16 +176,27 @@ export interface PlanRow {
   drawerTargets: string[];
   /** ISO-8601 instant when the plan was created. */
   createdAt?: string;
+  /**
+   * ISO-8601 instant when a terminal run (and associated resources) is scheduled
+   * for automatic cluster deletion. Present only for Completed / Failed / Denied.
+   */
+  deletionTime?: string | null;
   /** Logical plan resource name (e.g. gitops-domain-drift-remediation). */
   name?: string;
   /** Fleet cluster label for the plans table. */
   cluster?: string;
+  /** Explicit managed cluster name carried by every mock Agentic run payload. */
+  clusterName?: string;
+  /** Backward-compatible alias retained for existing drill-down state. */
+  targetCluster?: string;
   /** Core platforms namespace label for the plans table. */
   namespace?: string;
   /** Perspective-aware scope cell (cluster or namespace). */
   scope?: string;
-  /** Display timestamp when execution was halted (Plan aborted). */
+  /** Display timestamp when execution was halted (Plan aborted / Run aborted). */
   terminatedAt?: string;
+  /** Username who stopped the analysis (Run aborted only). */
+  abortedBy?: string;
   /** Investigation-only proposals have analysis but no remediation hub. */
   planKind?: 'remediation' | 'analysis-only';
   /**
@@ -161,6 +210,106 @@ export interface PlanRow {
    * AND status is Analyzing/Executing/Completed/Failed.
    */
   traceId?: string;
+  /** AgenticRun status payload, including the run-scoped approval policy snapshot. */
+  agenticRun?: AgenticRunPayload;
+  /** Read-only commands proposed before a manual Verification gate is approved. */
+  proposedVerificationScript?: string;
+}
+
+const DEFAULT_AGENTIC_RUN_APPROVAL_POLICY: AgenticRunPayload['approvalPolicy'] = {
+  analysis: 'manual',
+  execution: 'manual',
+  verification: 'auto',
+  escalation: 'manual',
+};
+
+function phaseNameForStatus(status: PlanStatus): AgenticRunPhaseName {
+  if (status === 'Pending' || status === 'Analyzing' || status === 'Run aborted' || status === 'Acknowledged') {
+    return 'Analysis';
+  }
+  if (status === 'Verifying') {
+    return 'Verification';
+  }
+  if (status === 'Proposed' || status === 'Approved' || status === 'Executing'
+    || status === 'Completed' || status === 'Failed' || status === 'Denied' || status === 'EmergencyStopped'
+    || status === 'Plan aborted') {
+    return 'Execution';
+  }
+  return 'Escalation';
+}
+
+function requiresApprovalForPhase(
+  status: PlanStatus,
+  phaseName: AgenticRunPhaseName,
+  approvalPolicy: AgenticRunPayload['approvalPolicy'],
+): boolean {
+  const phaseIsPaused = status === 'Pending' || status === 'Proposed' || status === 'Verifying' || status === 'Escalating';
+  if (!phaseIsPaused) {
+    return false;
+  }
+  const policyKey = phaseName.toLowerCase() as keyof AgenticRunPayload['approvalPolicy'];
+  return approvalPolicy[policyKey] === 'manual';
+}
+
+function buildAgenticRunPayload(
+  status: PlanStatus,
+  existing?: AgenticRunPayload,
+  configuredPolicy?: AgenticRunApprovalPolicy,
+  configuredMaxRetryAttempts?: number,
+  transitionDetails?: {
+    selectedPlanName?: string;
+    executionApprovalMode?: 'manual' | 'auto';
+    executionApproverId?: string;
+    verificationApproved?: boolean;
+    verificationApprovalMode?: 'manual' | 'auto';
+    verificationApproverId?: string;
+  },
+): AgenticRunPayload {
+  const approvalPolicy = existing?.approvalPolicy ?? configuredPolicy ?? DEFAULT_AGENTIC_RUN_APPROVAL_POLICY;
+  const phaseName = phaseNameForStatus(status);
+  const phaseRequiresApproval = requiresApprovalForPhase(status, phaseName, approvalPolicy);
+  // Pending includes an INITIALIZING sub-state. The run must finish that
+  // transition before the Analysis approval gate can be surfaced.
+  const approvalGateReached = phaseRequiresApproval
+    && status !== 'Pending'
+    && !(phaseName === 'Verification' && transitionDetails?.verificationApproved === true);
+  const approvalRecord = (mode: 'manual' | 'auto') => ({
+    approvalMethod: mode === 'manual' ? 'manual' as const : 'automatic' as const,
+    approverId: mode === 'manual' ? '@mchen' : 'System (Configuration)',
+  });
+  const executionStarted = ['Approved', 'Executing', 'Verifying', 'Completed', 'Failed', 'Escalating', 'Escalated', 'EmergencyStopped', 'Plan aborted'].includes(status);
+  const verificationStarted = ['Verifying', 'Completed', 'Failed', 'Escalating', 'Escalated'].includes(status)
+    && !(status === 'Verifying' && approvalPolicy.verification === 'manual' && !transitionDetails?.verificationApproved);
+  const phaseTransitions: AgenticRunPhaseTransitions = {
+    ...(status !== 'Pending' ? {
+      Analysis: existing?.phaseTransitions?.Analysis ?? approvalRecord(approvalPolicy.analysis),
+    } : {}),
+    ...(executionStarted ? {
+      Execution: {
+        ...(existing?.phaseTransitions?.Execution ?? approvalRecord(transitionDetails?.executionApprovalMode ?? approvalPolicy.execution)),
+        ...(transitionDetails?.executionApprovalMode ? approvalRecord(transitionDetails.executionApprovalMode) : {}),
+        ...(transitionDetails?.executionApproverId ? { approverId: transitionDetails.executionApproverId } : {}),
+        selectedPlanName: transitionDetails?.selectedPlanName ?? existing?.phaseTransitions?.Execution?.selectedPlanName,
+      },
+    } : {}),
+    ...(verificationStarted ? {
+      Verification: {
+        ...(existing?.phaseTransitions?.Verification ?? approvalRecord(transitionDetails?.verificationApprovalMode ?? approvalPolicy.verification)),
+        ...(transitionDetails?.verificationApprovalMode ? approvalRecord(transitionDetails.verificationApprovalMode) : {}),
+        ...(transitionDetails?.verificationApproverId ? { approverId: transitionDetails.verificationApproverId } : {}),
+      },
+    } : {}),
+  };
+  return {
+    approvalPolicy,
+    maxRetryAttempts: existing?.maxRetryAttempts ?? configuredMaxRetryAttempts ?? GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
+    phaseTransitions,
+    phase: {
+      name: phaseName,
+      requiresApproval: phaseRequiresApproval,
+      approvalGateReached,
+    },
+  };
 }
 
 /**
@@ -398,6 +547,12 @@ const PLAN_TABLE_IDENTITY: Record<
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-ingress',
   },
+  'op5-manual-escalation': {
+    name: 'grafana-wal-lock-escalated',
+    synopsis: 'Grafana WAL lock recovery escalated after 3 failed execution attempts due to template rendering failure',
+    fleetCluster: 'prod-east-1',
+    namespace: 'openshift-monitoring',
+  },
   'prometheus-wal-emergency-stopped': {
     name: 'prometheus-wal-repair-emergency-stopped',
     synopsis: 'Prometheus write-ahead log repair halted by emergency stop during active write window',
@@ -550,8 +705,9 @@ const ALL_PLANS: RawPlanRow[] = [
   {
     id: 'ap2',
     severity: 'warning',
-    status: 'Plan aborted',
+    status: 'Run aborted',
     terminatedAt: 'Jun 9, 2026, 2:48 PM',
+    abortedBy: 'sre-platform-admin',
     score: 75,
     synopsis: 'Repair Dev CI/CD Webhook Block',
     consolidationScope: '1 Failure / 2 Alerts',
@@ -883,10 +1039,21 @@ const ALL_PLANS: RawPlanRow[] = [
       { icon: 'ban', text: 'Verification failure: fragmentation metric unchanged after defrag execution.' },
     ],
   },
-  ...NEW_ALERT_INVESTIGATION_PLANS.map((plan) => ({
-    ...plan,
-    drawerTargets: ['prod-east-2'],
-  })),
+  {
+    id: 'op5-manual-escalation',
+    severity: 'critical',
+    status: 'Escalated',
+    score: 79,
+    synopsis: 'Grafana Database WAL Lock Recovery Escalated',
+    consolidationScope: '3 Failed Execution Attempts',
+    triggerDomain: 'Observability',
+    drawerTargets: ['prod-east-1'],
+    expandedReasons: [
+      { icon: 'alert', text: 'GrafanaDown: Grafana startup blocked by stale SQLite WAL lock on PVC.' },
+      { icon: 'ban', text: 'MaxRetriesExhausted: escalation_request.tmpl type mismatch on StepResultRef — manual policy paused handoff.' },
+    ],
+  },
+  ...NEW_ALERT_INVESTIGATION_PLANS,
 ];
 
 // ─── Dataset — Single-cluster overrides (Core Platforms perspective) ──────────
@@ -1706,6 +1873,34 @@ status:
     requests.cpu: "3800m"
     requests.memory: "7680Mi"`,
   },
+  'op5-manual-escalation': {
+    steps: [
+      { id: 's1', time: '09:14:33', status: 'done', icon: 'exclamation', title: 'GrafanaDown alert fired', detail: 'Grafana pod CrashLoopBackOff — stale SQLite WAL lock detected on PVC' },
+      { id: 's2', time: '09:14:47', status: 'alert', icon: 'database', title: 'Execution attempt 1 — failed', detail: 'Template rendering error: escalation_request.tmpl:9 type mismatch on StepResultRef' },
+      { id: 's3', time: '09:15:12', status: 'alert', icon: 'database', title: 'Execution attempt 2 — failed', detail: 'Same template error; StepResultRef.Success field does not exist in v1alpha1 API' },
+      { id: 's4', time: '09:15:37', status: 'alert', icon: 'database', title: 'Execution attempt 3 — failed', detail: 'MaxRetriesExhausted: template error uncorrected across all attempts' },
+      { id: 's5', time: '09:15:45', status: 'alert', icon: 'exclamation', title: 'Manual escalation policy — handoff paused', detail: 'Awaiting SRE confirmation before dispatching to external channels' },
+    ],
+    aggregatedFinding: 'Grafana startup is blocked by a stale SQLite WAL lock file on the PVC. Three automated execution attempts failed due to a Go template rendering error in the escalation pipeline.',
+    rootCauseNarrative: 'A stale SQLite WAL lock file (grafana.db-wal) is preventing Grafana from initializing. Three consecutive automated execution attempts failed because the escalation request template (escalation_request.tmpl) attempts to access a non-existent Success field on a v1alpha1.StepResultRef value. This rendering failure prevents the escalation payload from being generated, blocking handoff to external channels. The manual escalation policy has paused automatic dispatch, awaiting SRE confirmation.',
+    remediationProposal: 'Fix the Go template rendering failure in escalation_request.tmpl, then manually dispatch the escalation or retry the execution after correcting the template/data model mismatch.',
+    riskAssessment: 'Low — WAL lock removal is non-destructive. Template bug must be fixed independently.',
+    estimatedRecovery: '~5m (WAL lock removal) + template fix time',
+    confidence: 'High',
+    rawEvidence: `// Grafana pod status
+NAME                    READY   STATUS             RESTARTS   AGE
+grafana-6d9c8b7-k2pmf   0/1     CrashLoopBackOff   12         47m
+
+// Template rendering error (escalation controller logs)
+ERROR escalation template rendering failed {"template":"escalation_request.tmpl","error":"template: escalation_request.tmpl:9:22: executing \\"escalation_request.tmpl\\" at <.Success>: can't evaluate field Success in type v1alpha1.StepResultRef"}
+
+// StepResultRef type (v1alpha1/proposal_types.go excerpt)
+type StepResultRef struct {
+    StepName string \`json:"stepName"\`
+    Phase    string \`json:"phase"\`
+    // Note: there is no 'Success' field — use .Phase == "Succeeded" instead
+}`,
+  },
   'prometheus-wal-emergency-stopped': {
     steps: [
       { id: 's1', time: '02:07:15', status: 'done', icon: 'exclamation', title: 'PrometheusWALCorruptionDetected alert fired', detail: 'Write-ahead log corruption markers on prometheus-k8s-0' },
@@ -1792,6 +1987,19 @@ limits.memory    62Gi    64Gi
 // etcdctl endpoint status --write-out=json | jq .[].Status.header.revision
 // 8423104   ← auto-compact set to 1h; last compaction was at revision 7891200 (>1h ago)`,
   },
+  'certmgr-renewal-pending': {
+    steps: [
+      { id: 's1', time: '04:08:00', status: 'done', icon: 'exclamation', title: 'Detected expiring ingress certificate', detail: 'ingress-tls expires in 6 days' },
+      { id: 's2', time: '04:08:10', status: 'done', icon: 'search', title: 'Inspected cert-manager Certificate', detail: 'Renewal has not started for ingress-tls' },
+      { id: 's3', time: '04:08:20', status: 'done', icon: 'check', title: 'Prepared renewal proposal', detail: 'Renew the certificate and verify the Secret and expiry date' },
+    ],
+    aggregatedFinding: 'The ingress-tls certificate expires in 6 days and cert-manager has not initiated renewal.',
+    rootCauseNarrative: 'The Certificate remains Ready, but its renewal window has begun without a new issuance attempt. Renewing it now avoids an ingress TLS outage.',
+    remediationProposal: 'Request renewal of ingress-tls through cert-manager, then verify the Certificate condition and the renewed TLS Secret.',
+    riskAssessment: 'Low — the existing certificate remains available while cert-manager issues a replacement.',
+    estimatedRecovery: '~2 minutes',
+    confidence: 'High',
+  },
   ...NEW_ALERT_INVESTIGATION_DRAWER_DATA,
 };
 
@@ -1802,6 +2010,139 @@ export type OptionDiagnosis = {
   aggregatedFinding: string;
   rootCauseNarrative: string;
 };
+
+/**
+ * A single verification step run after remediation to confirm the fix is effective.
+ * Backend field: options[].proposal.verificationSteps[].
+ */
+export interface VerificationStep {
+  /** Short identifier used as a code-comment step label (e.g. 'alertmanager-ready'). */
+  id: string;
+  /** The shell command or query that confirms the remediation result. */
+  command: string;
+  /** Human-readable expected outcome displayed below the code block. */
+  expected: string;
+}
+
+/**
+ * Structured post-execution verification plan for a remediation option.
+ * Backend field: options[].proposal.verificationSteps.
+ */
+export interface OptionVerificationSteps {
+  /** Summary description shown below the section header. */
+  description: string;
+  steps: VerificationStep[];
+}
+
+/** A single action executed during the remediation phase with its result. */
+export interface ExecutionAction {
+  /** Category tag: 'pre-check' | 'mutation' | 'cleanup' | 'verification' | 'rollback' */
+  category: string;
+  status: 'Succeeded' | 'Failed' | 'Skipped';
+  description: string;
+  command: string;
+  output: string;
+}
+
+export interface ExecutionSummaryData {
+  /** One-sentence baseline explaining what the agent targeted. */
+  targetedRootCause: string;
+  /** Description of the cluster changes the remediation actually made. */
+  remediationDelta: string;
+  actionsTaken: ExecutionAction[];
+  /**
+   * Simulated audit record for pre-seeded terminal runs that were never executed
+   * interactively in the current session. Mirrors the fields from ExecutionApproval.
+   */
+  mockAudit?: {
+    selectedOptionTitle: string;
+    approvedBy: string;
+    approvedAt: string;
+    maxAttempts: number;
+  };
+}
+
+/** A single verification check run after remediation with its actual result. */
+export interface VerificationCheck {
+  id: string;
+  status: 'Passed' | 'Failed';
+  command: string;
+  output: string;
+}
+
+export interface VerificationSummaryData {
+  /** Bulleted outcome statements rendered as an assessment list. */
+  outcomeAssessment: string[];
+  checks: VerificationCheck[];
+}
+
+/** AI-generated analysis explaining why automated execution halted and what to do next. */
+export interface EscalationSummaryData {
+  /** Freeform AI-generated narrative summarising why the escalation was triggered. */
+  details: string;
+  /** Single failure reason string surfaced from the escalation agent output. */
+  failureReason: string;
+  /** External channels the agent automatically dispatched to (auto policy only). */
+  dispatchedTargets?: string[];
+}
+
+/**
+ * A single agent-proposed shell command with a category label and human-readable description.
+ * Backend field: options[].proposal.commands[].
+ */
+export interface AgentCommand {
+  /**
+   * Short category tag shown above the command block.
+   * Conventional values: 'pre-check' | 'mutation' | 'cleanup' | 'verification' | 'rollback'
+   */
+  label: string;
+  /** One-sentence explanation of what this command does and why. */
+  description: string;
+  /** The shell command to execute. */
+  command: string;
+}
+
+/** A single Kubernetes RBAC rule required by the agent Service Account for this option. */
+export interface RbacRule {
+  /**
+   * Namespace this rule applies to.
+   * Use the literal string `'cluster-wide'` for non-namespaced resources.
+   */
+  namespace: string;
+  /** Kubernetes resource kind string as shown in `oc api-resources` (e.g. 'secrets', 'deployments'). */
+  resource: string;
+  /**
+   * Optional Kubernetes Kind name used for `ResourceIcon` badge resolution
+   * (e.g. 'Secret', 'Deployment'). Only needed when `instanceName` is set.
+   */
+  kind?: string;
+  /**
+   * Optional specific resource instance name (e.g. 'alertmanager-pagerduty').
+   * When present, the ResourceIcon badge + instance name are rendered.
+   * Omit for rules that apply to all instances of a kind.
+   */
+  instanceName?: string;
+  /** Comma-separated verb list (e.g. 'get, list, patch'). */
+  verbs: string;
+  /** Short human-readable explanation of why this permission is needed. */
+  purpose: string;
+  /** True if any listed verb is a mutating operation (create, update, patch, delete, exec). */
+  isWrite?: boolean;
+}
+
+/**
+ * RBAC requirements for a remediation option — flat rule list.
+ * Each rule carries its own `namespace` value, enabling multi-namespace
+ * permissions to be displayed in a single unified table
+ * (Namespace | Resource | Verbs | Purpose) without repeating table headers.
+ * Backend field: options[].proposal.rbac.
+ */
+export interface RbacSpec {
+  /** One-line callout summarising the write operations (shown above the expandable table). */
+  summary: string;
+  /** Flat ordered list of all RBAC rules for this option. */
+  rules: RbacRule[];
+}
 
 export interface RemediationOption {
   id: string;
@@ -1819,7 +2160,25 @@ export interface RemediationOption {
   /** Rollback assessment (backend: options[].proposal.reversible). */
   reversible: Reversibility;
   model: 'smart' | 'fast';
+  /**
+   * Structured command list (backend: options[].proposal.commands[]).
+   * When present, rendered as individually labeled command blocks with descriptions.
+   * Falls back to rawCommands for options not yet migrated to structured format.
+   */
+  commands?: AgentCommand[];
+  /** Legacy flat command string — used as fallback when commands is absent. */
   rawCommands: string;
+  /**
+   * Post-execution verification steps (backend: options[].proposal.verificationSteps).
+   * Shown during the pre-execution review phase so operators know how success will be confirmed.
+   */
+  verificationSteps?: OptionVerificationSteps;
+  /**
+   * RBAC permissions required by the agent Service Account to execute this option.
+   * Backend field: options[].proposal.rbac.
+   * When absent, falls back to a "Standard Agent Permissions" notice in the UI.
+   */
+  rbac?: RbacSpec;
 }
 
 /**
@@ -1944,8 +2303,54 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
     { id: 'ap7-o2', title: 'Temporary PDB suspension + manual ingress restart', description: 'Temporarily suspend the PodDisruptionBudget and manually restart ingress pods to restore the minimum replica count.', risk: 'medium', reversible: 'Partial', model: 'fast', rawCommands: 'oc rollout restart deployment/router-default -n openshift-ingress' },
   ],
   ap8: [
-    { id: 'ap8-o1', title: 'Set hostNetwork: false + mutating admission webhook', description: 'Patch the deployment to remove host network access and install a MutatingAdmissionWebhook to prevent future violations.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: "oc patch securitycontextconstraints restricted --type='json' -p='[{\"op\": \"replace\", \"path\": \"/allowHostNetwork\", \"value\": false}]'" },
-    { id: 'ap8-o2', title: 'Force-delete non-compliant deployment', description: 'Immediately delete the offending deployment to eliminate the compliance violation — requires manual redeployment with a compliant spec.', risk: 'high', reversible: 'Irreversible', model: 'fast', rawCommands: "oc delete deployment -n production -l 'security.redhat.com/non-compliant=true'" },
+    {
+      id: 'ap8-o1', title: 'Set hostNetwork: false + mutating admission webhook', description: 'Patch the deployment to remove host network access and install a MutatingAdmissionWebhook to prevent future violations.', risk: 'medium', reversible: 'Reversible', model: 'smart',
+      rawCommands: "oc patch securitycontextconstraints restricted --type='json' -p='[{\"op\": \"replace\", \"path\": \"/allowHostNetwork\", \"value\": false}]'",
+      commands: [
+        { label: 'pre-check', description: 'Verify the current SCC allowHostNetwork setting before patching', command: "oc get securitycontextconstraints restricted -o jsonpath='{.allowHostNetwork}'" },
+        { label: 'mutation', description: 'Patch the SecurityContextConstraints to deny host network access cluster-wide', command: "oc patch securitycontextconstraints restricted --type='json' -p='[{\"op\": \"replace\", \"path\": \"/allowHostNetwork\", \"value\": false}]'" },
+        { label: 'mutation', description: 'Install a MutatingAdmissionWebhook to block future hostNetwork violations at admission time', command: 'oc apply -f - <<EOF\napiVersion: admissionregistration.k8s.io/v1\nkind: MutatingWebhookConfiguration\nmetadata:\n  name: hostnetwork-guard\nEOF' },
+      ],
+      verificationSteps: {
+        description: 'Confirm the SCC patch is applied and no new hostNetwork deployments can be admitted to the cluster.',
+        steps: [
+          { id: 'scc-patched', command: "oc get securitycontextconstraints restricted -o jsonpath='{.allowHostNetwork}'", expected: "Expected: 'false' — confirming host network access is denied at the SCC level." },
+          { id: 'webhook-registered', command: 'oc get mutatingwebhookconfiguration hostnetwork-guard -o name', expected: "Expected: 'mutatingwebhookconfiguration.admissionregistration.k8s.io/hostnetwork-guard' — the admission webhook is registered and will block future violations." },
+          { id: 'no-active-violations', command: "oc get pods --all-namespaces -o json | jq '[.items[] | select(.spec.hostNetwork==true)] | length'", expected: "Expected: '0' — no running pods are using host networking outside of system-privileged namespaces." },
+        ],
+      },
+      rbac: {
+        summary: 'Includes write: patch securitycontextconstraints · create mutatingwebhookconfigurations',
+        rules: [
+          { namespace: 'production', resource: 'pods', verbs: 'get, list', purpose: 'Pre-check running pods with hostNetwork before mutation' },
+          { namespace: 'production', resource: 'deployments (apps)', verbs: 'get, list', purpose: 'Identify non-compliant deployment specs' },
+          { namespace: 'cluster-wide', resource: 'securitycontextconstraints (security.openshift.io)', verbs: 'get, list, patch, update', purpose: 'Modify SCC to deny cluster-wide host network access', isWrite: true },
+          { namespace: 'cluster-wide', resource: 'mutatingwebhookconfigurations (admissionregistration.k8s.io)', verbs: 'get, create, patch', purpose: 'Install admission webhook to block future hostNetwork violations', isWrite: true },
+        ],
+      },
+    },
+    {
+      id: 'ap8-o2', title: 'Force-delete non-compliant deployment', description: 'Immediately delete the offending deployment to eliminate the compliance violation — requires manual redeployment with a compliant spec.', risk: 'high', reversible: 'Irreversible', model: 'fast',
+      rawCommands: "oc delete deployment -n production -l 'security.redhat.com/non-compliant=true'",
+      commands: [
+        { label: 'pre-check', description: 'List deployments tagged as non-compliant before deletion', command: "oc get deployment -n production -l 'security.redhat.com/non-compliant=true'" },
+        { label: 'mutation', description: 'Delete all non-compliant deployments from the production namespace', command: "oc delete deployment -n production -l 'security.redhat.com/non-compliant=true'" },
+      ],
+      verificationSteps: {
+        description: 'Confirm all non-compliant deployments have been removed and no associated pods remain in the production namespace.',
+        steps: [
+          { id: 'deployments-removed', command: "oc get deployment -n production -l 'security.redhat.com/non-compliant=true' --no-headers | wc -l", expected: "Expected: '0' — no non-compliant deployments remain in the production namespace." },
+          { id: 'pods-terminated', command: "oc get pods -n production -l 'security.redhat.com/non-compliant=true' --no-headers | wc -l", expected: "Expected: '0' — all pods belonging to the deleted deployments have terminated." },
+        ],
+      },
+      rbac: {
+        summary: 'Includes write: delete deployments',
+        rules: [
+          { namespace: 'production', resource: 'deployments (apps)', verbs: 'get, list, delete', purpose: 'List and delete deployments tagged as non-compliant', isWrite: true },
+          { namespace: 'production', resource: 'pods', verbs: 'get, list', purpose: 'Confirm pod shutdown after deployment deletion' },
+        ],
+      },
+    },
   ],
   ap9: [
     { id: 'ap9-o1', title: 'Kubelet GC cycle + containerd sandbox_cleanup_interval fix', description: 'Trigger a graceful Kubelet garbage collection pass and patch the containerd config to re-enable sandbox cleanup.', risk: 'low', reversible: 'Reversible', model: 'smart', rawCommands: 'oc adm prune deployments --keep-complete=5 --keep-failed=1 --keep-younger-than=60m' },
@@ -1970,20 +2375,198 @@ const PLAN_REMEDIATION_OPTIONS: Record<string, RemediationOption[]> = {
     { id: 'ap15-o2', title: 'Direct manifest deletion by cluster-admin', description: 'Manually delete the 847 MB of unreferenced manifests using cluster-admin credentials, bypassing the pruner workflow.', risk: 'medium', reversible: 'Irreversible', model: 'fast', rawCommands: "oc delete istag -n production $(oc get istag -n production -o jsonpath='{.items[?(@.image.metadata.creationTimestamp<\"2026-01-01\")].metadata.name}')" },
   ],
   cp1: [
-    { id: 'cp1-o1', title: 'Supported minor upgrade 4.14 → 4.15 with rolling node cadence', description: 'Apply the ClusterVersion update to 4.15 using the supported upgrade graph with automated worker cordon, drain, and reboot sequencing.', risk: 'high', reversible: 'Irreversible', model: 'smart', rawCommands: 'oc adm upgrade --to-image=quay.io/openshift-release-dev/ocp-release:4.15.8-x86_64 --allow-explicit-upgrade' },
-    { id: 'cp1-o2', title: 'Preflight validation only (defer execution)', description: 'Run upgrade preflight checks and ClusterOperator health gates without mutating the control plane — defers execution until a maintenance window is approved.', risk: 'low', reversible: 'Reversible', model: 'fast', rawCommands: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client' },
+    {
+      id: 'cp1-o1', title: 'Supported minor upgrade 4.14 → 4.15 with rolling node cadence', description: 'Apply the ClusterVersion update to 4.15 using the supported upgrade graph with automated worker cordon, drain, and reboot sequencing.', risk: 'high', reversible: 'Irreversible', model: 'smart',
+      rawCommands: 'oc adm upgrade --to-image=quay.io/openshift-release-dev/ocp-release:4.15.8-x86_64 --allow-explicit-upgrade',
+      commands: [
+        { label: 'pre-check', description: 'Verify all ClusterOperators are healthy and the upgrade path to 4.15 is available', command: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client' },
+        { label: 'pre-check', description: 'Confirm etcd quorum and control plane health before initiating the upgrade', command: 'oc get etcd cluster -o jsonpath=\'{.status.conditions[?(@.type=="EtcdMembersAvailable")].status}\'' },
+        { label: 'mutation', description: 'Initiate rolling cluster upgrade to 4.15.8 via the supported upgrade graph with automated node cordon/drain', command: 'oc adm upgrade --to-image=quay.io/openshift-release-dev/ocp-release:4.15.8-x86_64 --allow-explicit-upgrade' },
+      ],
+      verificationSteps: {
+        description: 'Confirm the cluster has upgraded to 4.15.8 and all ClusterOperators have recovered to an Available, non-degraded state.',
+        steps: [
+          { id: 'cluster-version', command: "oc get clusterversion version -o jsonpath='{.status.history[0].version}'", expected: "Expected: '4.15.8' — confirming the active cluster version matches the requested upgrade target." },
+          { id: 'operators-available', command: "oc get clusteroperators --no-headers | awk '{print $3, $4, $5}' | sort | uniq -c", expected: "Expected: All ClusterOperators report 'True False False' (Available=True, Progressing=False, Degraded=False). No degraded operators should remain." },
+          { id: 'nodes-ready', command: "oc get nodes --no-headers | awk '{print $2}' | sort | uniq -c", expected: "Expected: All nodes report 'Ready'. No nodes should remain in 'NotReady' or 'SchedulingDisabled' state after upgrade completion." },
+        ],
+      },
+      rbac: {
+        summary: 'Includes write: update clusterversions',
+        rules: [
+          { namespace: 'cluster-wide', resource: 'clusterversions (config.openshift.io)', verbs: 'get, update, patch', purpose: 'Initiate and track rolling upgrade to 4.15.8 via upgrade graph', isWrite: true },
+          { namespace: 'cluster-wide', resource: 'clusteroperators (config.openshift.io)', verbs: 'get, list, watch', purpose: 'Gate upgrade on all ClusterOperators being healthy before and after' },
+          { namespace: 'cluster-wide', resource: 'nodes', verbs: 'get, list', purpose: 'Verify all nodes are Ready after upgrade completion' },
+        ],
+      },
+    },
+    {
+      id: 'cp1-o2', title: 'Preflight validation only (defer execution)', description: 'Run upgrade preflight checks and ClusterOperator health gates without mutating the control plane — defers execution until a maintenance window is approved.', risk: 'low', reversible: 'Reversible', model: 'fast',
+      rawCommands: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client',
+      commands: [
+        { label: 'pre-check', description: 'Run upgrade preflight checks and ClusterOperator health gates without mutating the control plane', command: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client' },
+      ],
+      verificationSteps: {
+        description: 'Confirm the preflight dry-run completed without fatal errors and the cluster is in a state ready for an upgrade execution window.',
+        steps: [
+          { id: 'preflight-exit-code', command: 'oc adm upgrade --to=4.15 --allow-missing-images=false --dry-run=client; echo "Preflight exit: $?"', expected: "Expected: Exit code 0 with no ClusterOperator degradation warnings — the upgrade path is validated and clear for a production run." },
+        ],
+      },
+      rbac: {
+        summary: 'Read-only · no write operations required',
+        rules: [
+          { namespace: 'cluster-wide', resource: 'clusterversions (config.openshift.io)', verbs: 'get, watch', purpose: 'Read upgrade graph and validate target version availability' },
+          { namespace: 'cluster-wide', resource: 'clusteroperators (config.openshift.io)', verbs: 'get, list', purpose: 'Gate preflight on all ClusterOperators being healthy' },
+        ],
+      },
+    },
   ],
   op2: [
-    { id: 'op2-o1', title: 'Rotate Alertmanager PagerDuty secret + rolling reload', description: 'Replace the expired PagerDuty integration key in the alertmanager-main secret and trigger a rolling reload of alertmanager pods in openshift-monitoring.', risk: 'low', reversible: 'Reversible', model: 'smart', rawCommands: 'oc create secret generic alertmanager-pagerduty --from-literal=pagerduty.integration-key=$PAGERDUTY_KEY -n openshift-monitoring --dry-run=client -o yaml | oc apply -f - && oc rollout restart statefulset/alertmanager-main -n openshift-monitoring' },
-    { id: 'op2-o2', title: 'Temporarily disable PagerDuty receiver route', description: 'Silence the PagerDuty receiver in Alertmanager configuration to stop delivery failures while the integration token is rotated manually.', risk: 'medium', reversible: 'Partial', model: 'fast', rawCommands: 'oc patch secret alertmanager-main -n openshift-monitoring --type merge -p \'{"data":{"alertmanager.yaml":"<route with null receiver for pagerduty>"}}\' && oc delete pod alertmanager-main-0 -n openshift-monitoring' },
+    {
+      id: 'op2-o1', title: 'Rotate Alertmanager PagerDuty secret + rolling reload', description: 'Replace the expired PagerDuty integration key in the alertmanager-main secret and trigger a rolling reload of alertmanager pods in openshift-monitoring.', risk: 'low', reversible: 'Reversible', model: 'smart',
+      rawCommands: 'oc create secret generic alertmanager-pagerduty --from-literal=pagerduty.integration-key=$PAGERDUTY_KEY -n openshift-monitoring --dry-run=client -o yaml | oc apply -f - && oc rollout restart statefulset/alertmanager-main -n openshift-monitoring',
+      commands: [
+        { label: 'mutation', description: 'Rotate the PagerDuty integration key in the alertmanager-main secret', command: 'oc create secret generic alertmanager-pagerduty --from-literal=pagerduty.integration-key=$PAGERDUTY_KEY -n openshift-monitoring --dry-run=client -o yaml | oc apply -f -' },
+        { label: 'mutation', description: 'Trigger a rolling reload of Alertmanager pods to pick up the new integration secret', command: 'oc rollout restart statefulset/alertmanager-main -n openshift-monitoring' },
+      ],
+      verificationSteps: {
+        description: 'Confirm the secret is updated and Alertmanager is delivering notifications to PagerDuty without delivery failures.',
+        steps: [
+          { id: 'secret-updated', command: "oc get secret alertmanager-pagerduty -n openshift-monitoring -o jsonpath='{.metadata.resourceVersion}'", expected: "Expected: A new resourceVersion value — confirming the secret was replaced with the rotated PagerDuty integration key." },
+          { id: 'alertmanager-ready', command: 'oc rollout status statefulset/alertmanager-main -n openshift-monitoring --timeout=3m', expected: "Expected: 'statefulset rolling update complete 3 pods at revision alertmanager-main-...' — all pods restarted and are running with the new secret." },
+          { id: 'no-delivery-errors', command: "oc logs -n openshift-monitoring alertmanager-main-0 --since=2m | grep -i 'pagerduty.*error\\|failed.*pagerduty' || echo 'none'", expected: "Expected: 'none' — no PagerDuty delivery error lines in the 2-minute window following the rolling restart." },
+        ],
+      },
+      rbac: {
+        summary: 'Includes write: patch secrets · patch statefulsets',
+        rules: [
+          { namespace: 'openshift-monitoring', resource: 'secrets', kind: 'Secret', instanceName: 'alertmanager-pagerduty', verbs: 'get, create, patch', purpose: 'Rotate PagerDuty integration key in this specific secret', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'statefulsets (apps)', kind: 'StatefulSet', instanceName: 'alertmanager-main', verbs: 'get, patch', purpose: 'Trigger rolling restart to pick up the new secret', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, list', purpose: 'Monitor pod restart progress during rolling reload' },
+        ],
+      },
+    },
+    {
+      id: 'op2-o2', title: 'Temporarily disable PagerDuty receiver route', description: 'Silence the PagerDuty receiver in Alertmanager configuration to stop delivery failures while the integration token is rotated manually.', risk: 'medium', reversible: 'Partial', model: 'fast',
+      rawCommands: 'oc patch secret alertmanager-main -n openshift-monitoring --type merge -p \'{"data":{"alertmanager.yaml":"<route with null receiver for pagerduty>"}}\' && oc delete pod alertmanager-main-0 -n openshift-monitoring',
+      commands: [
+        { label: 'mutation', description: 'Silence the PagerDuty receiver route in Alertmanager configuration to stop failed delivery attempts', command: 'oc patch secret alertmanager-main -n openshift-monitoring --type merge -p \'{"data":{"alertmanager.yaml":"<route with null receiver for pagerduty>"}}\'' },
+        { label: 'cleanup', description: 'Force-restart the Alertmanager pod to apply the silenced receiver configuration', command: 'oc delete pod alertmanager-main-0 -n openshift-monitoring' },
+      ],
+      verificationSteps: {
+        description: 'Confirm the PagerDuty receiver has been silenced and delivery failure errors are no longer appearing in Alertmanager logs.',
+        steps: [
+          { id: 'pagerduty-route-silenced', command: "oc get secret alertmanager-main -n openshift-monitoring -o jsonpath='{.data.alertmanager\\.yaml}' | base64 -d | grep -i pagerduty", expected: "Expected: The PagerDuty receiver is absent or routes to a null receiver — no delivery attempts in the next alert evaluation cycle." },
+          { id: 'alertmanager-error-rate', command: "oc logs -n openshift-monitoring alertmanager-main-0 --since=3m | grep -i 'pagerduty\\|error\\|failed' || echo 'none'", expected: "Expected: 'none' — no new PagerDuty delivery error lines in the 3-minute window after the pod restart." },
+        ],
+      },
+      rbac: {
+        summary: 'Includes write: patch secrets · delete pods',
+        rules: [
+          { namespace: 'openshift-monitoring', resource: 'secrets', kind: 'Secret', instanceName: 'alertmanager-main', verbs: 'get, patch', purpose: 'Silence PagerDuty route in this specific Alertmanager configuration secret', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'pods', kind: 'Pod', instanceName: 'alertmanager-main-0', verbs: 'get, list, delete', purpose: 'Force-restart this pod to apply the silenced config', isWrite: true },
+        ],
+      },
+    },
   ],
   op3: [
-    { id: 'op3-o1', title: 'Quarantine corrupted block and restart compactor', description: 'Remove the corrupted TSDB block from thanos-compactor-data PVC and restart the compactor pod with a clean compaction window.', risk: 'medium', reversible: 'Partial', model: 'smart', rawCommands: 'oc scale statefulset/thanos-compactor --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring thanos-compactor-0 -- rm -rf /var/thanos/compact/data/01HX* && oc scale statefulset/thanos-compactor --replicas=1 -n openshift-monitoring' },
-    { id: 'op3-o2', title: 'Expand compactor PVC and force compaction', description: 'Resize the compactor persistent volume and run a forced compaction cycle — higher blast radius during PVC resize.', risk: 'high', reversible: 'Irreversible', model: 'fast', rawCommands: 'oc patch pvc/thanos-compactor-data -n openshift-monitoring -p \'{"spec":{"resources":{"requests":{"storage":"200Gi"}}}}\' && oc delete pod thanos-compactor-0 -n openshift-monitoring' },
+    {
+      id: 'op3-o1', title: 'Quarantine corrupted block and restart compactor', description: 'Remove the corrupted TSDB block from thanos-compactor-data PVC and restart the compactor pod with a clean compaction window.', risk: 'medium', reversible: 'Partial', model: 'smart',
+      rawCommands: 'oc scale statefulset/thanos-compactor --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring thanos-compactor-0 -- rm -rf /var/thanos/compact/data/01HX* && oc scale statefulset/thanos-compactor --replicas=1 -n openshift-monitoring',
+      commands: [
+        { label: 'pre-check', description: 'Scale Thanos compactor to zero to safely access the PVC without data corruption', command: 'oc scale statefulset/thanos-compactor --replicas=0 -n openshift-monitoring' },
+        { label: 'mutation', description: 'Remove the corrupted TSDB block from the compactor data volume', command: 'oc rsh -n openshift-monitoring thanos-compactor-0 -- rm -rf /var/thanos/compact/data/01HX*' },
+        { label: 'cleanup', description: 'Scale the compactor back up to resume compaction with a clean state', command: 'oc scale statefulset/thanos-compactor --replicas=1 -n openshift-monitoring' },
+      ],
+      verificationSteps: {
+        description: 'Confirm the corrupted TSDB block is removed and the compactor has resumed processing without errors.',
+        steps: [
+          { id: 'block-removed', command: "oc rsh -n openshift-monitoring thanos-compactor-0 -- ls /var/thanos/compact/data/ | grep 01HX || echo 'none'", expected: "Expected: 'none' — the quarantined TSDB block is no longer present in the compactor data volume." },
+          { id: 'compactor-running', command: 'oc rollout status statefulset/thanos-compactor -n openshift-monitoring --timeout=2m', expected: "Expected: 'statefulset rolling update complete 1 pods at revision thanos-compactor-...' — the compactor pod is running with a clean compaction state." },
+          { id: 'compaction-healthy', command: "oc logs -n openshift-monitoring thanos-compactor-0 --since=5m | grep -iE 'error|corrupted|failed' || echo 'no errors'", expected: "Expected: 'no errors' — no corruption or compaction failure entries in the first 5 minutes after restart." },
+        ],
+      },
+      rbac: {
+        summary: 'Includes write: patch statefulsets · exec pods',
+        rules: [
+          { namespace: 'openshift-monitoring', resource: 'statefulsets (apps)', verbs: 'get, list, patch', purpose: 'Scale thanos-compactor to zero then back to one for safe PVC access', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, list, exec', purpose: 'Exec into compactor pod to remove the corrupted TSDB block', isWrite: true },
+          { namespace: 'cluster-wide', resource: 'nodes', verbs: 'get, list', purpose: 'Check node disk pressure before scaling compactor — abort if storage is constrained' },
+          { namespace: 'cluster-wide', resource: 'storageclasses (storage.k8s.io)', verbs: 'get', purpose: 'Verify the storage class supports ReadWriteOnce before PVC re-attachment' },
+        ],
+      },
+    },
+    {
+      id: 'op3-o2', title: 'Expand compactor PVC and force compaction', description: 'Resize the compactor persistent volume and run a forced compaction cycle — higher blast radius during PVC resize.', risk: 'high', reversible: 'Irreversible', model: 'fast',
+      rawCommands: 'oc patch pvc/thanos-compactor-data -n openshift-monitoring -p \'{"spec":{"resources":{"requests":{"storage":"200Gi"}}}}\' && oc delete pod thanos-compactor-0 -n openshift-monitoring',
+      commands: [
+        { label: 'mutation', description: 'Resize the thanos-compactor PVC to 200 GiB to accommodate compaction growth', command: 'oc patch pvc/thanos-compactor-data -n openshift-monitoring -p \'{"spec":{"resources":{"requests":{"storage":"200Gi"}}}}\'' },
+        { label: 'cleanup', description: 'Delete the compactor pod to force re-attachment and compaction restart on the resized PVC', command: 'oc delete pod thanos-compactor-0 -n openshift-monitoring' },
+      ],
+      verificationSteps: {
+        description: 'Confirm the PVC has been resized and the compactor restarted cleanly on the new storage allocation.',
+        steps: [
+          { id: 'pvc-resized', command: "oc get pvc thanos-compactor-data -n openshift-monitoring -o jsonpath='{.status.capacity.storage}'", expected: "Expected: '200Gi' — confirming the PVC has been resized to the target capacity." },
+          { id: 'compactor-running', command: 'oc rollout status statefulset/thanos-compactor -n openshift-monitoring --timeout=2m', expected: "Expected: 'statefulset rolling update complete' — the compactor pod has restarted and is attached to the resized volume." },
+        ],
+      },
+      rbac: {
+        summary: 'Includes write: patch persistentvolumeclaims · delete pods',
+        rules: [
+          { namespace: 'openshift-monitoring', resource: 'persistentvolumeclaims', kind: 'PersistentVolumeClaim', instanceName: 'thanos-compactor-data', verbs: 'get, patch', purpose: 'Resize thanos-compactor-data PVC to 200 GiB storage', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, list, delete', purpose: 'Delete compactor pod to force re-attachment on the resized PVC', isWrite: true },
+        ],
+      },
+    },
   ],
   op5: [
-    { id: 'op5-o1', title: 'Clear stale Grafana SQLite WAL lock + controlled restart', description: 'Scale grafana to zero, remove the stale SQLite WAL lock file on the shared PVC, verify filesystem consistency, and restart the deployment.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal && oc scale deployment/grafana --replicas=1 -n openshift-monitoring' },
-    { id: 'op5-o2', title: 'Snapshot PVC then force WAL checkpoint', description: 'Take a volume snapshot of the Grafana PVC and run a forced SQLite checkpoint before clearing the lock — slower but preserves rollback capability.', risk: 'low', reversible: 'Reversible', model: 'fast', rawCommands: 'oc create -f grafana-pvc-snapshot.yaml && oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);"' },
+    {
+      id: 'op5-o1', title: 'Clear stale Grafana SQLite WAL lock + controlled restart', description: 'Scale grafana to zero, remove the stale SQLite WAL lock file on the shared PVC, verify filesystem consistency, and restart the deployment.', risk: 'medium', reversible: 'Reversible', model: 'smart',
+      rawCommands: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring && oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal && oc scale deployment/grafana --replicas=1 -n openshift-monitoring',
+      commands: [
+        { label: 'pre-check', description: 'Scale Grafana to zero to safely access the shared PVC without concurrent writes', command: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring' },
+        { label: 'mutation', description: 'Remove the stale SQLite WAL lock file that is preventing Grafana from starting', command: 'oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal' },
+        { label: 'cleanup', description: 'Restart Grafana deployment with a clean database lock state', command: 'oc scale deployment/grafana --replicas=1 -n openshift-monitoring' },
+      ],
+      verificationSteps: {
+        description: 'Confirm the WAL lock is removed and Grafana is accessible and serving dashboards without database errors.',
+        steps: [
+          { id: 'wal-lock-removed', command: "oc rsh -n openshift-monitoring grafana-debug -- ls /var/lib/grafana/ | grep grafana.db-wal || echo 'none'", expected: "Expected: 'none' — the stale SQLite WAL lock file has been removed from the Grafana PVC." },
+          { id: 'grafana-ready', command: 'oc rollout status deployment/grafana -n openshift-monitoring --timeout=3m', expected: "Expected: 'deployment grafana successfully rolled out' — Grafana is running and ready to serve dashboard requests." },
+          { id: 'grafana-health', command: "oc exec -n openshift-monitoring deploy/grafana -- curl -sf http://localhost:3000/api/health", expected: "Expected: '{\"database\": \"ok\", \"health\": \"ok\"}' — Grafana health endpoint confirms the database layer is healthy." },
+        ],
+      },
+      rbac: {
+        summary: 'Includes write: patch deployments · exec pods',
+        rules: [
+          { namespace: 'openshift-monitoring', resource: 'deployments (apps)', verbs: 'get, patch', purpose: 'Scale grafana to zero and back to one for safe PVC access', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, list, exec', purpose: 'Exec into grafana-debug pod to remove the stale WAL lock file', isWrite: true },
+        ],
+      },
+    },
+    {
+      id: 'op5-o2', title: 'Snapshot PVC then force WAL checkpoint', description: 'Take a volume snapshot of the Grafana PVC and run a forced SQLite checkpoint before clearing the lock — slower but preserves rollback capability.', risk: 'low', reversible: 'Reversible', model: 'fast',
+      rawCommands: 'oc create -f grafana-pvc-snapshot.yaml && oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);"',
+      commands: [
+        { label: 'pre-check', description: 'Create a PVC snapshot of the Grafana volume before any mutation to preserve rollback capability', command: 'oc create -f grafana-pvc-snapshot.yaml' },
+        { label: 'mutation', description: 'Force a full SQLite WAL checkpoint to flush all pending writes and clear the stale lock', command: 'oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);"' },
+      ],
+      verificationSteps: {
+        description: 'Confirm the PVC snapshot was created successfully and the WAL checkpoint completed without leaving residual lock frames.',
+        steps: [
+          { id: 'snapshot-ready', command: "oc get volumesnapshot grafana-pvc-snapshot -n openshift-monitoring -o jsonpath='{.status.readyToUse}'", expected: "Expected: 'true' — the PVC snapshot is ready and available as a rollback point if subsequent steps fail." },
+          { id: 'wal-checkpoint-done', command: 'oc exec -n openshift-monitoring deploy/grafana -- sqlite3 /var/lib/grafana/grafana.db "PRAGMA wal_checkpoint(FULL);" 2>&1', expected: "Expected: '0 N 0' — blocked_count=0 confirms no writers are blocked; all WAL frames have been checkpointed to the main database file." },
+          { id: 'grafana-ready', command: 'oc rollout status deployment/grafana -n openshift-monitoring --timeout=3m', expected: "Expected: 'deployment grafana successfully rolled out' — Grafana is running without SQLite lock contention." },
+        ],
+      },
+      rbac: {
+        summary: 'Includes write: create volumesnapshots · exec pods',
+        rules: [
+          { namespace: 'openshift-monitoring', resource: 'volumesnapshots (snapshot.storage.k8s.io)', verbs: 'get, create', purpose: 'Take PVC snapshot before WAL checkpoint as a rollback point', isWrite: true },
+          { namespace: 'openshift-monitoring', resource: 'pods', verbs: 'get, exec', purpose: 'Exec into Grafana container to run SQLite WAL checkpoint', isWrite: true },
+        ],
+      },
+    },
   ],
   'quota-exhaustion-escalating': [
     { id: 'quota-esc-o1', title: 'Grant scoped quota-editor ClusterRole binding to automation service account', description: 'Create a ClusterRole with resourcequotas patch permissions and bind it to the automation service account. This unblocks the agent from self-remediating future quota events without requiring full cluster-admin.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: `oc create clusterrole quota-editor --verb=get,list,watch,update,patch --resource=resourcequotas
@@ -1996,6 +2579,36 @@ oc patch resourcequota/compute-resources -n auth-dev -p '{"spec":{"hard":{"reque
     { id: 'acs-netpol-o1', title: 'Patch deployment to remove hostNetwork + CoreDNS config fix', description: 'Set hostNetwork: false on the retail-checkout deployment and resolve the underlying DNS resolution issue by adding a CoreDNS stub zone for the affected service domain.', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: "oc patch deployment/retail-checkout -n retail-prod --type='json' -p='[{\"op\": \"replace\", \"path\": \"/spec/template/spec/hostNetwork\", \"value\": false}]' && oc apply -f coredns-stub-zone.yaml" },
     { id: 'acs-netpol-o2', title: 'Add ACS admission controller policy exception (temporary)', description: 'Add a scoped policy exception in ACS to silence the P-2041 violation alert for retail-checkout while the DNS issue is resolved separately — shorter blast radius, does not fix the root cause.', risk: 'low', reversible: 'Reversible', model: 'fast', rawCommands: "roxctl policy add-exception --policy=P-2041 --deployment=retail-checkout --namespace=retail-prod --expiry='24h'" },
   ],
+  'certmgr-renewal-pending': [
+    {
+      id: 'certmgr-renewal-o1',
+      title: 'Renew ingress-tls through cert-manager',
+      description: 'Request a new certificate and verify that the Certificate and TLS Secret reflect the renewal.',
+      risk: 'low',
+      reversible: 'Reversible',
+      model: 'smart',
+      rawCommands: 'cmctl renew ingress-tls -n cert-manager',
+      commands: [
+        { label: 'pre-check', description: 'Inspect the Certificate before renewal', command: 'oc get certificate ingress-tls -n cert-manager' },
+        { label: 'mutation', description: 'Request renewal through cert-manager', command: 'cmctl renew ingress-tls -n cert-manager' },
+      ],
+      verificationSteps: {
+        description: 'Confirm cert-manager issued the replacement and updated the ingress TLS Secret.',
+        steps: [
+          { id: 'certificate-ready', command: 'oc get certificate ingress-tls -n cert-manager -o jsonpath={.status.conditions[?(@.type=="Ready")].status}', expected: 'Ready=True' },
+          { id: 'secret-updated', command: 'oc get secret ingress-tls -n cert-manager -o jsonpath={.metadata.resourceVersion}', expected: 'The TLS Secret has a newer resource version.' },
+          { id: 'expiry-extended', command: 'oc get secret ingress-tls -n cert-manager -o jsonpath={.data.tls\\.crt} | base64 -d | openssl x509 -noout -enddate', expected: 'The certificate expiry date has been extended.' },
+        ],
+      },
+      rbac: {
+        summary: 'Includes write: update certificates',
+        rules: [
+          { namespace: 'cert-manager', resource: 'certificates (cert-manager.io)', verbs: 'get, list, update', purpose: 'Request renewal for ingress-tls', isWrite: true },
+          { namespace: 'cert-manager', resource: 'secrets', verbs: 'get, list', purpose: 'Verify the renewed TLS Secret' },
+        ],
+      },
+    },
+  ],
   'prometheus-wal-emergency-stopped': [
     { id: 'prom-wal-o1', title: 'Full WAL repair with pre-execution snapshot (recommended)', description: 'Take a volume snapshot of the Prometheus PVC before initiating repair, then run tsdb repair on the corrupted WAL segments. The snapshot provides a rollback point if the repair corrupts additional data. Must be run in an offline write-isolated window (after 04:00 UTC).', risk: 'medium', reversible: 'Reversible', model: 'smart', rawCommands: `oc create -f prometheus-pvc-snapshot.yaml -n openshift-monitoring
 oc scale statefulset/prometheus-k8s --replicas=0 -n openshift-monitoring
@@ -2004,6 +2617,42 @@ oc scale statefulset/prometheus-k8s --replicas=2 -n openshift-monitoring` },
     { id: 'prom-wal-o2', title: 'Segment-by-segment WAL repair in write-isolated mode', description: 'Cordon the Prometheus node, isolate the write path via remote-write disablement, then repair individual corrupted WAL segments. Faster than a full repair but requires manual segment identification. Riskier if additional corruption exists outside the identified segments.', risk: 'high', reversible: 'Partial', model: 'fast', rawCommands: `oc annotate pod/prometheus-k8s-0 -n openshift-monitoring prometheus.io/remote-write-disabled=true
 oc rsh -n openshift-monitoring prometheus-k8s-0 -- tsdb repair --repair /prometheus/wal/00000001
 oc annotate pod/prometheus-k8s-0 -n openshift-monitoring prometheus.io/remote-write-disabled-` },
+  ],
+  'inv-alert-vm-cannot-evict': [
+    {
+      id: 'inv-vc-o1',
+      title: 'Enable live migration + drain virt-launcher-node-1',
+      description:
+        'Enable KubeVirt live migration for the blocked VM, then drain virt-launcher-node-1 so the workload migrates without violating the PodDisruptionBudget.',
+      risk: 'medium',
+      reversible: 'Reversible',
+      model: 'smart',
+      rawCommands:
+        'oc patch virtualmachineinstance/virt-launcher-node-1 -n openshift-cluster-api --type merge -p \'{"spec":{"evictionStrategy":"LiveMigrate"}}\' && oc adm drain virt-launcher-node-1 --ignore-daemonsets --delete-emptydir-data',
+      diagnosis: {
+        aggregatedFinding:
+          'VCCannotBeEvicted: eviction blocked by PDB minAvailable=1 with live migration disabled.',
+        rootCauseNarrative:
+          'The virt-launcher pod cannot be evicted because live migration is disabled and the PDB requires at least one available pod.',
+      },
+    },
+    {
+      id: 'inv-vc-o2',
+      title: 'Temporarily lower PDB minAvailable during maintenance window',
+      description:
+        'Lower PodDisruptionBudget minAvailable to 0 for a controlled window, evict the VM, then restore the original PDB.',
+      risk: 'high',
+      reversible: 'Partial',
+      model: 'fast',
+      rawCommands:
+        'oc patch pdb/virt-launcher-pdb -n openshift-cluster-api --type merge -p \'{"spec":{"minAvailable":0}}\' && oc delete pod -l kubevirt.io/vm=virt-launcher-node-1 -n openshift-cluster-api',
+      diagnosis: {
+        aggregatedFinding:
+          'PDB constraint is the primary blocker; a temporary minAvailable relaxation unblocks eviction.',
+        rootCauseNarrative:
+          'With live migration unavailable, the only short-term path is a controlled PDB relaxation during a maintenance window.',
+      },
+    },
   ],
 };
 
@@ -2027,6 +2676,17 @@ interface PlanPostMortem {
 }
 
 const PLAN_POSTMORTEM: Record<string, PlanPostMortem> = {
+  'certmgr-renewal-pending': {
+    type: 'success',
+    executionDuration: '38s',
+    appliedAt: 'Tue 04:10:00 UTC',
+    recoveredAt: 'Tue 04:10:38 UTC',
+    rootCauseSummary: 'The ingress-tls certificate entered its renewal window without a new issuance attempt.',
+    remediationActionDelta: 'Requested renewal through cert-manager; the existing certificate remained available during issuance.',
+    executionTargets: ['prod-east-2'],
+    executionTargetsSC: ['ingress-tls', 'cert-manager'],
+    rawLog: '[04:10:00 UTC] Inspecting Certificate ingress-tls in cert-manager\n[04:10:12 UTC] Requesting renewal through cert-manager\n[04:10:38 UTC] Renewal request accepted; starting verification\nExit code: 0 — Execution succeeded.',
+  },
   tp5: {
     type: 'success',
     executionDuration: '43s',
@@ -2240,15 +2900,194 @@ Exit code: 0 — Execution succeeded.`,
   };
 };
 
-const formatExecutionKillTimestamp = (date: Date): string =>
-  date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-  });
+// ─── Execution & Verification Summary mock data ──────────────────────────────
+
+const PLAN_EXECUTION_SUMMARY: Record<string, ExecutionSummaryData> = {
+  'certmgr-renewal-pending': {
+    targetedRootCause: 'The ingress-tls certificate was nearing expiry without a new cert-manager issuance attempt.',
+    remediationDelta: 'Requested a replacement certificate while preserving the currently served TLS Secret.',
+    actionsTaken: [
+      { category: 'pre-check', status: 'Succeeded', description: 'Inspect the current Certificate', command: 'oc get certificate ingress-tls -n cert-manager', output: 'Certificate ingress-tls found; renewal window active.' },
+      { category: 'mutation', status: 'Succeeded', description: 'Request certificate renewal', command: 'cmctl renew ingress-tls -n cert-manager', output: 'Certificate ingress-tls renewal requested.' },
+    ],
+  },
+  op1: {
+    targetedRootCause: 'A clock skew of +847 ms on 3 OpenShift nodes caused Prometheus target scrapes to fail TLS certificate time-validation checks.',
+    remediationDelta: 'Updated the NTP pool to ntp.corp.redhat.com on all 3 affected nodes and restarted chrony-sync-daemon to resynchronize clocks.',
+    actionsTaken: [
+      { category: 'mutation', status: 'Succeeded', description: 'Update NTP pool config and restart chrony on node-1', command: 'chronyc makestep && systemctl restart chronyd', output: 'chrony-sync-daemon on node-1: restarted (offset was +847ms)' },
+      { category: 'mutation', status: 'Succeeded', description: 'Update NTP pool config and restart chrony on node-2', command: 'chronyc makestep && systemctl restart chronyd', output: 'chrony-sync-daemon on node-2: restarted (offset was +851ms)' },
+      { category: 'mutation', status: 'Succeeded', description: 'Update NTP pool config and restart chrony on node-3', command: 'chronyc makestep && systemctl restart chronyd', output: 'chrony-sync-daemon on node-3: restarted (offset was +843ms)' },
+    ],
+    mockAudit: {
+      selectedOptionTitle: 'Reconcile Prometheus operator ServiceMonitor targets and refresh TLS trust',
+      approvedBy: 'Marcus Chen',
+      approvedAt: 'Jun 9, 2026, 4:15 PM',
+      maxAttempts: 3,
+    },
+  },
+  op2: {
+    targetedRootCause: 'The alertmanager-main PagerDuty integration key expired, causing all PagerDuty-routed alerts to fail delivery with HTTP 403 errors.',
+    remediationDelta: 'Replaced the expired alertmanager-pagerduty secret with a rotated integration key and triggered a rolling restart of the 3-pod alertmanager-main StatefulSet.',
+    actionsTaken: [
+      { category: 'mutation', status: 'Succeeded', description: 'Rotate PagerDuty integration key in alertmanager-pagerduty secret', command: 'oc create secret generic alertmanager-pagerduty --from-literal=pagerduty.integration-key=$PAGERDUTY_KEY -n openshift-monitoring --dry-run=client -o yaml | oc apply -f -', output: 'secret/alertmanager-pagerduty configured' },
+      { category: 'mutation', status: 'Succeeded', description: 'Trigger rolling reload of alertmanager pods to pick up rotated credentials', command: 'oc rollout restart statefulset/alertmanager-main -n openshift-monitoring', output: 'statefulset.apps/alertmanager-main restarted' },
+    ],
+  },
+  op3: {
+    targetedRootCause: 'A corrupted TSDB compaction block (01HX...) caused thanos-compactor to crash-loop, halting metric compaction and growing storage usage.',
+    remediationDelta: 'Scaled thanos-compactor to zero, removed the corrupted TSDB block from the PVC, then restarted the compactor with a clean compaction state.',
+    actionsTaken: [
+      { category: 'pre-check', status: 'Succeeded', description: 'Scale compactor to zero to safely access the PVC', command: 'oc scale statefulset/thanos-compactor --replicas=0 -n openshift-monitoring', output: 'statefulset.apps/thanos-compactor scaled' },
+      { category: 'mutation', status: 'Succeeded', description: 'Remove corrupted TSDB block from the compactor data volume', command: 'oc rsh -n openshift-monitoring thanos-compactor-0 -- rm -rf /var/thanos/compact/data/01HX*', output: "removed '/var/thanos/compact/data/01HXQ4P6R3N2M8Y7K0C5D9F1'" },
+      { category: 'cleanup', status: 'Succeeded', description: 'Scale compactor back to resume compaction with a clean state', command: 'oc scale statefulset/thanos-compactor --replicas=1 -n openshift-monitoring', output: 'statefulset.apps/thanos-compactor scaled' },
+    ],
+  },
+  op5: {
+    targetedRootCause: 'A stale SQLite WAL lock file on the Grafana PVC prevented Grafana from starting after an unclean pod shutdown.',
+    remediationDelta: 'Scaled Grafana to zero, removed the stale grafana.db-wal lock file, and restarted the deployment to bring Grafana back online.',
+    actionsTaken: [
+      { category: 'pre-check', status: 'Succeeded', description: 'Scale Grafana to zero to safely access the shared PVC', command: 'oc scale deployment/grafana --replicas=0 -n openshift-monitoring', output: 'deployment.apps/grafana scaled' },
+      { category: 'mutation', status: 'Succeeded', description: 'Remove stale SQLite WAL lock file causing startup failure', command: 'oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal', output: "removed '/var/lib/grafana/grafana.db-wal'" },
+      { category: 'cleanup', status: 'Succeeded', description: 'Restart Grafana deployment with a clean database lock state', command: 'oc scale deployment/grafana --replicas=1 -n openshift-monitoring', output: 'deployment.apps/grafana scaled' },
+    ],
+  },
+  ap8: {
+    targetedRootCause: 'A deployment in the production namespace was running with hostNetwork: true, violating the cluster security policy and exposing host network interfaces.',
+    remediationDelta: 'Patched the SecurityContextConstraints to deny hostNetwork access and installed a MutatingAdmissionWebhook to prevent future violations at admission time.',
+    actionsTaken: [
+      { category: 'pre-check', status: 'Succeeded', description: 'Verify current SCC allowHostNetwork setting before patching', command: "oc get securitycontextconstraints restricted -o jsonpath='{.allowHostNetwork}'", output: 'true' },
+      { category: 'mutation', status: 'Succeeded', description: 'Patch SCC to deny host network access cluster-wide', command: "oc patch securitycontextconstraints restricted --type='json' -p='[{\"op\": \"replace\", \"path\": \"/allowHostNetwork\", \"value\": false}]'", output: 'securitycontextconstraints.security.openshift.io/restricted patched' },
+      { category: 'mutation', status: 'Succeeded', description: 'Install MutatingAdmissionWebhook to block future hostNetwork violations', command: 'oc apply -f - <<EOF\napiVersion: admissionregistration.k8s.io/v1\nkind: MutatingWebhookConfiguration\nmetadata:\n  name: hostnetwork-guard\nEOF', output: 'mutatingwebhookconfiguration.admissionregistration.k8s.io/hostnetwork-guard created' },
+    ],
+  },
+  'etcd-defrag-failed': {
+    targetedRootCause: 'EtcdDatabaseHighFragmentationRatio exceeded 65% across all 3 control plane members, causing API write amplification and P99 latency above 1.2 s.',
+    remediationDelta: 'Attempted etcd defragmentation sequentially across etcd-master-01, etcd-master-02, and etcd-master-03. Commands completed but post-execution verification found the fragmentation ratio unchanged at 0.67.',
+    actionsTaken: [
+      { category: 'mutation', status: 'Succeeded', description: 'Defragment etcd on etcd-master-01', command: 'etcdctl defrag --endpoints=https://etcd-master-01:2379', output: 'Finished defragmenting etcd member[https://etcd-master-01:2379]' },
+      { category: 'mutation', status: 'Succeeded', description: 'Defragment etcd on etcd-master-02', command: 'etcdctl defrag --endpoints=https://etcd-master-02:2379', output: 'Finished defragmenting etcd member[https://etcd-master-02:2379]' },
+      { category: 'mutation', status: 'Succeeded', description: 'Defragment etcd on etcd-master-03', command: 'etcdctl defrag --endpoints=https://etcd-master-03:2379', output: 'Finished defragmenting etcd member[https://etcd-master-03:2379]' },
+      { category: 'verification', status: 'Failed', description: 'Verify fragmentation ratio has been reduced', command: 'etcdctl endpoint status --endpoints=https://etcd-master-01:2379 --write-out=table', output: 'fragmentation_ratio: 0.67 — unchanged from pre-execution baseline (0.67). Compaction window had not run prior to defrag.' },
+    ],
+    mockAudit: {
+      selectedOptionTitle: 'Sequential etcd defragmentation across control plane members',
+      approvedBy: 'Marcus Chen',
+      approvedAt: 'Jun 9, 2026, 5:44 PM',
+      maxAttempts: 3,
+    },
+  },
+};
+
+const PLAN_VERIFICATION_SUMMARY: Record<string, VerificationSummaryData> = {
+  'certmgr-renewal-pending': {
+    outcomeAssessment: [
+      'The ingress-tls Certificate is Ready after renewal.',
+      'The TLS Secret was updated with the replacement certificate.',
+      'The renewed certificate has a later expiry date.',
+    ],
+    checks: [
+      { id: 'certificate-ready', status: 'Passed', command: 'oc get certificate ingress-tls -n cert-manager -o jsonpath={.status.conditions[?(@.type=="Ready")].status}', output: 'True' },
+      { id: 'secret-updated', status: 'Passed', command: 'oc get secret ingress-tls -n cert-manager -o jsonpath={.metadata.resourceVersion}', output: 'Resource version advanced after renewal.' },
+      { id: 'expiry-extended', status: 'Passed', command: 'oc get secret ingress-tls -n cert-manager -o jsonpath={.data.tls\\.crt} | base64 -d | openssl x509 -noout -enddate', output: 'The replacement certificate expires after the original certificate.' },
+    ],
+  },
+  op1: {
+    outcomeAssessment: [
+      'Clock offset delta fell below 1 ms across all 3 nodes after NTP resynchronization.',
+      'NodeClockSkewDetected alert resolved — no longer firing in any namespace.',
+      'Prometheus target scrape success rate returned to 100% within 2 minutes of clock correction.',
+    ],
+    checks: [
+      { id: 'clock-offset', status: 'Passed', command: 'chronyc tracking | grep "System time"', output: 'System time: 0.000023104 seconds fast of NTP time — offset < 1 ms confirmed.' },
+      { id: 'alert-resolved', status: 'Passed', command: "oc get prometheusrule -A -o json | jq '.items[].spec.groups[].rules[] | select(.alert==\"NodeClockSkewDetected\") | .labels.severity'", output: 'NodeClockSkewDetected: resolved' },
+      { id: 'prometheus-targets', status: 'Passed', command: 'curl -s http://prometheus-k8s.openshift-monitoring:9090/api/v1/query?query=up | jq .data.result[].value[1]', output: '"1" — all Prometheus targets reporting up=1 (100% scrape success)' },
+    ],
+  },
+  op2: {
+    outcomeAssessment: [
+      'alertmanager-main pods restarted successfully with the rotated PagerDuty integration key.',
+      'PagerDuty alert delivery resumed — no HTTP 403 errors in the 2-minute post-restart window.',
+      'All 3 alertmanager-main pods are in Running state and Ready.',
+    ],
+    checks: [
+      { id: 'secret-updated', status: 'Passed', command: "oc get secret alertmanager-pagerduty -n openshift-monitoring -o jsonpath='{.metadata.resourceVersion}'", output: 'resourceVersion: "487231" — secret replaced with rotated key.' },
+      { id: 'alertmanager-ready', status: 'Passed', command: 'oc rollout status statefulset/alertmanager-main -n openshift-monitoring --timeout=3m', output: 'statefulset rolling update complete 3 pods at revision alertmanager-main-2' },
+      { id: 'no-delivery-errors', status: 'Passed', command: "oc logs -n openshift-monitoring alertmanager-main-0 --since=2m | grep -i 'pagerduty.*error\\|failed.*pagerduty' || echo 'none'", output: 'none' },
+    ],
+  },
+  op3: {
+    outcomeAssessment: [
+      'Corrupted TSDB block removed from the compactor data volume without data loss.',
+      'thanos-compactor restarted successfully and resumed compaction with a clean state.',
+      'No compaction error or corruption log entries in the 5-minute post-restart window.',
+    ],
+    checks: [
+      { id: 'block-removed', status: 'Passed', command: "oc rsh -n openshift-monitoring thanos-compactor-0 -- ls /var/thanos/compact/data/ | grep 01HX || echo 'none'", output: 'none — corrupted TSDB block successfully removed.' },
+      { id: 'compactor-running', status: 'Passed', command: 'oc rollout status statefulset/thanos-compactor -n openshift-monitoring --timeout=2m', output: 'statefulset rolling update complete 1 pods at revision thanos-compactor-4' },
+      { id: 'compaction-healthy', status: 'Passed', command: "oc logs -n openshift-monitoring thanos-compactor-0 --since=5m | grep -iE 'error|corrupted|failed' || echo 'no errors'", output: 'no errors' },
+    ],
+  },
+  op5: {
+    outcomeAssessment: [
+      'Stale SQLite WAL lock file successfully removed from the Grafana PVC.',
+      'Grafana deployment rolled out with 1 pod in Running state.',
+      'Grafana health endpoint confirms database: ok — dashboard serving resumed.',
+    ],
+    checks: [
+      { id: 'wal-lock-removed', status: 'Passed', command: "oc rsh -n openshift-monitoring grafana-debug -- ls /var/lib/grafana/ | grep grafana.db-wal || echo 'none'", output: 'none — stale WAL lock file is no longer present.' },
+      { id: 'grafana-ready', status: 'Passed', command: 'oc rollout status deployment/grafana -n openshift-monitoring --timeout=3m', output: 'deployment "grafana" successfully rolled out' },
+      { id: 'grafana-health', status: 'Passed', command: 'oc exec -n openshift-monitoring deploy/grafana -- curl -sf http://localhost:3000/api/health', output: '{"database": "ok", "health": "ok", "version": "10.2.3"}' },
+    ],
+  },
+  ap8: {
+    outcomeAssessment: [
+      'SecurityContextConstraints allowHostNetwork is now set to false cluster-wide.',
+      'MutatingAdmissionWebhook hostnetwork-guard is registered and active at admission time.',
+      'Zero running pods in non-system namespaces are using host network access.',
+    ],
+    checks: [
+      { id: 'scc-patched', status: 'Passed', command: "oc get securitycontextconstraints restricted -o jsonpath='{.allowHostNetwork}'", output: 'false — host network access denied at the SCC level.' },
+      { id: 'webhook-registered', status: 'Passed', command: 'oc get mutatingwebhookconfiguration hostnetwork-guard -o name', output: 'mutatingwebhookconfiguration.admissionregistration.k8s.io/hostnetwork-guard' },
+      { id: 'no-active-violations', status: 'Passed', command: "oc get pods --all-namespaces -o json | jq '[.items[] | select(.spec.hostNetwork==true)] | length'", output: '0 — no running pods using host networking outside of system namespaces.' },
+    ],
+  },
+  'etcd-defrag-failed': {
+    outcomeAssessment: [
+      'Defragmentation commands executed without errors on all 3 etcd members.',
+      'Post-defrag verification shows fragmentation ratio at 0.67 — unchanged from pre-execution baseline.',
+      'Root cause of failure: etcd auto-compaction window had not completed before defrag execution. Manual compaction (etcdctl compact) is required before re-attempting.',
+    ],
+    checks: [
+      { id: 'defrag-commands', status: 'Passed', command: 'etcdctl defrag --endpoints=https://etcd-master-01:2379,https://etcd-master-02:2379,https://etcd-master-03:2379', output: 'Finished defragmenting etcd member on all 3 endpoints.' },
+      { id: 'fragmentation-ratio', status: 'Failed', command: 'etcdctl endpoint status --endpoints=https://etcd-master-01:2379 --write-out=table', output: 'fragmentation_ratio: 0.67 (baseline: 0.67) — no improvement detected. Auto-compaction had not run.' },
+    ],
+  },
+};
+
+const PLAN_ESCALATION_SUMMARY: Record<string, EscalationSummaryData> = {
+  'ingress-controller-escalated': {
+    details:
+      'The ingress controller replica count dropped to 1 after a node eviction on worker-bm-03. Two consecutive automated scale-out executions failed because the openshift-ingress namespace quota hard ceiling was reached (pods=10/10). MaxRetriesExhausted was triggered after 2 failed attempts and the escalation payload was automatically routed to PagerDuty (P2) and ServiceNow (INC-0087342).',
+    failureReason:
+      'Automated scale-out blocked by ResourceQuota ceiling in openshift-ingress (pods=10/10). Manual quota increase required before remediation can proceed.',
+    dispatchedTargets: ['PagerDuty — P2 incident created', 'ServiceNow — INC-0087342 opened'],
+  },
+  'quota-exhaustion-escalating': {
+    details:
+      'Namespace quota exhaustion was detected across 3 namespaces: production, staging, and shared-services. Automated quota expansion retries failed because a cluster-level resource ceiling prevents in-place quota increases. The run is now waiting for a human operator to perform a manual cluster resource governance review.',
+    failureReason:
+      'Cluster-level LimitRange prevents automated quota expansion across production, staging, and shared-services namespaces.',
+    dispatchedTargets: [],
+  },
+  'op5-manual-escalation': {
+    details:
+      'The failure is in the escalation rendering path, not in the Grafana pod or WAL lock itself. The escalation_request.tmpl template tries to access .Success on a value of type v1alpha1.StepResultRef, but StepResultRef does not expose a Success field. Go template execution fails as a result, which means prior failed attempts cannot be packaged for handoff.',
+    failureReason:
+      'Verification failed: PVC payments-db-data still Pending after remediation retries.',
+    dispatchedTargets: [],
+  },
+};
 
 function buildActiveExecutionLogLines(plan: PlanRow, option: RemediationOption): string[] {
   const postMortem = PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan);
@@ -2286,7 +3125,8 @@ function useStreamingExecutionLog(
     const timer = window.setTimeout(() => {
       setVisibleCount((count) => Math.min(count + 1, lines.length));
     }, 650);
-    return () => window.clearTimeout(timer);
+
+  return () => window.clearTimeout(timer);
   }, [enabled, frozen, lines.length, visibleCount]);
 
   return lines.slice(0, frozen ? visibleCount : visibleCount).join('\n');
@@ -2309,26 +3149,104 @@ const formatPlanCreatedAt = (iso: string): string => {
   });
 };
 
+/** Same console date/time formatting as the Created column. */
+const formatPlanTimestamp = formatPlanCreatedAt;
+
+/** Terminal statuses that carry a backend deletion timestamp (14-day retention mock). */
+const DELETION_TIME_TERMINAL_STATUSES = new Set<PlanStatus>(['Completed', 'Failed', 'Denied']);
+const DELETION_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
+
+/**
+ * Resolves `deletionTime` for an AgenticRun row.
+ * Only terminal Completed / Failed / Denied get a value (Created + 14 days);
+ * EmergencyStopped and in-progress states stay empty.
+ */
+export function resolvePlanDeletionTime(
+  status: PlanStatus,
+  createdAt: string | undefined,
+  explicit?: string | null,
+): string | undefined {
+  if (explicit) {
+    return explicit;
+  }
+  if (!createdAt || !DELETION_TIME_TERMINAL_STATUSES.has(status)) {
+    return undefined;
+  }
+  const createdMs = new Date(createdAt).getTime();
+  if (Number.isNaN(createdMs)) {
+    return undefined;
+  }
+  return new Date(createdMs + DELETION_RETENTION_MS).toISOString();
+}
+
+const PlanTimestampCell: React.FC<{ value?: string | null }> = ({ value }) => {
+  if (!value) {
+    return <>{'—'}</>;
+  }
+  return (
+    <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
+      <FlexItem>
+        <OutlinedClockIcon
+          style={{ color: 'var(--pf-t--global--icon--color--subtle)', verticalAlign: 'middle' }}
+          aria-hidden
+        />
+      </FlexItem>
+      <FlexItem>
+        <time dateTime={value}>{formatPlanTimestamp(value)}</time>
+      </FlexItem>
+    </Flex>
+  );
+};
+
 // ─── Status label ─────────────────────────────────────────────────────────────
 
 type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey' | 'yellow';
+type PfStatus = 'success' | 'warning' | 'danger' | 'info' | 'custom';
 
-const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
-  'Pending':          'grey',
-  'Analyzing':        'blue',
-  'Proposed':         'blue',
-  'Approved':         'orange',
-  'Executing':        'teal',
-  'Verifying':        'teal',
-  'Acknowledged':     'green',
-  'Completed':        'green',
-  'Failed':           'red',
-  'Denied':           'red',
-  // Gold/yellow — SRE attention required, distinct from routine progress (teal/blue) or terminal failure (red).
-  'Escalating':       'yellow',
-  'Escalated':        'yellow',
-  'EmergencyStopped': 'red',
-  'Plan aborted':     'red',
+/**
+ * Discriminated visual spec per run status.
+ *
+ * - `kind: 'status'`  → uses the PF6 Label `status` prop, which applies the
+ *   vibrant semantic palette (dark green for success, red-orange for danger,
+ *   bright yellow for warning) with guaranteed accessible contrast tokens.
+ *   The `icon` prop overrides the PF auto-icon so per-status icons are kept.
+ *
+ * - `kind: 'color'`   → uses the PF6 nonstatus `color` prop (pastel palette).
+ *   Used for statuses that have no direct PF6 semantic equivalent, where the
+ *   pastel treatment better communicates the intermediate/non-terminal nature
+ *   of the state (e.g. active in-progress blue, interrupted orange, waiting grey).
+ */
+type StatusVisual =
+  | { kind: 'status'; status: PfStatus;   icon: React.ReactElement }
+  | { kind: 'color';  color: LabelColor;  icon: React.ReactElement };
+
+const STATUS_VISUAL: Record<PlanStatus, StatusVisual> = {
+  // ── Waiting / neutral ────────────────────────────────────────────────────
+  'Pending':          { kind: 'color',  color: 'grey',   icon: <RhUiPendingIcon /> },
+  'Approved':         { kind: 'color',  color: 'orange', icon: <RhUiPauseCircleIcon /> },
+
+  // ── Active / transient — vibrant PF6 info purple (#5E40BE) ─────────────────
+  'Analyzing':        { kind: 'status', status: 'info',  icon: <RhUiInProgressIcon /> },
+  'Proposed':         { kind: 'status', status: 'info',  icon: <RhUiPauseCircleIcon /> },
+  'Executing':        { kind: 'status', status: 'info',  icon: <RhUiRunningIcon /> },
+  'Verifying':        { kind: 'status', status: 'info',  icon: <RhUiSyncIcon /> },
+
+  // ── Terminal success — vibrant PF6 status green ──────────────────────────
+  'Acknowledged':     { kind: 'status', status: 'success', icon: <RhUiCheckCircleFillIcon /> },
+  'Completed':        { kind: 'status', status: 'success', icon: <RhUiCheckCircleFillIcon /> },
+
+  // ── SRE attention required — vibrant PF6 status yellow ──────────────────
+  'Escalating':       { kind: 'status', status: 'warning', icon: <RhUiWarningFillIcon /> },
+  'Escalated':        { kind: 'status', status: 'warning', icon: <RhUiWarningFillIcon /> },
+
+  // ── Terminal failure / hard stop — vibrant PF6 status red-orange ─────────
+  'Failed':           { kind: 'status', status: 'danger',  icon: <RhUiErrorFillIcon /> },
+  'Denied':           { kind: 'status', status: 'danger',  icon: <RhUiBanIcon /> },
+  'EmergencyStopped': { kind: 'status', status: 'danger',  icon: <RhUiBanIcon /> },
+  'Plan aborted':     { kind: 'status', status: 'danger',  icon: <RhUiBanIcon /> },
+
+  // ── Interrupted before execution — nonstatus orange (not a hard failure) ─
+  'Run aborted':      { kind: 'color',  color: 'orange', icon: <RhUiBanIcon /> },
 };
 
 const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
@@ -2363,31 +3281,136 @@ const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
   );
 };
 
-export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }> = ({
+/**
+ * Icon color per status — follows OCP console's Status component conventions:
+ * - Active / transient states → OCP blue (#0066CC), matching running workloads
+ * - Success / warning / danger → PF6 semantic icon color tokens
+ * - Neutral / interrupted → subtle grey or warning amber
+ */
+const STATUS_ICON_CSS_COLOR: Record<PlanStatus, string> = {
+  'Pending':          'var(--pf-t--global--icon--color--subtle)',
+  'Approved':         'var(--pf-t--global--icon--color--status--warning--default)',
+  'Analyzing':        'currentColor',
+  'Proposed':         'currentColor',
+  'Executing':        'currentColor',
+  'Verifying':        'currentColor',
+  'Acknowledged':     'var(--pf-t--global--icon--color--status--success--default)',
+  'Completed':        'var(--pf-t--global--icon--color--status--success--default)',
+  'Failed':           'var(--pf-t--global--icon--color--status--danger--default)',
+  'Denied':           'var(--pf-t--global--icon--color--status--danger--default)',
+  'Escalating':       'var(--pf-t--global--icon--color--status--warning--default)',
+  'Escalated':        'var(--pf-t--global--icon--color--status--warning--default)',
+  'EmergencyStopped': 'var(--pf-t--global--icon--color--status--danger--default)',
+  'Plan aborted':     'var(--pf-t--global--icon--color--status--danger--default)',
+  'Run aborted':      'var(--pf-t--global--icon--color--status--warning--default)',
+};
+
+/** Display text overrides for statuses whose string key is not user-facing. */
+const STATUS_DISPLAY_TEXT: Partial<Record<PlanStatus, string>> = {
+  'EmergencyStopped': 'Emergency stopped',
+  'Run aborted':      'Analysis stopped',
+  'Plan aborted':     'Execution stopped',
+  'Proposed':         'Execution phase',
+  'Verifying':        'Verifying',
+  'Escalating':       'Escalation phase',
+};
+
+const STATUS_ICON_ROW_STYLE: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 'var(--pf-t--global--spacer--xs)',
+  whiteSpace: 'nowrap',
+};
+
+/**
+ * OCP-style icon + text status indicator — no pill/badge wrapper.
+ * Matches the OpenShift console Status component pattern where a coloured
+ * icon and plain body-weight text sit inline without a background chip.
+ * Aborted / stopped states retain a tooltip for cluster-impact context.
+ */
+export const StatusLabel: React.FC<{
+  status: PlanStatus;
+  terminatedAt?: string;
+  /** Current phase when the table row is paused for manual approval. */
+  awaitingApprovalPhase?: AgenticRunPhaseName;
+  /** Optional phase visual used when a Pending run has reached Analysis approval. */
+  displayStatus?: PlanStatus;
+  displayTextOverride?: string;
+}> = ({
   status,
   terminatedAt,
+  awaitingApprovalPhase,
+  displayStatus = status,
+  displayTextOverride,
 }) => {
-  if (status === 'Plan aborted' || status === 'EmergencyStopped') {
-    const tooltipContent =
-      status === 'EmergencyStopped'
-        ? `Emergency stop issued by operator at ${terminatedAt ?? '—'}. Execution halted mid-flight.`
-        : `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
-    const displayLabel = status === 'EmergencyStopped' ? 'Emergency stopped' : 'Run aborted';
+  const displayText = displayTextOverride ?? STATUS_DISPLAY_TEXT[displayStatus] ?? displayStatus;
+  const iconEl = (
+    <span
+      aria-hidden="true"
+      style={{ color: STATUS_ICON_CSS_COLOR[displayStatus], display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+    >
+      {STATUS_VISUAL[displayStatus].icon}
+    </span>
+  );
+
+  if (status === 'Run aborted') {
     return (
-      <Tooltip content={tooltipContent} position="top">
-        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" isCompact style={{ whiteSpace: 'nowrap' }}>
-            {displayLabel}
-          </Label>
+      <Tooltip
+        content={`Analysis stopped at ${terminatedAt ?? '—'}. No root cause was determined — cluster was not modified.`}
+        position="top"
+      >
+        <span tabIndex={0} style={{ ...STATUS_ICON_ROW_STYLE, cursor: 'default' }}>
+          {iconEl}
+          {displayText}
+        </span>
+      </Tooltip>
+    );
+  }
+
+  if (status === 'Plan aborted') {
+  return (
+      <Tooltip
+        content={`Execution stopped at ${terminatedAt ?? '—'}. Cluster may be in a partial state — verify manually.`}
+        position="top"
+      >
+        <span tabIndex={0} style={{ ...STATUS_ICON_ROW_STYLE, cursor: 'default' }}>
+          {iconEl}
+          {displayText}
+        </span>
+      </Tooltip>
+    );
+  }
+
+  if (status === 'EmergencyStopped') {
+    return (
+      <Tooltip
+        content={`Emergency stop issued at ${terminatedAt ?? '—'}. All in-flight runs halted by global kill switch.`}
+        position="top"
+      >
+        <span tabIndex={0} style={{ ...STATUS_ICON_ROW_STYLE, cursor: 'default' }}>
+          {iconEl}
+          {displayText}
         </span>
       </Tooltip>
     );
   }
 
   return (
-    <Label color={STATUS_LABEL_COLOR[status]} isCompact style={{ whiteSpace: 'nowrap' }}>
-      {status}
-    </Label>
+    <span style={{ ...STATUS_ICON_ROW_STYLE, flexWrap: 'wrap' }}>
+      <span style={STATUS_ICON_ROW_STYLE}>
+        {iconEl}
+        {displayText}
+      </span>
+      {awaitingApprovalPhase && (
+        <Label
+          color="purple"
+          isCompact
+          aria-label={`Awaiting approval for ${awaitingApprovalPhase} phase`}
+        >
+          Awaiting approval
+        </Label>
+      )}
+    </span>
   );
 };
 
@@ -2407,11 +3430,39 @@ export const WaitingApprovalPlanMeta: React.FC<{ plan: PlanRow }> = ({ plan }) =
     return null;
   }
 
+  const deletionTime = resolvePlanDeletionTime(plan.status, plan.createdAt, plan.deletionTime);
+  const timestampStyle: React.CSSProperties = {
+    margin: 0,
+    color: 'var(--pf-t--global--text--color--subtle)',
+  };
+
   return (
-    <Content component="small" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
-      Created{' '}
-      <time dateTime={plan.createdAt}>{formatPlanCreatedAt(plan.createdAt)}</time>
-    </Content>
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      spaceItems={{ default: 'spaceItemsSm' }}
+      flexWrap={{ default: 'wrap' }}
+    >
+      <FlexItem>
+        <Content component="small" style={timestampStyle}>
+          Created{' '}
+          <time dateTime={plan.createdAt}>{formatPlanTimestamp(plan.createdAt)}</time>
+        </Content>
+      </FlexItem>
+      {deletionTime ? (
+        <>
+          <Divider
+            orientation={{ default: 'vertical' }}
+            style={{ alignSelf: 'stretch', minHeight: '1em' }}
+          />
+          <FlexItem>
+            <Content component="small" style={timestampStyle}>
+              Deletion time{' '}
+              <time dateTime={deletionTime}>{formatPlanTimestamp(deletionTime)}</time>
+            </Content>
+          </FlexItem>
+        </>
+      ) : null}
+    </Flex>
   );
 };
 
@@ -2485,7 +3536,7 @@ const PlanScopeCell: React.FC<{
 // ─── Table column header with informational popover ───────────────────────────
 
 const PLANS_TABLE_HEADER_TH_STYLE: React.CSSProperties = {
-  verticalAlign: 'top',
+  verticalAlign: 'middle',
 };
 
 const PLANS_TABLE_HEADER_POPOVER_CONTENT_STYLE: React.CSSProperties = {
@@ -2567,6 +3618,159 @@ const PlanRowActionsMenu: React.FC<{ planId: string; planName: string; onDelete:
   );
 };
 
+// ─── Column management ────────────────────────────────────────────────────────
+
+export type ColumnKey = 'name' | 'namespace' | 'triggerDomain' | 'status' | 'tokensConsumed' | 'created' | 'deletionTime';
+
+const COLUMN_LABELS: Record<ColumnKey, string> = {
+  name: 'Name',
+  namespace: 'Namespace',
+  triggerDomain: 'Trigger domain',
+  status: 'Status',
+  tokensConsumed: 'Tokens consumed',
+  created: 'Created',
+  deletionTime: 'Deletion time',
+};
+
+const ALWAYS_VISIBLE_COLUMN_SET = new Set<ColumnKey>(['name']);
+const DEFAULT_HIDDEN_COLUMNS: ColumnKey[] = ['tokensConsumed', 'deletionTime'];
+
+/** Columns that existed before `deletionTime` — used to migrate saved visibility prefs. */
+const LEGACY_MANAGEABLE_COLUMNS: readonly ColumnKey[] = [
+  'name',
+  'namespace',
+  'triggerDomain',
+  'status',
+  'tokensConsumed',
+  'created',
+];
+
+export const MANAGEABLE_COLUMN_ORDER: ColumnKey[] = [
+  'name',
+  'namespace',
+  'triggerDomain',
+  'status',
+  'tokensConsumed',
+  'created',
+  'deletionTime',
+];
+
+export function usePlansColumnVisibility(storageKey?: string) {
+  const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnKey>>(() => {
+    if (storageKey) {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+          const parsed = new Set(JSON.parse(stored) as ColumnKey[]);
+          // Keep newly default-hidden columns hidden until the user explicitly toggles them.
+          for (const key of DEFAULT_HIDDEN_COLUMNS) {
+            if (!LEGACY_MANAGEABLE_COLUMNS.includes(key)) {
+              parsed.add(key);
+            }
+          }
+          return parsed;
+        }
+      } catch { /* ignore */ }
+    }
+    return new Set<ColumnKey>(DEFAULT_HIDDEN_COLUMNS);
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [draftHidden, setDraftHidden] = useState<Set<ColumnKey>>(new Set(DEFAULT_HIDDEN_COLUMNS));
+
+  const openModal = useCallback(() => {
+    setDraftHidden(new Set(hiddenColumns));
+    setIsModalOpen(true);
+  }, [hiddenColumns]);
+
+  const closeModal = useCallback(() => setIsModalOpen(false), []);
+
+  const saveColumns = useCallback(() => {
+    setHiddenColumns(draftHidden);
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify([...draftHidden]));
+      } catch { /* ignore */ }
+    }
+    setIsModalOpen(false);
+  }, [draftHidden, storageKey]);
+
+  const toggleDraftColumn = useCallback((key: ColumnKey) => {
+    if (ALWAYS_VISIBLE_COLUMN_SET.has(key)) return;
+    setDraftHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
+
+  const isColumnVisible = useCallback((key: ColumnKey) => !hiddenColumns.has(key), [hiddenColumns]);
+
+  return { hiddenColumns, isColumnVisible, isModalOpen, openModal, closeModal, saveColumns, toggleDraftColumn, draftHidden };
+}
+
+export interface PlansColumnManagementModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  draftHidden: Set<ColumnKey>;
+  onToggle: (key: ColumnKey) => void;
+}
+
+export const PlansColumnManagementModal: React.FC<PlansColumnManagementModalProps> = ({
+  isOpen,
+  onClose,
+  onSave,
+  draftHidden,
+  onToggle,
+}) => (
+  <Modal
+    variant={ModalVariant.small}
+    isOpen={isOpen}
+    onClose={onClose}
+    aria-label="Manage table columns"
+  >
+    <ModalHeader title="Manage columns" />
+    <ModalBody style={{ padding: 0 }}>
+      <div style={{ padding: 'var(--pf-t--global--spacer--xs) var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--md)' }}>
+        <Content component="p" style={{ marginBottom: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
+          Selected categories will be displayed in the table.
+        </Content>
+      </div>
+      <Divider style={{ marginInline: 'var(--pf-t--global--spacer--lg)' }} />
+      {MANAGEABLE_COLUMN_ORDER.map((key, index) => {
+        const isLocked = ALWAYS_VISIBLE_COLUMN_SET.has(key);
+        return (
+          <React.Fragment key={key}>
+            <div style={{ padding: 'var(--pf-t--global--spacer--sm) var(--pf-t--global--spacer--lg)' }}>
+              <Checkbox
+                id={`col-toggle-${key}`}
+                label={COLUMN_LABELS[key]}
+                isChecked={isLocked || !draftHidden.has(key)}
+                isDisabled={isLocked}
+                onChange={() => onToggle(key)}
+              />
+            </div>
+            {index < MANAGEABLE_COLUMN_ORDER.length - 1 && (
+              <Divider style={{ marginInline: 'var(--pf-t--global--spacer--lg)' }} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </ModalBody>
+    <ModalFooter>
+      <Button variant="primary" onClick={onSave}>Save</Button>
+      <Button variant="link" onClick={onClose}>Cancel</Button>
+    </ModalFooter>
+  </Modal>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface PlansTableCoreProps {
   rows: PlanRow[];
   ariaLabel: string;
@@ -2578,6 +3782,13 @@ interface PlansTableCoreProps {
   mapObservabilityDomains?: boolean;
   /** Global Agentic runs list only — domain-scoped lists (e.g. Agentic runs) omit this column. */
   showTriggerDomainColumn?: boolean;
+  /** DEV multicluster mode — surfaces the managed spoke cluster alongside scope. */
+  showTargetClusterColumn?: boolean;
+  activeSortIndex?: number;
+  activeSortDirection?: 'asc' | 'desc';
+  onSort?: (columnIndex: number, direction: 'asc' | 'desc') => void;
+  /** Columns that should be hidden from view. Managed via PlansColumnManagementModal. */
+  hiddenColumns?: Set<ColumnKey>;
 }
 
 export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
@@ -2589,7 +3800,36 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   isAgenticAutomationEnabled,
   mapObservabilityDomains = false,
   showTriggerDomainColumn = true,
-}) => (
+  showTargetClusterColumn = false,
+  activeSortIndex,
+  activeSortDirection,
+  onSort,
+  hiddenColumns,
+}) => {
+  const { getPlanWorkflow } = usePlanWorkflow();
+  const isColHidden = (key: ColumnKey) => hiddenColumns?.has(key) ?? false;
+  const tokensHidden = isColHidden('tokensConsumed');
+  // Hidden by default when column prefs are absent (matches Manage columns default).
+  const deletionTimeHidden = hiddenColumns ? isColHidden('deletionTime') : true;
+  const triggerDomainVisible = showTriggerDomainColumn && !isColHidden('triggerDomain');
+  const targetClusterVisible = showTargetClusterColumn;
+  const scopeColIndex = targetClusterVisible ? 2 : 1;
+  const triggerDomainColIndex = targetClusterVisible ? 3 : 2;
+  const statusColIndex = triggerDomainVisible ? triggerDomainColIndex + 1 : scopeColIndex + 1;
+  const createdColIndex = tokensHidden ? statusColIndex + 1 : statusColIndex + 2;
+  const deletionTimeColIndex = createdColIndex + 1;
+  const getSortProps = (colIndex: number) =>
+    !onSort
+      ? {}
+      : {
+          sort: {
+            sortBy: { index: activeSortIndex, direction: activeSortDirection, defaultDirection: 'asc' as const },
+            onSort: (_evt: React.MouseEvent, index: number, direction: 'asc' | 'desc') => onSort(index, direction),
+            columnIndex: colIndex,
+          },
+        };
+
+  return (
   <Table
     aria-label={ariaLabel}
     className="ols-plans-table"
@@ -2600,14 +3840,32 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   >
     <Thead>
       <Tr>
-        <Th style={{ width: showTriggerDomainColumn ? '22%' : '28%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '14%' : '16%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
-        {showTriggerDomainColumn ? (
-          <Th style={{ width: '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '22%' : '28%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(0)}>Name</Th>
+        {targetClusterVisible ? (
+          <Th style={{ width: '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(1)}>Cluster</Th>
         ) : null}
-        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '14%' : '16%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(scopeColIndex)}>{scopeColumnLabel}</Th>
+        {triggerDomainVisible ? (
+          <Th style={{ width: '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(triggerDomainColIndex)}>Trigger domain</Th>
+        ) : null}
+        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(statusColIndex)}>Status</Th>
+        {!tokensHidden && (
+          <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
+        )}
+        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(createdColIndex)}>Created</Th>
+        {!deletionTimeHidden && (
+          <Th
+            style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}
+            {...getSortProps(deletionTimeColIndex)}
+          >
+            <PlansTableColumnHeader
+              label="Deletion time"
+              popoverHeader="Deletion time"
+              popoverBody="The scheduled time when this terminal run and its associated resources will be automatically removed from the cluster."
+              ariaLabel="More information about Deletion time"
+            />
+          </Th>
+        )}
         <Th screenReaderText="Actions" />
       </Tr>
     </Thead>
@@ -2636,6 +3894,12 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             </Flex>
           </Td>
 
+          {targetClusterVisible ? (
+            <Td dataLabel="Cluster">
+              {row.clusterName ?? row.targetCluster ?? '—'}
+            </Td>
+          ) : null}
+
           <Td dataLabel={scopeColumnLabel}>
             <PlanScopeCell
               scope={row.scope}
@@ -2644,37 +3908,63 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             />
           </Td>
 
-          {showTriggerDomainColumn ? (
+          {triggerDomainVisible ? (
             <Td dataLabel="Trigger domain" className="ols-plans-trigger-domain-cell">
               <TriggerDomainCell domain={row.triggerDomain} mapObservabilityDomains={mapObservabilityDomains} />
             </Td>
           ) : null}
 
           <Td dataLabel="Status">
-            <StatusLabel status={row.status} terminatedAt={row.terminatedAt} />
+            {(() => {
+              const workflow = getPlanWorkflow(row.id);
+              const analysisApprovalGateReached = row.status === 'Pending' && workflow.analysisApprovalGateReached;
+              const verificationApprovalGateReached = row.status === 'Verifying'
+                && (
+                  workflow.verificationApprovalPending
+                  || (
+                    row.agenticRun?.phase.name === 'Verification'
+                    && row.agenticRun.phase.approvalGateReached
+                  )
+                );
+              const awaitingApprovalPhase = analysisApprovalGateReached
+                ? 'Analysis'
+                : verificationApprovalGateReached
+                  ? 'Verification'
+                : row.agenticRun?.phase.approvalGateReached
+                  ? row.agenticRun.phase.name
+                  : undefined;
+              return (
+            <StatusLabel
+              status={row.status}
+              terminatedAt={row.terminatedAt}
+              awaitingApprovalPhase={awaitingApprovalPhase}
+              displayStatus={analysisApprovalGateReached ? 'Analyzing' : undefined}
+              displayTextOverride={analysisApprovalGateReached
+                ? 'Analysis phase'
+                : verificationApprovalGateReached
+                  ? 'Verification phase'
+                  : undefined}
+            />
+              );
+            })()}
           </Td>
 
-          <Td dataLabel="Tokens consumed">
-            <PlanTokensConsumedCell row={row} />
-          </Td>
+          {!tokensHidden && (
+            <Td dataLabel="Tokens consumed">
+              <PlanTokensConsumedCell row={row} />
+            </Td>
+          )}
 
           <Td dataLabel="Created">
-            {row.createdAt ? (
-              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }} flexWrap={{ default: 'nowrap' }}>
-                <FlexItem>
-                  <OutlinedClockIcon
-                    style={{ color: 'var(--pf-t--global--icon--color--subtle)', verticalAlign: 'middle' }}
-                    aria-hidden
-                  />
-                </FlexItem>
-                <FlexItem>
-                  <time dateTime={row.createdAt}>{formatPlanCreatedAt(row.createdAt)}</time>
-                </FlexItem>
-              </Flex>
-            ) : (
-              '—'
-            )}
+            <PlanTimestampCell value={row.createdAt} />
           </Td>
+
+          {!deletionTimeHidden && (
+            <Td dataLabel="Deletion time">
+              <PlanTimestampCell value={row.deletionTime} />
+            </Td>
+          )}
+
           <Td dataLabel="Actions" modifier="fitContent" style={{ textAlign: 'right' }}>
             <PlanRowActionsMenu
               planId={row.id}
@@ -2688,6 +3978,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
     </Tbody>
   </Table>
 );
+};
 
 // ─── Plans table (pagination + filters + expand state) ───────────────────────
 
@@ -2708,7 +3999,18 @@ const PlansTable: React.FC<PlansTableProps> = ({
   isSingleCluster,
   isAgenticAutomationEnabled,
 }) => {
-  const plansFilter = usePlansFilterState({ includeTriggerDomainFilter: true, mapObservabilityDomains: true });
+  const { isMultiClusterMode } = useMulticlusterDevMode();
+  const showTargetClusterColumn = isMultiClusterMode;
+  const clusterFilterOptions = useMemo(
+    () => [...new Set(rows.map((row) => row.clusterName ?? row.targetCluster ?? assignAgenticRunTargetCluster(row.id)))].sort(),
+    [rows],
+  );
+  const plansFilter = usePlansFilterState({
+    includeTriggerDomainFilter: true,
+    includeClusterFilter: isMultiClusterMode,
+    mapObservabilityDomains: true,
+  });
+  const colVis = usePlansColumnVisibility('ols-agentic-plans-col-visibility');
 
   // ── Delete confirmation modal state ──────────────────────────────────────
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
@@ -2734,19 +4036,67 @@ const PlansTable: React.FC<PlansTableProps> = ({
     [rows, plansFilter.filterRows],
   );
 
+  const [activeSortIndex, setActiveSortIndex] = useState<number | undefined>(undefined);
+  const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | undefined>(undefined);
+
+  const onSort = useCallback((index: number, direction: 'asc' | 'desc') => {
+    setActiveSortIndex(index);
+    setActiveSortDirection(direction);
+  }, []);
+
+  const getSortValue = useCallback((row: PlanRow, colIndex: number): string => {
+    if (colIndex === 0) return (row.name ?? row.id).toLowerCase();
+    if (showTargetClusterColumn && colIndex === 1) {
+      return (row.clusterName ?? row.targetCluster ?? '').toLowerCase();
+    }
+    if (colIndex === (showTargetClusterColumn ? 2 : 1)) return (row.scope ?? '').toLowerCase();
+
+    // Walk visible columns in order after Name / optional Cluster / Scope.
+    let idx = showTargetClusterColumn ? 3 : 2;
+    const triggerHidden = colVis.hiddenColumns.has('triggerDomain');
+    const tokensHidden = colVis.hiddenColumns.has('tokensConsumed');
+    const deletionTimeHidden = colVis.hiddenColumns.has('deletionTime');
+
+    if (!triggerHidden) {
+      if (colIndex === idx) return resolveDisplayDomain(row.triggerDomain ?? '').toLowerCase();
+      idx++;
+    }
+    if (colIndex === idx) return (row.status ?? '').toLowerCase();
+    idx++;
+    if (!tokensHidden) idx++; // tokens consumed — not sortable, just advance the counter
+    if (colIndex === idx) return row.createdAt ?? '';
+    idx++;
+    if (!deletionTimeHidden) {
+      if (colIndex === idx) return row.deletionTime ?? '';
+    }
+
+    return '';
+  }, [colVis.hiddenColumns, showTargetClusterColumn]);
+
+  const sortedRows = useMemo(() => {
+    if (activeSortIndex === undefined || activeSortDirection === undefined) return filteredRows;
+    return [...filteredRows].sort((a, b) => {
+      const aVal = getSortValue(a, activeSortIndex);
+      const bVal = getSortValue(b, activeSortIndex);
+      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return activeSortDirection === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredRows, activeSortIndex, activeSortDirection, getSortValue]);
+
   useEffect(() => {
     setPage(1);
   }, [
     filteredRows.length,
     plansFilter.searchInputValue,
-    plansFilter.searchCategory,
     plansFilter.statusFilters,
     plansFilter.triggerDomainFilters,
+    activeSortIndex,
+    activeSortDirection,
   ]);
 
-  const totalItems = filteredRows.length;
+  const totalItems = sortedRows.length;
   const start = (page - 1) * perPage;
-  const paginatedRows = filteredRows.slice(start, start + perPage);
+  const paginatedRows = sortedRows.slice(start, start + perPage);
 
   const onSetPage = useCallback(
     (_evt: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
@@ -2791,8 +4141,17 @@ const PlansTable: React.FC<PlansTableProps> = ({
         filterAriaLabel="Filter plans"
         statusOptions={AGENTIC_STATUS_FILTER_OPTIONS}
         includeTriggerDomainFilter
+        includeClusterFilter={isMultiClusterMode}
+        clusterFilterOptions={clusterFilterOptions}
         rows={rows}
         pagination={<Pagination isCompact {...paginationProps} style={{ margin: 0 }} />}
+        columnManagementControl={
+          <Tooltip content="Manage columns">
+            <Button variant="plain" aria-label="Manage columns" onClick={colVis.openModal}>
+              <ColumnsIcon />
+            </Button>
+          </Tooltip>
+        }
         {...plansFilter}
       />
 
@@ -2822,10 +4181,15 @@ const PlansTable: React.FC<PlansTableProps> = ({
             rows={paginatedRows}
             ariaLabel="Plans"
             scopeColumnLabel={isSingleCluster ? 'Namespace' : 'Cluster'}
+            showTargetClusterColumn={isMultiClusterMode}
             onReviewPlan={onReviewPlan}
             onDeletePlan={requestDelete}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
             mapObservabilityDomains
+            activeSortIndex={activeSortIndex}
+            activeSortDirection={activeSortDirection}
+            onSort={onSort}
+            hiddenColumns={colVis.hiddenColumns}
           />
           <Pagination
             {...paginationProps}
@@ -2841,6 +4205,14 @@ const PlansTable: React.FC<PlansTableProps> = ({
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
       />
+
+      <PlansColumnManagementModal
+        isOpen={colVis.isModalOpen}
+        onClose={colVis.closeModal}
+        onSave={colVis.saveColumns}
+        draftHidden={colVis.draftHidden}
+        onToggle={colVis.toggleDraftColumn}
+      />
     </>
   );
 };
@@ -2852,6 +4224,640 @@ const PlansTable: React.FC<PlansTableProps> = ({
  * Shared by `RemediationOptionCard` and the option-less terminal fallback
  * (autonomous runs with no modeled remediation options — see `TerminalEvidenceCard`).
  */
+/** Generates deterministic simulated escalation log lines for the escalation logs panel. */
+function generateEscalationLogs(planId: string): string {
+  const h = planId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const ts = (offset: number) => {
+    const rawSec = (h % 60) + 5 + offset;
+    const m = String(14 + (h % 20) + Math.floor(rawSec / 60)).padStart(2, '0');
+    const s = String(rawSec % 60).padStart(2, '0');
+    return `2026-07-02T09:${m}:${s}.000000000Z`;
+  };
+  return [
+    `${ts(0)}  INFO [escalation]  Starting escalation pipeline — plan_id=${planId}`,
+    `${ts(1)}  INFO [escalation]  Max retries exhausted (attempts=3) — triggering escalation path`,
+    `${ts(2)}  INFO [escalation]  Loading escalation_request.tmpl...`,
+    `${ts(3)}  ERROR[escalation]  Template rendering failed: escalation_request.tmpl:9 type mismatch on StepResultRef`,
+    `${ts(4)}  WARN [escalation]  Cannot generate escalation payload — template execution aborted`,
+    `${ts(5)}  INFO [escalation]  Escalation policy=manual — handoff paused, awaiting SRE confirmation`,
+    `${ts(6)}  INFO [escalation]  Escalation request queued — status=AwaitingAction, plan_id=${planId}`,
+  ].join('\n');
+}
+
+const EVIDENCE_HEALTH_CHECK_PATTERN = /\b(healthz|readyz|livez|liveness|readiness|health.check|probe)\b/i;
+
+// ─── Shared log-expandable used in Execution & Verification summary cards ────
+
+const LogExpandable: React.FC<{
+  idPrefix: string;
+  toggleText: string;
+  logText: string;
+}> = ({ idPrefix, toggleText, logText }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [query, setQuery] = useState('');
+  const [hideHealthChecks, setHideHealthChecks] = useState(true);
+
+  const lines = useMemo(
+    () =>
+      logText
+        .split('\n')
+        .filter(Boolean)
+        .filter((l) => !hideHealthChecks || !EVIDENCE_HEALTH_CHECK_PATTERN.test(l))
+        .filter((l) => !query.trim() || l.toLowerCase().includes(query.toLowerCase())),
+    [logText, query, hideHealthChecks],
+  );
+
+  return (
+    <ExpandableSection
+      toggleText={isExpanded ? `Hide ${toggleText.toLowerCase()}` : toggleText}
+      isExpanded={isExpanded}
+      onToggle={(_e, expanded) => {
+        setIsExpanded(expanded);
+        if (!expanded) setQuery('');
+      }}
+    >
+      <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapMd' }}
+          style={{ marginBottom: 'calc(var(--pf-t--global--spacer--xs) + 4px)' }}
+        >
+          <FlexItem style={{ width: '200px', maxWidth: '200px', flexShrink: 0 }}>
+            <SearchInput
+              value={query}
+              onChange={(_evt, val) => setQuery(val)}
+              onClear={() => setQuery('')}
+              placeholder="Search logs..."
+            />
+          </FlexItem>
+          <FlexItem>
+            <Checkbox
+              id={`${idPrefix}-hc`}
+              label="Hide health checks"
+              isChecked={hideHealthChecks}
+              onChange={(_evt, checked) => setHideHealthChecks(checked)}
+            />
+          </FlexItem>
+        </Flex>
+        <LogViewer
+          data={lines}
+          hasLineNumbers
+          isTextWrapped
+          height="280px"
+          scrollToRow={isExpanded && lines.length > 0 ? lines.length - 1 : undefined}
+        />
+      </div>
+    </ExpandableSection>
+  );
+};
+
+// ─── Execution Summary Card ───────────────────────────────────────────────────
+
+const ACTION_STATUS_COLOR: Record<ExecutionAction['status'], 'green' | 'red' | 'grey'> = {
+  Succeeded: 'green',
+  Failed: 'red',
+  Skipped: 'grey',
+};
+
+const SECTION_OVERLINE_STYLE: React.CSSProperties = {
+  display: 'block',
+  fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
+  marginBottom: 'var(--pf-t--global--spacer--sm)',
+};
+
+const ExecutionSummaryCard: React.FC<{
+  plan: PlanRow;
+  executionLog: string;
+  /**
+   * True while the execution phase is actively running (status === 'Executing').
+   * Forces the loading/spinner state regardless of pre-seeded summary data.
+   */
+  isExecuting?: boolean;
+  /** When true the card renders in its final completed state — no spinners or loading text. */
+  isCompleted?: boolean;
+  selectedOptionTitle?: string;
+  maxAttempts?: number;
+  approval?: import('../../context/PlanWorkflowContext').ExecutionApproval | null;
+}> = ({ plan, executionLog, isExecuting = false, isCompleted = false, selectedOptionTitle, maxAttempts, approval }) => {
+  // Only show pre-seeded summary data when execution is no longer active.
+  const summary = isExecuting ? null : PLAN_EXECUTION_SUMMARY[plan.id];
+
+  // For pre-seeded terminal runs that were never executed in the current session,
+  // fall back to the mock audit baked into PLAN_EXECUTION_SUMMARY.
+  const resolvedOptionTitle  = selectedOptionTitle  ?? summary?.mockAudit?.selectedOptionTitle;
+  const resolvedMaxAttempts  = maxAttempts          ?? summary?.mockAudit?.maxAttempts;
+  const resolvedApprovedBy   = approval?.approvedBy ?? summary?.mockAudit?.approvedBy;
+  const resolvedApprovedAt   = approval?.approvedAt ?? summary?.mockAudit?.approvedAt;
+
+  return (
+    <>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+      >
+        <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>Execution summary</Title>
+      </Flex>
+      <Card style={{ borderRadius: '16px' }}>
+      <CardBody>
+        {/* ── Audit record (OLS-3694) ── */}
+        {(resolvedOptionTitle || resolvedMaxAttempts !== undefined || resolvedApprovedBy) && (
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+            <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '15ch' }}>
+              {resolvedOptionTitle && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Selected plan</DescriptionListTerm>
+                  <DescriptionListDescription>{resolvedOptionTitle}</DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+              {resolvedMaxAttempts !== undefined && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Max attempts</DescriptionListTerm>
+                  <DescriptionListDescription>{resolvedMaxAttempts}</DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+              {resolvedApprovedBy && (
+                <DescriptionListGroup>
+                  <DescriptionListTerm>Executed by</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    {resolvedApprovedBy}{resolvedApprovedAt ? `, ${resolvedApprovedAt}` : ''}
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+              )}
+            </DescriptionList>
+            <Divider style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }} />
+          </div>
+        )}
+
+        {/* ── Contextual evidence ── */}
+        <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+          <Content component="small" style={SECTION_OVERLINE_STYLE}>Contextual evidence</Content>
+          {summary ? (
+            <DescriptionList>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Targeted root cause</DescriptionListTerm>
+                <DescriptionListDescription>{summary.targetedRootCause}</DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Remediation delta</DescriptionListTerm>
+                <DescriptionListDescription>{summary.remediationDelta}</DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
+          ) : isCompleted ? (
+            <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              Execution completed — logs available below.
+            </Content>
+          ) : (
+            <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              Execution context is being assembled…
+            </Content>
+          )}
+        </div>
+
+        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+
+        {/* ── Actions taken ── */}
+        <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+          <Content component="small" style={SECTION_OVERLINE_STYLE}>Actions taken</Content>
+          {summary ? (
+            <Stack hasGutter>
+              {summary.actionsTaken.map((action, i) => (
+                <StackItem key={i}>
+                  <Flex
+                    alignItems={{ default: 'alignItemsCenter' }}
+                    gap={{ default: 'gapSm' }}
+                    style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                  >
+                    <FlexItem><Label isCompact color="grey">{action.category}</Label></FlexItem>
+                    <FlexItem>
+                      <Label isCompact color={ACTION_STATUS_COLOR[action.status]}>{action.status}</Label>
+                    </FlexItem>
+                    <FlexItem>
+                      <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                        {action.description}
+                      </Content>
+                    </FlexItem>
+                  </Flex>
+                  <ExpandableCodeBlock
+                    id={`exec-action-${plan.id}-${i}`}
+                    code={action.command}
+                    codeStyle={{ fontSize: '12px' }}
+                  />
+                  {action.output && (
+                    <Content
+                      component="small"
+                      style={{
+                        display: 'block',
+                        marginTop: 'var(--pf-t--global--spacer--xs)',
+                        fontFamily: 'var(--pf-t--global--font--family--mono)',
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                        fontSize: '11px',
+                      }}
+                    >
+                      {action.output}
+                    </Content>
+                  )}
+                </StackItem>
+              ))}
+            </Stack>
+          ) : isCompleted ? (
+            <Content component="p" style={{ fontSize: '0.875rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              All actions completed — no structured action data available for this run.
+            </Content>
+          ) : (
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+              <FlexItem><Spinner size="sm" aria-label="Executing" /></FlexItem>
+              <FlexItem>
+                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
+                  Executing actions…
+                </Content>
+              </FlexItem>
+            </Flex>
+          )}
+        </div>
+
+        {/* ── Log footer ── */}
+        {executionLog && (
+          <>
+            <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+            <LogExpandable
+              idPrefix={`exec-log-${plan.id}`}
+              toggleText="View execution logs"
+              logText={executionLog}
+            />
+          </>
+        )}
+      </CardBody>
+    </Card>
+    </>
+  );
+};
+
+// ─── Verification Summary Card ────────────────────────────────────────────────
+
+const CHECK_STATUS_COLOR: Record<VerificationCheck['status'], 'green' | 'red'> = {
+  Passed: 'green',
+  Failed: 'red',
+};
+
+const VerificationSummaryCard: React.FC<{
+  plan: PlanRow;
+  verificationLog: string;
+  verification?: import('../../context/PlanWorkflowContext').VerificationState | null;
+  /**
+   * True while status === 'Verifying'. Forces the in-progress render path
+   * regardless of any pre-seeded summary data, so the UI shows a realistic
+   * simulation before auto-completing to the finished state.
+   */
+  isVerifyingActive?: boolean;
+  isLive?: boolean;
+  onVerificationComplete?: () => void;
+  onVerificationRetry?: () => void;
+}> = ({ plan, verificationLog, verification, isVerifyingActive = false, isLive = false, onVerificationComplete, onVerificationRetry }) => {
+  const summary = isVerifyingActive ? null : PLAN_VERIFICATION_SUMMARY[plan.id];
+  const isInProgress = isVerifyingActive;
+
+  // Stream health check lines while live verification is running.
+  const checkLines = (verification?.checks?.length ?? 0) > 0
+    ? (verification!.checks)
+    : VERIFICATION_CHECK_LINES;
+
+  const [visibleCount, setVisibleCount] = useState(isLive ? 0 : checkLines.length);
+  const attempt = verification?.attempt ?? 1;
+  const maxAttempts = verification?.maxAttempts ?? 3;
+  const isRetryPending =
+    isInProgress
+    && verification?.outcome === 'failed'
+    && !verification.requiresNewApproval
+    && attempt < maxAttempts;
+
+  // Stream check lines one-by-one while verifying.
+  useEffect(() => {
+    if (!isInProgress || !isLive) {
+      setVisibleCount(checkLines.length);
+      return undefined;
+    }
+    setVisibleCount(0);
+    let count = 0;
+    const interval = window.setInterval(() => {
+      count += 1;
+      setVisibleCount(count);
+      if (count >= checkLines.length) window.clearInterval(interval);
+    }, 700);
+    return () => window.clearInterval(interval);
+  }, [checkLines, isInProgress, isLive, verification?.attempt]);
+
+  // Complete verification after health-check stream finishes. Manual policy gates
+  // before this component mounts; once approved, verification runs automatically.
+  // This replaces the timer that previously lived in VerificationPanel.
+  useEffect(() => {
+    if (isRetryPending) {
+      if (!isLive || !onVerificationRetry) return undefined;
+      const retryTimer = window.setTimeout(onVerificationRetry, 1200);
+      return () => window.clearTimeout(retryTimer);
+    }
+    if (!isInProgress || !isLive || !onVerificationComplete || verification?.outcome === 'failed') {
+      return undefined;
+    }
+    const streamDurationMs = checkLines.length * 700 + 1200;
+    const timer = window.setTimeout(onVerificationComplete, streamDurationMs);
+    return () => window.clearTimeout(timer);
+  }, [
+    checkLines.length,
+    isInProgress,
+    isLive,
+    isRetryPending,
+    onVerificationComplete,
+    onVerificationRetry,
+    verification?.outcome,
+  ]);
+
+  const visibleLines = checkLines.slice(0, visibleCount);
+
+  // ── In-progress layout (status = Verifying, no completed summary yet) ──────
+  if (isInProgress) {
+    return (
+      <>
+        <Flex
+          alignItems={{ default: 'alignItemsCenter' }}
+          gap={{ default: 'gapSm' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+        >
+          <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>Verification summary</Title>
+          <Spinner size="sm" aria-label="Verifying health checks" />
+        </Flex>
+        <Card style={{ borderRadius: '16px' }}>
+          <CardBody>
+            {/* Attempt counter */}
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              gap={{ default: 'gapSm' }}
+              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+            >
+              <FlexItem>
+                <Label color="blue" isCompact>
+                  Attempt {attempt} of {maxAttempts}
+                </Label>
+              </FlexItem>
+            </Flex>
+
+            {/* Live health check probe stream */}
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>Health check probes</Content>
+              <div
+                style={{
+                  fontFamily: 'var(--pf-t--global--font--family--mono)',
+                  fontSize: '0.8125rem',
+                  lineHeight: 1.7,
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                  background: 'var(--pf-t--global--background--color--secondary--default)',
+                  borderRadius: '8px',
+                  padding: 'var(--pf-t--global--spacer--md)',
+                  minHeight: '80px',
+                }}
+              >
+                {visibleLines.map((line, i) => (
+                  <div key={i}>{line}</div>
+                ))}
+                {visibleLines.length === 0 && (
+                  <span style={{ opacity: 0.5 }}>Initializing health check probes…</span>
+                )}
+              </div>
+            </div>
+
+            {/* Outcome placeholder */}
+            <Content
+              component="small"
+              style={{
+                display: 'block',
+                color: isRetryPending
+                  ? 'var(--pf-t--global--text--color--default)'
+                  : 'var(--pf-t--global--text--color--subtle)',
+                fontStyle: isRetryPending ? 'normal' : 'italic',
+                marginBottom: verificationLog ? 'var(--pf-t--global--spacer--lg)' : 0,
+              }}
+            >
+              {isRetryPending
+                ? `Verification failed. Initiating retry ${attempt + 1} of ${maxAttempts}...`
+                : 'Outcome assessment will be generated upon completion of health checks.'}
+            </Content>
+
+            {/* Log footer */}
+            {verificationLog && (
+              <>
+                <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+                <LogExpandable
+                  idPrefix={`verif-log-${plan.id}`}
+                  toggleText="View verification logs"
+                  logText={verificationLog}
+                />
+              </>
+            )}
+
+          </CardBody>
+        </Card>
+      </>
+    );
+  }
+
+  // Some mock runs have no detailed verification fixture. A terminal run must
+  // still show a finished result, rather than an in-progress spinner.
+  if (!summary) {
+    const hasFailed = verification?.outcome === 'failed' || plan.status === 'Failed';
+    return (
+      <>
+        <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+          Verification summary
+        </Title>
+        <Card>
+          <CardBody>
+            <Alert variant={hasFailed ? 'danger' : 'success'} isInline title={hasFailed ? 'Verification failed' : 'Verification completed'}>
+              Detailed health check results are unavailable for this run.
+            </Alert>
+            {verificationLog && (
+              <div style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+                <LogExpandable
+                  idPrefix={`verif-log-${plan.id}`}
+                  toggleText="View verification logs"
+                  logText={verificationLog}
+                />
+              </div>
+            )}
+          </CardBody>
+        </Card>
+      </>
+    );
+  }
+
+  // ── Completed layout (summary data available) ─────────────────────────────
+  return (
+    <>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+      >
+        <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>Verification summary</Title>
+        <Label color="grey" isCompact>AI-generated</Label>
+      </Flex>
+      <Card style={{ borderRadius: '16px' }}>
+      <CardBody>
+        {/* ── Outcome assessment ── */}
+        <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+          <Content component="small" style={SECTION_OVERLINE_STYLE}>Outcome assessment</Content>
+          <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6 }}>
+            {summary.outcomeAssessment.map((line, i) => (
+              <li key={i}>
+                <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>{line}</Content>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+
+        {/* ── Verification checks ── */}
+        <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+          <Content component="small" style={SECTION_OVERLINE_STYLE}>Verification checks</Content>
+          <Stack hasGutter>
+            {summary.checks.map((check, i) => (
+              <StackItem key={i}>
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapSm' }}
+                  style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                >
+                  <FlexItem>
+                    <Content
+                      component="small"
+                      style={{ fontWeight: 600, fontFamily: 'var(--pf-t--global--font--family--mono)' }}
+                    >
+                      {check.id}
+                    </Content>
+                  </FlexItem>
+                  <FlexItem>
+                    <Label isCompact color={CHECK_STATUS_COLOR[check.status]}>{check.status}</Label>
+                  </FlexItem>
+                </Flex>
+                <ExpandableCodeBlock
+                  id={`verif-check-${plan.id}-${i}`}
+                  code={check.command}
+                  codeStyle={{ fontSize: '12px' }}
+                />
+                {check.output && (
+                  <Content
+                    component="small"
+                    style={{
+                      display: 'block',
+                      marginTop: 'var(--pf-t--global--spacer--xs)',
+                      fontFamily: 'var(--pf-t--global--font--family--mono)',
+                      color: 'var(--pf-t--global--text--color--subtle)',
+                      fontSize: '11px',
+                    }}
+                  >
+                    {check.output}
+                  </Content>
+                )}
+              </StackItem>
+            ))}
+          </Stack>
+        </div>
+
+        {/* ── Log footer ── */}
+        {verificationLog && (
+          <>
+            <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+            <LogExpandable
+              idPrefix={`verif-log-${plan.id}`}
+              toggleText="View verification logs"
+              logText={verificationLog}
+            />
+          </>
+        )}
+      </CardBody>
+    </Card>
+    </>
+  );
+};
+
+// ─── Escalation Summary Card ──────────────────────────────────────────────────
+
+const EscalationSummaryCard: React.FC<{
+  plan: PlanRow;
+  escalationLog: string;
+  escalationPolicy: 'manual' | 'auto';
+}> = ({ plan, escalationLog, escalationPolicy }) => {
+  const summary = PLAN_ESCALATION_SUMMARY[plan.id];
+  const isAutoPolicy = escalationPolicy === 'auto';
+  const hasDispatched = isAutoPolicy && summary?.dispatchedTargets && summary.dispatchedTargets.length > 0;
+
+  return (
+    <>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+      >
+        <RhUiWarningFillIcon
+          style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)' }}
+          aria-hidden
+        />
+        <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>Escalation summary</Title>
+        <Label color="grey" isCompact>AI-generated</Label>
+        {hasDispatched && <Label color="red" isCompact>Dispatched</Label>}
+      </Flex>
+      <Card style={{ borderRadius: '16px' }}>
+        <CardBody>
+          {/* ── Dispatched targets (auto policy only) ── */}
+          {hasDispatched && summary.dispatchedTargets!.length > 0 && (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>Dispatched to</Content>
+              <ul style={{ margin: 0, paddingLeft: 'var(--pf-t--global--spacer--lg)', lineHeight: 1.6 }}>
+                {summary.dispatchedTargets!.map((target, i) => (
+                  <li key={i}>
+                    <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>{target}</Content>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* ── Details ── */}
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+            <Content component="small" style={SECTION_OVERLINE_STYLE}>Details</Content>
+            <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>
+              {summary?.details ?? 'Escalation details are being generated…'}
+            </Content>
+          </div>
+
+          <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+
+          {/* ── Failure reason ── */}
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+            <Content component="small" style={SECTION_OVERLINE_STYLE}>Failure reason</Content>
+            <Content component="p" style={{ fontSize: '0.875rem', margin: 0 }}>
+              {summary?.failureReason ?? 'Failure reason is being determined…'}
+            </Content>
+          </div>
+
+          {/* ── Log footer ── */}
+          {escalationLog && (
+            <>
+              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+              <LogExpandable
+                idPrefix={`escal-log-${plan.id}`}
+                toggleText="View escalation logs"
+                logText={escalationLog}
+              />
+            </>
+          )}
+
+        </CardBody>
+      </Card>
+    </>
+  );
+};
+
 const EvidenceLogsSection: React.FC<{
   idPrefix: string;
   executionLogText: string;
@@ -2859,6 +4865,59 @@ const EvidenceLogsSection: React.FC<{
 }> = ({ idPrefix, executionLogText, verificationLogText }) => {
   const [isExecLogsExpanded, setIsExecLogsExpanded] = useState(false);
   const [isVerifLogsExpanded, setIsVerifLogsExpanded] = useState(false);
+  const [execQuery, setExecQuery] = useState('');
+  const [execHideHealthChecks, setExecHideHealthChecks] = useState(true);
+  const [verifQuery, setVerifQuery] = useState('');
+  const [verifHideHealthChecks, setVerifHideHealthChecks] = useState(true);
+
+  const execLines = useMemo(
+    () => executionLogText
+      .split('\n')
+      .filter(Boolean)
+      .filter((l) => !execHideHealthChecks || !EVIDENCE_HEALTH_CHECK_PATTERN.test(l))
+      .filter((l) => !execQuery.trim() || l.toLowerCase().includes(execQuery.toLowerCase())),
+    [executionLogText, execQuery, execHideHealthChecks],
+  );
+
+  const verifLines = useMemo(
+    () => verificationLogText
+      .split('\n')
+      .filter(Boolean)
+      .filter((l) => !verifHideHealthChecks || !EVIDENCE_HEALTH_CHECK_PATTERN.test(l))
+      .filter((l) => !verifQuery.trim() || l.toLowerCase().includes(verifQuery.toLowerCase())),
+    [verificationLogText, verifQuery, verifHideHealthChecks],
+  );
+
+  const logToolbar = (
+    query: string,
+    setQuery: (v: string) => void,
+    hideHealthChecks: boolean,
+    setHideHealthChecks: (v: boolean) => void,
+    sectionId: string,
+  ) => (
+    <Flex
+      alignItems={{ default: 'alignItemsCenter' }}
+      gap={{ default: 'gapMd' }}
+      style={{ marginBottom: 'calc(var(--pf-t--global--spacer--xs) + 4px)' }}
+    >
+      <FlexItem style={{ width: '200px', maxWidth: '200px', flexShrink: 0 }}>
+        <SearchInput
+          value={query}
+          onChange={(_evt, val) => setQuery(val)}
+          onClear={() => setQuery('')}
+          placeholder="Search logs..."
+        />
+      </FlexItem>
+      <FlexItem>
+        <Checkbox
+          id={`${idPrefix}-${sectionId}-hc`}
+          label="Hide health checks"
+          isChecked={hideHealthChecks}
+          onChange={(_evt, checked) => setHideHealthChecks(checked)}
+        />
+      </FlexItem>
+    </Flex>
+  );
 
   return (
     <Stack hasGutter style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
@@ -2866,14 +4925,19 @@ const EvidenceLogsSection: React.FC<{
         <ExpandableSection
           toggleText={isExecLogsExpanded ? 'Hide execution logs' : 'View execution logs'}
           isExpanded={isExecLogsExpanded}
-          onToggle={(_e, expanded) => setIsExecLogsExpanded(expanded)}
+          onToggle={(_e, expanded) => {
+            setIsExecLogsExpanded(expanded);
+            if (!expanded) setExecQuery('');
+          }}
           style={{ marginBottom: 0 }}
         >
           <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-            <ExpandableCodeBlock
-              id={`exec-log-${idPrefix}`}
-              code={executionLogText}
-              codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+            {logToolbar(execQuery, setExecQuery, execHideHealthChecks, setExecHideHealthChecks, 'exec')}
+            <LogViewer
+              data={execLines}
+              hasLineNumbers
+              isTextWrapped
+              height="280px"
             />
           </div>
         </ExpandableSection>
@@ -2882,14 +4946,19 @@ const EvidenceLogsSection: React.FC<{
         <ExpandableSection
           toggleText={isVerifLogsExpanded ? 'Hide verification logs' : 'View verification logs'}
           isExpanded={isVerifLogsExpanded}
-          onToggle={(_e, expanded) => setIsVerifLogsExpanded(expanded)}
+          onToggle={(_e, expanded) => {
+            setIsVerifLogsExpanded(expanded);
+            if (!expanded) setVerifQuery('');
+          }}
           style={{ marginBottom: 0 }}
         >
           <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
-            <ExpandableCodeBlock
-              id={`verif-log-${idPrefix}`}
-              code={verificationLogText}
-              codeStyle={{ fontSize: '12px', maxHeight: '280px', overflowY: 'auto', display: 'block' }}
+            {logToolbar(verifQuery, setVerifQuery, verifHideHealthChecks, setVerifHideHealthChecks, 'verif')}
+            <LogViewer
+              data={verifLines}
+              hasLineNumbers
+              isTextWrapped
+              height="280px"
             />
           </div>
         </ExpandableSection>
@@ -2906,15 +4975,11 @@ const EvidenceLogsSection: React.FC<{
  */
 const TerminalEvidenceCard: React.FC<{
   plan: PlanRow;
-  verification?: import('../../context/PlanWorkflowContext').VerificationState | null;
-}> = ({ plan, verification }) => {
+}> = ({ plan }) => {
   const { status } = plan;
   const isCompleted = status === 'Completed';
   const isFailed = status === 'Failed';
   const postMortem = useMemo(() => PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan), [plan]);
-  const verificationLogText = verification
-    ? verification.checks.join('\n')
-    : generateVerificationLogs(plan.id);
   const actionSummary = postMortem.type === 'success'
     ? postMortem.remediationActionDelta
     : postMortem.failureReason;
@@ -2922,9 +4987,9 @@ const TerminalEvidenceCard: React.FC<{
   // Execution status now lives in the top-right corner of the card header
   // (rather than inline in the title row) — mirrors RemediationOptionCard.
   const executionStatusLabel = isCompleted ? (
-    <Label color="green" icon={<CheckCircleIcon />}>Execution successful</Label>
+    <Label color="green" icon={<RhUiCheckCircleFillIcon />}>Execution successful</Label>
   ) : isFailed ? (
-    <Label color="red" icon={<ExclamationCircleIcon />}>Execution failed</Label>
+    <Label color="red" icon={<RhUiErrorFillIcon />}>Execution failed</Label>
   ) : null;
 
   const headerContent = (
@@ -2940,20 +5005,18 @@ const TerminalEvidenceCard: React.FC<{
           alignItems={{ default: 'alignItemsFlexStart' }}
           gap={{ default: 'gapXs' }}
         >
-          <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
+          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
             Remediation
-          </span>
-          <span
+          </Content>
+          <Content
+            component="p"
             style={{
-              fontWeight: 600,
-              fontSize: '14px',
+              fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
               lineHeight: 1.4,
-              whiteSpace: 'normal',
-              wordBreak: 'break-word',
             }}
           >
             {plan.synopsis}
-          </span>
+          </Content>
         </Flex>
       </FlexItem>
       {executionStatusLabel && <FlexItem>{executionStatusLabel}</FlexItem>}
@@ -2968,18 +5031,170 @@ const TerminalEvidenceCard: React.FC<{
           <Content
             component="p"
             className="ols-aio-text-subtle-sm"
-            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
           >
             {actionSummary}
           </Content>
         )}
-        <EvidenceLogsSection
-          idPrefix={plan.id}
-          executionLogText={postMortem.rawLog ?? ''}
-          verificationLogText={verificationLogText}
-        />
       </CardBody>
     </Card>
+  );
+};
+
+// ─── RBAC Permissions Section ────────────────────────────────────────────────
+
+/** Write verbs used to orange-tint individual verb Labels in the RBAC permissions table. */
+const WRITE_VERBS = new Set([
+  'create', 'update', 'patch', 'delete', 'exec',
+  'deletecollection', 'bind', 'escalate', 'impersonate',
+]);
+
+const RbacPermissionsSection: React.FC<{ rbac: RbacSpec; optionId: string }> = ({ rbac, optionId }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const nsRules   = rbac.rules.filter((r) => r.namespace !== 'cluster-wide');
+  const clusRules = rbac.rules.filter((r) => r.namespace === 'cluster-wide');
+
+  return (
+    <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+      <Content component="small" style={SECTION_OVERLINE_STYLE}>Required permissions</Content>
+
+      {/* Security guardrail alert */}
+      <Alert
+        variant="warning"
+        isInline
+        isPlain
+        title="Permissions are fixed upon approval. The agent cannot exceed these scoped privileges."
+        style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+      />
+
+      {/* Scope count badges */}
+      <Flex gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+        {nsRules.length > 0 && (
+          <FlexItem>
+            <Label color="blue" isCompact>
+              {nsRules.length} namespace permission{nsRules.length !== 1 ? 's' : ''}
+            </Label>
+          </FlexItem>
+        )}
+        {clusRules.length > 0 && (
+          <FlexItem>
+            <Label color="purple" isCompact>
+              {clusRules.length} cluster-wide permission{clusRules.length !== 1 ? 's' : ''}
+            </Label>
+          </FlexItem>
+        )}
+      </Flex>
+
+      {/* Write operations summary */}
+      <Content
+        component="small"
+        style={{
+          display: 'block',
+          color: 'var(--pf-t--global--text--color--subtle)',
+          fontStyle: 'italic',
+          marginBottom: 'var(--pf-t--global--spacer--sm)',
+        }}
+      >
+        {rbac.summary}
+      </Content>
+
+      {/* Expandable flat permission table: Namespace | Resource | Verbs | Purpose */}
+      <ExpandableSection
+        toggleText={isExpanded ? 'Hide permission details' : 'View permission details'}
+        isExpanded={isExpanded}
+        onToggle={(_e, expanded) => setIsExpanded(expanded)}
+      >
+        <Table
+          variant="compact"
+          aria-label={`Required permissions for ${optionId}`}
+          borders
+          style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          <Thead>
+            <Tr>
+              <Th>Namespace</Th>
+              <Th>Resource</Th>
+              <Th>Verbs</Th>
+              <Th>Purpose</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {rbac.rules.map((rule, i) => (
+              <Tr key={i}>
+                {/* Namespace column */}
+                <Td data-label="Namespace">
+                  {rule.namespace === 'cluster-wide' ? (
+                    <Label color="purple" isCompact>Cluster-wide</Label>
+                  ) : (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <span
+                        style={{
+                          backgroundColor: '#1E4F18',
+                          color: '#FFFFFF',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          lineHeight: 1,
+                          display: 'inline-block',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}
+                      >
+                        NS
+                      </span>
+                      <a
+                        href={`/k8s/cluster/namespaces/${rule.namespace}`}
+                        style={{
+                          color: 'var(--pf-t--global--color--brand--default)',
+                          textDecoration: 'none',
+                          borderBottom: '1px dashed var(--pf-t--global--border--color--default)',
+                          fontFamily: 'monospace',
+                          fontSize: '0.8125rem',
+                        }}
+                      >
+                        {rule.namespace}
+                      </a>
+                    </div>
+                  )}
+                </Td>
+
+                {/* Resource column — badge only for specific named instances */}
+                <Td data-label="Resource">
+                  {rule.instanceName ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <ResourceIcon resource={rule.kind ?? rule.resource} />
+                      <code style={{ fontSize: '0.8125rem' }}>{rule.instanceName}</code>
+                    </div>
+                  ) : (
+                    <code style={{ fontSize: '0.8125rem' }}>{rule.resource}</code>
+                  )}
+                </Td>
+
+                {/* Verbs column — individual Label per verb; orange for write, grey for read */}
+                <Td data-label="Verbs">
+                  <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
+                    {rule.verbs.split(',').map((verb) => {
+                      const v = verb.trim();
+                      return (
+                        <FlexItem key={v}>
+                          <Label color={rule.isWrite && WRITE_VERBS.has(v) ? 'orange' : 'grey'} isCompact>
+                            {v}
+                          </Label>
+                        </FlexItem>
+                      );
+                    })}
+                  </Flex>
+                </Td>
+
+                {/* Purpose column */}
+                <Td data-label="Purpose">{rule.purpose}</Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </ExpandableSection>
+    </div>
   );
 };
 
@@ -2995,7 +5210,6 @@ const RemediationOptionCard: React.FC<{
   isOptionLocked: boolean;
   showExecutionLog: boolean;
   rootCause?: { aggregatedFinding: string; rootCauseNarrative: string };
-  onExecute?: () => void;
   /** Human approval metadata — shown as plain secondary text once execution begins. */
   approval?: import('../../context/PlanWorkflowContext').ExecutionApproval | null;
   /** Live or resolved verification state, used to badge the verification-logs toggle. */
@@ -3012,7 +5226,6 @@ const RemediationOptionCard: React.FC<{
   showExecutionLog,
   isOptionLocked,
   rootCause,
-  onExecute,
   approval,
   verification,
 }) => {
@@ -3028,6 +5241,10 @@ const RemediationOptionCard: React.FC<{
   const isExecuting = status === 'Executing';
   const cardRootRef = React.useRef<HTMLDivElement>(null);
   const wasSelectedRef = React.useRef(isSelected);
+
+  // Independent expand state — completely decoupled from radio selection.
+  // Cards start collapsed; body is always visible in terminal / execution phases.
+  const [isExpanded, setIsExpanded] = useState(false);
   const activeExecutionLogLines = useMemo(
     () => buildActiveExecutionLogLines(plan, option),
     [plan, option],
@@ -3078,7 +5295,8 @@ const RemediationOptionCard: React.FC<{
   if (isExecutionPhase && !isFirst) return null;
 
   const isInteractive = !isExecutionPhase && !isOptionLocked && !isTerminal;
-  const isBodyVisible = isSelected || isTerminal;
+  // Body is always visible in terminal / execution phases; otherwise driven by the independent expand toggle.
+  const isBodyVisible = isExpanded || isTerminal || (isExecutionPhase && isFirst);
   const cardId = `remediation-option-${option.id}`;
 
   // Execution status now lives in the top-right corner of the card header
@@ -3090,103 +5308,114 @@ const RemediationOptionCard: React.FC<{
           Executing
         </Label>
       ) : isCompleted ? (
-        <Label color="green" icon={<CheckCircleIcon />}>Execution successful</Label>
+        <Label color="green" icon={<RhUiCheckCircleFillIcon />}>Execution successful</Label>
       ) : isFailed ? (
-        <Label color="red" icon={<ExclamationCircleIcon />}>Execution failed</Label>
+        <Label color="red" icon={<RhUiErrorFillIcon />}>Execution failed</Label>
       ) : null
     ) : null;
 
-  const headerContent = (
-    <Flex
-      justifyContent={{ default: 'justifyContentSpaceBetween' }}
-      alignItems={{ default: 'alignItemsFlexStart' }}
-      flexWrap={{ default: 'nowrap' }}
-      style={{ width: '100%' }}
-    >
-      <FlexItem>
-        <Flex
-          direction={{ default: 'column' }}
-          alignItems={{ default: 'alignItemsFlexStart' }}
-          gap={{ default: 'gapXs' }}
-          id={`${cardId}-title`}
-        >
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-            <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-              Option {index + 1}
-            </span>
-            <Flex gap={{ default: 'gapXs' }} flexWrap={{ default: 'wrap' }}>
-              {isOptionLocked && isFirst && (
-                <Label color="orange" isCompact>
-                  Approved option
-                </Label>
-              )}
-              <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
-                {formatReversibilityLabel(option.reversible)}
-              </Label>
-            </Flex>
-          </Flex>
-          <span
-            style={{
-              fontWeight: 600,
-              fontSize: '14px',
-              lineHeight: 1.4,
-              whiteSpace: 'normal',
-              wordBreak: 'break-word',
-            }}
-          >
-            {option.title}
-          </span>
-        </Flex>
-      </FlexItem>
-      {executionStatusLabel && <FlexItem>{executionStatusLabel}</FlexItem>}
-    </Flex>
+  // Radio label — inline badges sit next to the "Select plan N" text.
+  const radioLabel = (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--pf-t--global--spacer--sm)', flexWrap: 'wrap' }}>
+      <span style={{ fontSize: 'var(--pf-t--global--font--size--body--sm)', fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'] }}>
+        Select plan {index + 1}
+      </span>
+      {isFirst && isInteractive && (
+        <Label color="blue" isCompact>AI Recommended</Label>
+      )}
+      {isOptionLocked && isFirst && (
+        <Label color="orange" isCompact>Approved plan</Label>
+      )}
+      <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
+        {formatReversibilityLabel(option.reversible)}
+      </Label>
+    </span>
   );
 
   return (
     <div ref={cardRootRef}>
     <Card
       id={cardId}
-      isSelectable={isInteractive}
-      isSelected={isSelected}
-      isExpanded={isBodyVisible}
-      style={{ borderRadius: '16px' }}
+      style={{
+        borderRadius: '16px',
+        boxShadow: isSelected && isInteractive
+          ? `0 0 0 3px var(--pf-t--global--border--color--brand--default)`
+          : undefined,
+      }}
     >
-      <CardHeader
-        selectableActions={
-          isInteractive
-            ? {
-                selectableActionId: `radio-${option.id}`,
-                selectableActionAriaLabelledby: `${cardId}-title`,
-                name: `remedy-${plan.id}`,
-                variant: 'single',
-                onChange: (_event, checked) => {
-                  if (checked) onSelect(option.id);
-                },
-                hasNoOffset: true,
-              }
-            : undefined
-        }
-        onExpand={
-          isInteractive
-            ? (_event, _id) => {
-                onSelect(option.id);
-              }
-            : undefined
-        }
-        toggleButtonProps={
-          isInteractive
-            ? { 'aria-label': isSelected ? `Collapse option ${index + 1}` : `Expand option ${index + 1}` }
-            : undefined
-        }
-      >
-        {headerContent}
-      </CardHeader>
+      {/* ── Always-visible header CardBody: Row 1 (Radio/Badges), Row 2 (Title), Row 3 (Expand link) ── */}
+      <CardBody>
+        {/* Row 1 — Selection zone: Radio + badges + optional execution status label */}
+        <Flex
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+          style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+        >
+          <FlexItem>
+            {isInteractive ? (
+              <Radio
+                id={`select-option-${option.id}`}
+                name={`remedy-${plan.id}`}
+                isChecked={isSelected}
+                onChange={() => onSelect(option.id)}
+                label={radioLabel}
+                aria-label={`Select plan ${index + 1}`}
+              />
+            ) : (
+              /* Terminal / execution phases — show "Plan N" label instead of radio */
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+                <Content component="small" style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'], marginBlock: 0 }}>
+                  Plan {index + 1}
+                </Content>
+                {isOptionLocked && isFirst && (
+                  <Label color="orange" isCompact>Approved plan</Label>
+                )}
+                <Label color={reversibilityLabelColor(option.reversible)} variant="outline" isCompact>
+                  {formatReversibilityLabel(option.reversible)}
+                </Label>
+              </Flex>
+            )}
+          </FlexItem>
+          {executionStatusLabel && <FlexItem>{executionStatusLabel}</FlexItem>}
+        </Flex>
+
+        {/* Row 2 — Title */}
+        <Content
+          component="p"
+          id={`${cardId}-title`}
+          style={{
+            fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
+            lineHeight: 1.4,
+            marginBottom: isInteractive ? 'var(--pf-t--global--spacer--md)' : 0,
+            paddingInlineStart: isInteractive ? '24px' : undefined,
+          }}
+        >
+          {option.title}
+        </Content>
+
+        {/* Row 3 — Expansion toggle (interactive phases only) */}
+        {isInteractive && (
+          <div style={{ paddingInlineStart: '24px' }}>
+            <Button
+              variant="link"
+              isInline
+              icon={isExpanded ? <AngleUpIcon /> : <AngleDownIcon />}
+              iconPosition="end"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              aria-expanded={isExpanded}
+              aria-controls={`${cardId}-body`}
+            >
+              {isExpanded ? 'Hide plan details' : 'View plan details'}
+            </Button>
+          </div>
+        )}
+      </CardBody>
 
       {isBodyVisible && (
-        <CardBody className="ols-remediation-option-card__body">
+        <CardBody id={`${cardId}-body`} className="ols-remediation-option-card__body">
           {/* ── A. Approval metadata (post-approval evidence trail; status now lives top-right in the header) ── */}
           {(isExecuting || isTerminal) && !isExecutionKilled && approval && (
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
               <Content component="small" className="ols-aio-text-subtle-sm" style={{ display: 'block' }}>
                 Execution approved by {approval.approvedBy} · {approval.approvedAt}
               </Content>
@@ -3194,29 +5423,19 @@ const RemediationOptionCard: React.FC<{
           )}
 
           {!isExecuting && !isTerminal && (
-            <Content
-              component="p"
-              className="ols-aio-text-subtle-sm"
-              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-            >
-              {option.description}
-            </Content>
+          <Content
+            component="p"
+            className="ols-aio-text-subtle-sm"
+              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+          >
+            {option.description}
+          </Content>
           )}
 
           {/* ── B. Root cause analysis (per-option; backend: options[].diagnosis) — OLS-3724 ── */}
           {rootCause && (
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              <Content
-                component="small"
-                style={{
-                  display: 'block',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  color: 'var(--pf-t--global--text--color--subtle)',
-                  marginBottom: 'var(--pf-t--global--spacer--xs)',
-                }}
-              >
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>
                 Root cause analysis
               </Content>
               <div
@@ -3245,66 +5464,147 @@ const RemediationOptionCard: React.FC<{
             />
           )}
 
-          {/* ── C. Proposed / executed commands ── */}
-          <div style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-            <Content
-              component="small"
-              style={{
-                display: 'block',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                color: 'var(--pf-t--global--text--color--subtle)',
-                marginBottom: 'var(--pf-t--global--spacer--xs)',
-              }}
-            >
-              {isExecuting || isTerminal ? 'Executed command' : 'Proposed agent command'}
-            </Content>
-            <ExpandableCodeBlock
-              id={`cmd-${option.id}`}
-              code={option.rawCommands}
-              codeStyle={{ fontSize: '12px' }}
-            />
-            {(onExecute || ((isProposed || isDenied || isEmergencyStopped) && rootCause)) && (
-              <Flex
-                gap={{ default: 'gapSm' }}
-                flexWrap={{ default: 'wrap' }}
-                style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
+          {/* ── C. Required permissions (RBAC) ── */}
+          {option.rbac ? (
+            <RbacPermissionsSection rbac={option.rbac} optionId={option.id} />
+          ) : (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>Required permissions</Content>
+              <Alert
+                variant="info"
+                isInline
+                isPlain
+                title="Standard Agent Permissions"
               >
-                {onExecute && (
-                  <FlexItem>
-                    <Button
-                      variant="primary"
-                      isDisabled={!isAgenticAutomationEnabled}
-                      onClick={onExecute}
-                    >
-                      Execute remediation
-                    </Button>
-                  </FlexItem>
-                )}
-                {(isProposed || isDenied || isEmergencyStopped) && rootCause && (
-                  <FlexItem>
-                    <Button
-                      variant="link"
-                      icon={<RhUiDownloadIcon />}
-                      onClick={() => downloadRemediationPlanMarkdown(plan, option, rootCause)}
-                    >
-                      Download plan
-                    </Button>
-                  </FlexItem>
-                )}
-              </Flex>
-            )}
-          </div>
-
-          {/* ── D. Logs (expandable): execution + verification evidence trail ── */}
-          {showEvidenceTrail && (
-            <EvidenceLogsSection
-              idPrefix={option.id}
-              executionLogText={executionLogText}
-              verificationLogText={verificationLogText}
-            />
+                Uses the default cluster Agent Service Account rules. No additional privileges are declared for this option.
+              </Alert>
+            </div>
           )}
+
+          {/* ── D. Proposed / executed commands ── */}
+          <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>
+                {isExecuting || isTerminal ? 'Executed commands' : 'Proposed agent commands'}
+              </Content>
+            {option.commands && option.commands.length > 0 ? (
+              <Stack hasGutter>
+                {option.commands.map((cmd, cmdIdx) => (
+                  <StackItem key={cmdIdx}>
+                    <Flex
+                      alignItems={{ default: 'alignItemsCenter' }}
+                      gap={{ default: 'gapSm' }}
+                      style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
+                    >
+                      <FlexItem>
+                        <Label isCompact color="grey">{cmd.label}</Label>
+                      </FlexItem>
+                      <FlexItem>
+              <Content
+                component="small"
+                          style={{ color: 'var(--pf-t--global--text--color--subtle)' }}
+                        >
+                          {cmd.description}
+              </Content>
+                      </FlexItem>
+                    </Flex>
+                    <ExpandableCodeBlock
+                      id={`cmd-${option.id}-${cmdIdx}`}
+                      code={cmd.command}
+                      codeStyle={{ fontSize: '12px' }}
+                    />
+                  </StackItem>
+                ))}
+              </Stack>
+            ) : (
+              <ExpandableCodeBlock
+                id={`cmd-${option.id}`}
+                code={option.rawCommands}
+                codeStyle={{ fontSize: '12px' }}
+              />
+            )}
+            </div>
+
+          {/* ── E. Rollback plan — shown after execution ── */}
+          {showEvidenceTrail && (() => {
+            const rollback = resolveOptionRollbackPlan(plan.id, option);
+            if (!rollback) return null;
+            return (
+              <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+                <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+                <Content component="small" style={SECTION_OVERLINE_STYLE}>
+                  Rollback plan
+                </Content>
+    <Content
+      component="p"
+                  style={{
+                    fontSize: '0.875rem',
+                    marginBottom: rollback.command ? 'var(--pf-t--global--spacer--sm)' : 0,
+                  }}
+                >
+                  {rollback.description}
+    </Content>
+                {rollback.command && (
+                  <ExpandableCodeBlock
+                    id={`rollback-${option.id}`}
+                    code={rollback.command}
+                    codeStyle={{ fontSize: '12px' }}
+                  />
+                )}
+  </div>
+);
+          })()}
+
+          {/* ── F. Verification steps — shown after execution ── */}
+          {showEvidenceTrail && option.verificationSteps && (
+            <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
+              <Divider style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }} />
+              <Content component="small" style={SECTION_OVERLINE_STYLE}>
+                Verification steps
+              </Content>
+              <Content
+                component="p"
+                style={{ fontSize: '0.875rem', marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
+                {option.verificationSteps.description}
+              </Content>
+              <Stack hasGutter>
+                {option.verificationSteps.steps.map((step, stepIdx) => (
+                  <StackItem key={stepIdx}>
+                    <Content
+                      component="small"
+                      style={{
+                        display: 'block',
+                        fontWeight: 600,
+                        fontFamily: 'var(--pf-t--global--font--family--mono)',
+          color: 'var(--pf-t--global--text--color--subtle)',
+          marginBottom: 'var(--pf-t--global--spacer--xs)',
+        }}
+      >
+                      {step.id}
+      </Content>
+                    <ExpandableCodeBlock
+                      id={`verify-${option.id}-${stepIdx}`}
+                      code={step.command}
+                      codeStyle={{ fontSize: '12px' }}
+                    />
+                    <Content
+                      component="small"
+                      style={{
+                        display: 'block',
+                        marginTop: 'var(--pf-t--global--spacer--xs)',
+                        color: 'var(--pf-t--global--text--color--subtle)',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      {step.expected}
+                    </Content>
+                  </StackItem>
+                ))}
+              </Stack>
+            </div>
+          )}
+
         </CardBody>
       )}
     </Card>
@@ -3325,16 +5625,24 @@ const SKELETON_SUSPENDED_STYLE: React.CSSProperties = {
   opacity: 0.45,
 };
 
-const RcaLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended = false }) => (
+const RcaLockedPlaceholder: React.FC<{ isSuspended?: boolean; isPendingApproval?: boolean }> = ({
+  isSuspended = false,
+  isPendingApproval = false,
+}) => (
   <div style={LOCKED_BOX_STYLE}>
-    <Flex
-      alignItems={{ default: 'alignItemsCenter' }}
-      gap={{ default: 'gapSm' }}
-      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-    >
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                gap={{ default: 'gapSm' }}
+                style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+              >
       {isSuspended ? (
-        <ExclamationTriangleIcon
+        <RhUiWarningFillIcon
           style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)', flexShrink: 0 }}
+          aria-hidden
+        />
+      ) : isPendingApproval ? (
+        <OutlinedClockIcon
+          style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
           aria-hidden
         />
       ) : (
@@ -3343,16 +5651,21 @@ const RcaLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended
       <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
         {isSuspended
           ? 'Analysis suspended — agentic capabilities disabled'
+          : isPendingApproval
+          ? 'Awaiting analysis approval.'
           : 'Analyzing infrastructure topology to isolate root cause…'}
       </Content>
-    </Flex>
+                  </Flex>
     <Skeleton width="85%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
     <Skeleton width="65%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
     <Skeleton width="75%" style={isSuspended ? SKELETON_SUSPENDED_STYLE : undefined} />
-  </div>
+                </div>
 );
 
-const HubLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended = false }) => (
+const HubLockedPlaceholder: React.FC<{ isSuspended?: boolean; awaitingAnalysis?: boolean }> = ({
+  isSuspended = false,
+  awaitingAnalysis = false,
+}) => (
   <div style={LOCKED_BOX_STYLE}>
     <Content
       component="p"
@@ -3361,13 +5674,15 @@ const HubLockedPlaceholder: React.FC<{ isSuspended?: boolean }> = ({ isSuspended
     >
       {isSuspended
         ? 'Remediation synthesis suspended — agentic capabilities disabled'
+        : awaitingAnalysis
+        ? 'Awaiting root cause analysis.'
         : 'Remediation options will be synthesized following root cause confirmation.'}
-    </Content>
+            </Content>
     <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
     <Skeleton width="100%" style={{ marginBottom: 'var(--pf-t--global--spacer--xs)', ...(isSuspended ? SKELETON_SUSPENDED_STYLE : {}) }} />
     <Skeleton width="55%" style={isSuspended ? SKELETON_SUSPENDED_STYLE : undefined} />
-  </div>
-);
+    </div>
+  );
 
 // ─── Drawer: Plan review panel body ──────────────────────────────────────────
 
@@ -3474,6 +5789,17 @@ const ESCALATED_PLAN_PLAYBOOKS: Record<string, { title: string; command: string 
     command:
       "oc patch resourcequota default -n openshift-ingress --type merge \\\n  -p '{\"spec\":{\"hard\":{\"pods\":\"20\",\"requests.cpu\":\"4\",\"requests.memory\":\"8Gi\"}}}'",
   },
+  'op5-manual-escalation': {
+    title: 'Fix escalation template and remove WAL lock',
+    command:
+      `# Step 1: Fix the StepResultRef template field mismatch
+sed -i 's/.Success/.Phase == "Succeeded"/g' escalation_request.tmpl
+
+# Step 2: Remove the stale WAL lock and restart Grafana
+oc scale deployment/grafana --replicas=0 -n openshift-monitoring
+oc rsh -n openshift-monitoring grafana-debug -- rm -f /var/lib/grafana/grafana.db-wal
+oc scale deployment/grafana --replicas=1 -n openshift-monitoring`,
+  },
 };
 
 const DEFAULT_ESCALATION_PLAYBOOK = {
@@ -3504,13 +5830,51 @@ function generateVerificationLogs(planId: string): string {
   ].join('\n');
 }
 
+/** Generates deterministic partial analysis log lines captured before the run was aborted. */
+function generateAbortedAnalysisLogs(planId: string): string {
+  const h = planId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const ts = (offset: number) => {
+    const rawSec = (h % 45) + offset;
+    const m = String(55 + (h % 4) + Math.floor(rawSec / 60)).padStart(2, '0');
+    const s = String(rawSec % 60).padStart(2, '0');
+    return `2026-06-09T10:${m}:${s}.000000000Z`;
+  };
+  return [
+    `${ts(0)}   INFO [analysis]  AgenticRun ${planId} — analysis phase started`,
+    `${ts(1)}   INFO [analysis]  Fetching alert context from Alertmanager...`,
+    `${ts(2)}   INFO [analysis]  Resolved 3 active alerts from cluster telemetry`,
+    `${ts(3)}   INFO [analysis]  Querying Prometheus for metric correlation window (30m)...`,
+    `${ts(5)}   INFO [analysis]  Fetching namespace event log — namespace=${planId.replace(/[^a-z-]/gi, '-')}`,
+    `${ts(7)}   INFO [analysis]  Correlating alert sequences against known failure signatures...`,
+    `${ts(9)}   INFO [analysis]  Candidate root cause ranked: confidence=pending`,
+    `${ts(10)}  WARN [analysis]  Analysis interrupted — stop signal received from control plane`,
+    `${ts(10)}  INFO [analysis]  Flushing partial context to audit log (plan_id=${planId})`,
+    `${ts(11)}  INFO [analysis]  AgenticRun ${planId} transitioned → RunAborted`,
+  ].join('\n');
+}
+
+const CERTMGR_VERIFICATION_CHECK_LINES = [
+  'Checking Certificate Ready condition…',
+  'Certificate ingress-tls Ready=True',
+  'Checking ingress-tls Secret…',
+  'TLS Secret updated after renewal',
+  'Checking replacement certificate expiry…',
+  'Certificate validity extended',
+];
+
 export const RemediationBlueprintPanel: React.FC<{
   plan: PlanRow;
   onRejectPlan?: () => void;
   onStartNewInvestigation?: () => void;
-  /** Cluster-update runs: open Administration → Cluster Update from Remediation hub. */
+  /** Cluster-update runs: open Administration → Cluster Update from Remediation plans. */
   onRemediateInClusterUpdates?: () => void;
-}> = ({ plan, onRejectPlan, onStartNewInvestigation, onRemediateInClusterUpdates }) => {
+  /**
+   * Called when the internal Pending sub-state changes.
+   * `true`  → INITIALIZING  (5-second spinner; parent should render full-width)
+   * `false` → READY_FOR_ANALYSIS or any non-Pending state (parent uses default 60% layout)
+   */
+  onPendingInitializingChange?: (isInitializing: boolean) => void;
+}> = ({ plan, onRejectPlan, onStartNewInvestigation, onRemediateInClusterUpdates, onPendingInitializingChange }) => {
   const status = plan.status;
   const isAnalyzing = status === 'Analyzing';
   const isProposed = status === 'Proposed';
@@ -3519,8 +5883,11 @@ export const RemediationBlueprintPanel: React.FC<{
   const isExecuting = status === 'Executing';
   const isVerifying = status === 'Verifying';
   const isPlanAborted = status === 'Plan aborted';
+  /** Analysis was stopped before execution began — shows recovery layout, not execution cards. */
+  const isRunAborted = status === 'Run aborted';
   const isEscalating = status === 'Escalating';
   const isEscalated  = status === 'Escalated';
+  // Run aborted is an analysis-phase cancel — it never entered execution, so it's excluded here.
   const isExecutionPhase = isExecuting || isPlanAborted;
   const isOptionLocked = isExecutionPhase || isVerifying;
   const isTerminal  = status === 'Completed' || status === 'Failed';
@@ -3529,25 +5896,48 @@ export const RemediationBlueprintPanel: React.FC<{
   const isEmergencyStopped = status === 'EmergencyStopped';
   const isPending = status === 'Pending';
   const isClusterUpdatePlan = resolvePlanDomainAnnotations(plan).sourceDomain === 'cluster-update';
+  const runPayload = plan.agenticRun ?? buildAgenticRunPayload(status);
+  const {
+    approvalPolicy,
+    maxRetryAttempts: configMaxRetryAttempts,
+  } = runPayload;
+  const {
+    analysis: analysisPolicy,
+    execution: executionPolicy,
+    verification: verificationPolicy,
+    escalation: escalationPolicy,
+  } = approvalPolicy;
+  // True only when the run is in Pending and the 5-second INITIALIZING window has expired —
+  // the full Agentic Run Details layout renders (manual policy gate).
+  // Note: isPendingReadyForAnalysis is evaluated lazily below after pendingSubState is defined.
   const { activePerspective } = useActivePerspective();
   const isSingleCluster = activePerspective === 'Core platforms';
   const agentClusterId = resolveAgentCapabilitiesClusterId(isSingleCluster);
   const { isAgentActiveForCluster } = useAgenticCapabilities();
   const isAgenticAutomationEnabled = isAgentActiveForCluster(agentClusterId);
-  const { registerPlanTermination } = usePlanTermination();
   const {
     getPlanWorkflow,
     executeRemediation,
     acknowledgePlan,
+    requestVerificationApproval,
+    approveVerification,
     startVerification,
     completeVerification,
     dispatchAnalysis,
+    finishReAnalysis,
+    markAnalysisApprovalGateReached,
   } = usePlanWorkflow();
   const workflow = getPlanWorkflow(plan.id);
-  const [isStopAnalysisModalOpen, setIsStopAnalysisModalOpen] = useState(false);
-  const [isStopExecutionModalOpen, setIsStopExecutionModalOpen] = useState(false);
+  const verificationChecks = plan.id === 'certmgr-renewal-pending'
+    ? CERTMGR_VERIFICATION_CHECK_LINES
+    : VERIFICATION_CHECK_LINES;
+  const isAwaitingVerificationApproval =
+    isVerifying
+    && (
+      (verificationPolicy === 'manual' && (workflow.verificationApprovalPending || !workflow.verification))
+      || workflow.verification?.requiresNewApproval === true
+    );
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
-  const [retryBanner, setRetryBanner] = useState<string | null>(null);
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
   const [isDenyModalOpen, setIsDenyModalOpen] = useState(false);
   const [isDenySelectOpen, setIsDenySelectOpen] = useState(false);
@@ -3555,28 +5945,50 @@ export const RemediationBlueprintPanel: React.FC<{
   /**
    * HITL sub-state for Pending runs.
    *   INITIALIZING       — CR created, engine not yet dispatched (shows spinner, 5-second window)
-   *   READY_FOR_ANALYSIS — Manual approval policy gate: awaiting "Analyze with AI" action
+   *   READY_FOR_ANALYSIS — Manual approval policy gate: awaiting "Approve analysis" action
    */
   type PendingSubState = 'INITIALIZING' | 'READY_FOR_ANALYSIS';
   const [pendingSubState, setPendingSubState] = useState<PendingSubState>('INITIALIZING');
-
-  // Auto-advance from INITIALIZING → READY_FOR_ANALYSIS after 5 s.
-  // Depends only on plan.id so re-renders don't cancel and restart the timer.
+  // After INITIALIZING:
+  //   • Automatic policy → dispatch analysis immediately (skip the manual gate).
+  //   • Manual policy    → advance to READY_FOR_ANALYSIS so the full details layout renders
+  //                        with "Approve analysis" CTA in the Analysis request header.
   useEffect(() => {
     if (status !== 'Pending') return;
     setPendingSubState('INITIALIZING');
-    const timer = window.setTimeout(() => setPendingSubState('READY_FOR_ANALYSIS'), 5000);
-    return () => window.clearTimeout(timer);
+    onPendingInitializingChange?.(true);
+    const timer = window.setTimeout(() => {
+      if (analysisPolicy === 'auto') {
+        dispatchAnalysis(plan.id);
+      } else {
+        markAnalysisApprovalGateReached(plan.id);
+        setPendingSubState('READY_FOR_ANALYSIS');
+        onPendingInitializingChange?.(false);
+      }
+    }, 5000);
+    return () => {
+      window.clearTimeout(timer);
+      // If the component unmounts or plan/policy changes mid-timer, reset the parent flag.
+      onPendingInitializingChange?.(false);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan.id]);
+  }, [analysisPolicy, dispatchAnalysis, markAnalysisApprovalGateReached, onPendingInitializingChange, plan.id]);
+
+  // The certificate run starts as Pending. Once analysis is dispatched, its
+  // simulated result becomes a proposal after a short visible analysis phase.
+  useEffect(() => {
+    if (plan.id !== 'certmgr-renewal-pending' || !isAnalyzing || !isAgenticAutomationEnabled) {
+      return undefined;
+    }
+    const timer = window.setTimeout(() => finishReAnalysis(plan.id), 2000);
+    return () => window.clearTimeout(timer);
+  }, [finishReAnalysis, isAgenticAutomationEnabled, isAnalyzing, plan.id]);
 
   const executionKillState =
     plan.status === 'Plan aborted' && plan.terminatedAt ? { killedAt: plan.terminatedAt } : null;
 
   useEffect(() => {
     setIsExecutionRunning(false);
-    setRetryBanner(null);
-    setIsStopExecutionModalOpen(false);
   }, [plan.id]);
 
   useEffect(() => {
@@ -3586,32 +5998,70 @@ export const RemediationBlueprintPanel: React.FC<{
     }
     setIsExecutionRunning(true);
     const timer = window.setTimeout(() => {
-      startVerification(plan.id, VERIFICATION_CHECK_LINES);
+      if (verificationPolicy === 'manual') {
+        requestVerificationApproval(plan.id, verificationChecks);
+      } else {
+        startVerification(plan.id, verificationChecks);
+      }
       setIsExecutionRunning(false);
     }, 4000);
     return () => window.clearTimeout(timer);
-  }, [isExecuting, isAgenticAutomationEnabled, plan.id, startVerification, workflow.verification?.attempt]);
+  }, [
+    isExecuting,
+    isAgenticAutomationEnabled,
+    plan.id,
+    requestVerificationApproval,
+    startVerification,
+    verificationPolicy,
+    verificationChecks,
+    workflow.verification?.attempt,
+  ]);
+
+  // Full Agentic Run Details layout is shown when Pending has passed the 5s INITIALIZING window
+  // and the analysis policy is manual (auto policy auto-dispatches, so this stays false for auto).
+  const isPendingReadyForAnalysis = isPending && pendingSubState === 'READY_FOR_ANALYSIS';
 
   const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
   const options = enrichRemediationOptionsWithDiagnosis(
     enrichRemediationOptionsWithConfidence(
-      plan.id,
-      applyScRemediationPatches(PLAN_REMEDIATION_OPTIONS[plan.id] ?? [], plan.id, isSingleCluster),
-      drawer?.confidence,
+    plan.id,
+    applyScRemediationPatches(PLAN_REMEDIATION_OPTIONS[plan.id] ?? [], plan.id, isSingleCluster),
+    drawer?.confidence,
     ),
     drawer,
   );
+  const primaryOption = options[0];
+  const reversibilityCircuitBreakerActive =
+    isProposed &&
+    executionPolicy === 'auto' &&
+    primaryOption?.reversible !== undefined &&
+    primaryOption.reversible !== 'Reversible';
+  const phaseRequiresManualApproval =
+    runPayload.phase.requiresApproval
+    || reversibilityCircuitBreakerActive
+    || workflow.verification?.requiresNewApproval === true;
+  const manualApprovalPhase = !isAnalysisOnly && (
+    (!isClusterUpdatePlan && phaseRequiresManualApproval && (isPendingReadyForAnalysis || isProposed))
+    || isAwaitingVerificationApproval
+    || (isEscalating && escalationPolicy === 'manual')
+  )
+    ? runPayload.phase?.name ?? ''
+    : null;
+  const isAutomaticPhase = !phaseRequiresManualApproval && !isAwaitingVerificationApproval
+    && (isPending || isProposed || isVerifying || isEscalating);
   /**
    * OLS-3724 mutual exclusivity:
    * - When remediation options exist, each card renders its own RCA — hide top-level.
-   * - Show top-level RCA for analyzing, analysis-only, no-options, verifying (hub shows
-   *   VerificationPanel instead of option cards), and escalation handoff states.
+   * - Show top-level RCA for analyzing, pending-ready (awaiting approval), analysis-only,
+   *   no-options, verifying (hub shows VerificationPanel instead of option cards),
+   *   and escalation handoff states.
    */
   const showPerOptionRca =
     options.length > 0 &&
     !isAnalysisOnly &&
     !isAnalyzing &&
+    !isPendingReadyForAnalysis &&
     !isEscalated &&
     !isEscalating &&
     !isVerifying;
@@ -3628,7 +6078,9 @@ export const RemediationBlueprintPanel: React.FC<{
   const visibleOptionCount = isOptionLocked ? 1 : optionCount;
   const optionLabel = visibleOptionCount === 1 ? '1 remediation option' : `${visibleOptionCount} remediation options`;
 
-  const [selectedOptionId, setSelectedOptionId] = useState<string>(options[0]?.id ?? '');
+  // Starts null — user must explicitly select an option before Execute is enabled.
+  // Terminal / execution phases populate this via the executionApproval useEffect below.
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (workflow.executionApproval?.optionId) {
@@ -3656,10 +6108,20 @@ export const RemediationBlueprintPanel: React.FC<{
     return options.slice(0, 1);
   }, [approvedOptionId, options]);
 
-  const selectedOption = visibleOptions.find((opt) => opt.id === selectedOptionId)
-    ?? visibleOptions[0]
-    ?? options.find((opt) => opt.id === selectedOptionId)
-    ?? options[0];
+  // In terminal / execution phases the approved option is always resolved;
+  // in interactive phases (Proposed / Escalated) we return null until the user picks one.
+  const selectedOption = selectedOptionId
+    ? (visibleOptions.find((opt) => opt.id === selectedOptionId)
+        ?? options.find((opt) => opt.id === selectedOptionId)
+        ?? null)
+    : (isExecutionPhase || isTerminal
+        ? (visibleOptions[0] ?? options[0] ?? null)
+        : null);
+  const hasEmbeddedExecutionApproval = Boolean(workflow.executionApproval)
+    && (isExecuting || isTerminal)
+    && !isClusterUpdatePlan
+    && !isAnalysisOnly
+    && (isExecuting ? visibleOptions.length > 0 : terminalVisibleOptions.length > 0);
   const selectedOptionIndex = workflow.executionApproval?.optionIndex
     ?? Math.max(0, options.findIndex((opt) => opt.id === selectedOption?.id));
 
@@ -3670,12 +6132,11 @@ export const RemediationBlueprintPanel: React.FC<{
     if (!selectedOption || !isAgenticAutomationEnabled) {
       return;
     }
-    setRetryBanner(null);
     executeRemediation(plan.id, {
       optionIndex: selectedOptionIndex,
       optionId: selectedOption.id,
       optionTitle: selectedOption.title,
-      maxAttempts: GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
+      maxAttempts: configMaxRetryAttempts,
     });
   };
 
@@ -3683,181 +6144,192 @@ export const RemediationBlueprintPanel: React.FC<{
     acknowledgePlan(plan.id);
   };
 
+  // ── Execution policy: auto-execute with reversibility circuit breaker ─────────
+  // When executionPolicy === 'auto', the primary option's reversibility is checked.
+  // If partially reversible or irreversible, the circuit breaker fires and we fall
+  // back to manual approval (show warning Alert + "Apply remediation" button).
+  // Auto-execute the primary option when executionPolicy is 'auto' and the circuit
+  // breaker is NOT active. A 2-second spinner gives the user visibility before commit.
+  const [isAutoExecuteQueued, setIsAutoExecuteQueued] = useState(false);
+  useEffect(() => {
+    if (
+      !isProposed ||
+      executionPolicy !== 'auto' ||
+      reversibilityCircuitBreakerActive ||
+      !isAgenticAutomationEnabled ||
+      !primaryOption
+    ) {
+      setIsAutoExecuteQueued(false);
+      return undefined;
+    }
+    setIsAutoExecuteQueued(true);
+    const timer = window.setTimeout(() => {
+      executeRemediation(plan.id, {
+        optionIndex: 0,
+        optionId: primaryOption.id,
+        optionTitle: primaryOption.title,
+        maxAttempts: configMaxRetryAttempts,
+      }, 'auto');
+      setIsAutoExecuteQueued(false);
+    }, 2000);
+    return () => {
+      window.clearTimeout(timer);
+      setIsAutoExecuteQueued(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isProposed, executionPolicy, reversibilityCircuitBreakerActive, isAgenticAutomationEnabled, plan.id]);
+
   const handleVerificationComplete = useCallback(() => {
     if (!isAgenticAutomationEnabled) return;
     const verification = workflow.verification;
     if (!verification || verification.outcome) {
       return;
     }
-    const shouldPass = verification.attempt >= verification.maxAttempts;
-    const nextStatus = completeVerification(plan.id, shouldPass);
-    if (!shouldPass && nextStatus === 'Executing') {
-      setRetryBanner(
-        `Verification failed — retrying execution (attempt ${verification.attempt + 1} of ${verification.maxAttempts})`,
-      );
-    }
+    const shouldPass = plan.id === 'certmgr-renewal-pending'
+      || verification.attempt >= verification.maxAttempts;
+    completeVerification(plan.id, shouldPass, verification.requiresNewApproval === true);
   }, [completeVerification, isAgenticAutomationEnabled, plan.id, workflow.verification]);
 
-  if (!drawer && !isEscalating && !isPending && !isAnalyzing) return null;
+  const handleVerificationRetry = useCallback(() => {
+    if (!isAgenticAutomationEnabled) return;
+    startVerification(plan.id, verificationChecks);
+  }, [isAgenticAutomationEnabled, plan.id, startVerification, verificationChecks]);
 
-  // Cluster-update domain: RCA + handoff to Administration → Cluster Update (shared for all these runs).
-  if (isClusterUpdatePlan) {
+  const handleApproveVerification = useCallback(() => {
+    if (!isAgenticAutomationEnabled) return;
+    if (workflow.verificationApprovalPending) {
+      approveVerification(plan.id);
+      return;
+    }
+    // Supports a directly seeded Verifying run whose workflow record has not
+    // been initialized by the execution simulator yet.
+    startVerification(plan.id, verificationChecks, 'manual');
+  }, [
+    approveVerification,
+    isAgenticAutomationEnabled,
+    plan.id,
+    startVerification,
+    verificationChecks,
+    workflow.verificationApprovalPending,
+  ]);
+
+  // Log text used by the standalone Execution / Verification Summary cards.
+  // Must be declared before any early returns to satisfy the Rules of Hooks.
+  const summaryPostMortem = useMemo(
+    () => (isTerminal || isExecuting || isVerifying)
+      ? (PLAN_POSTMORTEM[plan.id] ?? generatePostMortem(plan))
+      : null,
+    [isTerminal, isExecuting, isVerifying, plan],
+  );
+  const summaryExecutionLog = summaryPostMortem?.rawLog ?? summaryPostMortem?.failureTrace ?? '';
+  const summaryVerificationLog = isAwaitingVerificationApproval ? '' : (
+    workflow.verification?.checks.join('\n') ?? (
+      isTerminal || isVerifying ? generateVerificationLogs(plan.id) : ''
+    )
+  );
+  const summaryEscalationLog = (isEscalated || isEscalating) ? generateEscalationLogs(plan.id) : '';
+
+  const timelineEvidence = useMemo((): AgenticRunTimelineEvidenceContext => {
+    const execOption = options.find((opt) => opt.id === approvedOptionId) ?? options[0];
+    const executionLog =
+      execOption && (isExecutionPhase || isTerminal || isVerifying || isEscalating || isEscalated || isEmergencyStopped)
+        ? buildActiveExecutionLogLines(plan, execOption).join('\n')
+        : '';
+    const verificationLog =
+      !isAwaitingVerificationApproval && (isVerifying || isTerminal || isEscalating || isEscalated)
+        ? (workflow.verification?.checks.join('\n') ?? generateVerificationLogs(plan.id))
+        : '';
+    return {
+      planId: plan.id,
+      request: plan.request,
+      analysisLogsLifecycle,
+      logFinding: analysisLogFinding,
+      logNarrative: analysisLogNarrative,
+      aggregatedFinding: drawer?.aggregatedFinding,
+      rootCauseNarrative: drawer?.rootCauseNarrative,
+      executionLogText: executionLog,
+      verificationLogText: verificationLog,
+      proposedVerificationScript: plan.proposedVerificationScript ?? buildProposedVerificationScript(plan),
+      isAwaitingVerificationApproval,
+      escalationLogText: summaryEscalationLog || undefined,
+      traceId: plan.traceId,
+      runStatus: status,
+      isAwaitingAnalysisApproval: isPendingReadyForAnalysis,
+    };
+  }, [
+    analysisLogFinding,
+    analysisLogNarrative,
+    analysisLogsLifecycle,
+    approvedOptionId,
+    drawer?.aggregatedFinding,
+    drawer?.rootCauseNarrative,
+    isEscalated,
+    isEscalating,
+    isEmergencyStopped,
+    isExecutionPhase,
+    isAwaitingVerificationApproval,
+    isPendingReadyForAnalysis,
+    isTerminal,
+    isVerifying,
+    options,
+    plan,
+    status,
+    summaryEscalationLog,
+    workflow.verification?.checks,
+  ]);
+
+  // ── Sticky action bar derived state ─────────────────────────────────────
+  /**
+   * Execute / Deny are active in Proposed and Escalated (both require human decision).
+   * All other phases — including transient and terminal — disable these buttons.
+   */
+  const stickyBarExecuteDisabled =
+    !isAgenticAutomationEnabled || (!isProposed && !isEscalated) || isAnalysisOnly || !selectedOption;
+  const stickyBarDenyDisabled =
+    !isAgenticAutomationEnabled || (!isProposed && !isEscalated) || !onRejectPlan;
+
+  /**
+   * Phase-specific tooltip copy for disabled Execute / Deny buttons.
+   * Verifying and Escalating have distinct copy to avoid over-generalisation.
+   */
+  const executeTooltip = (isProposed || isEscalated) && !selectedOption
+    ? 'Select a remediation option above to execute'
+    : isPending
+      ? 'Run initialization in progress'
+      : isAnalyzing
+        ? 'Root cause analysis in progress'
+        : isExecutionPhase
+          ? 'Remediation execution in progress'
+          : isVerifying
+            ? 'Post-remediation health verification in progress'
+            : isEscalating
+              ? 'Engine is attempting automated constraint recovery'
+              : 'Action unavailable: Run has reached a terminal state';
+  const denyTooltip = executeTooltip;
+
+  /**
+   * Download is disabled until the backend writes the complete ScopedActions payload to the CR
+   * status — this only happens when Analyzed=True (Proposed phase onward).
+   * Pending: CR not yet created / analysis not started.
+   * Analyzing: CR exists but ScopedActions payload is still being synthesised.
+   */
+  const stickyDownloadDisabled = isPending || isAnalyzing;
+  const stickyDownloadTooltip = 'Plan is being generated';
+  const stickyRootCause = { aggregatedFinding: analysisLogFinding, rootCauseNarrative: analysisLogNarrative };
+
+  if (!drawer && !isEscalating && !isPending && !isAnalyzing && !isRunAborted) return null;
+
+  // ── Pending HITL gate — Phase 1: Initializing (5s spinner) ──────────────────
+  // Phase 2 (READY_FOR_ANALYSIS) falls through to the full Agentic Run Details
+  // layout below with "Approve analysis" surfaced in the Analysis request header.
+  if (isPending && pendingSubState === 'INITIALIZING') {
     return (
-      <Stack style={{ gap: '24px' }}>
-        <StackItem>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-            <AiExperienceIcon size={20} />
-            <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
-              Agentic run details
-            </Title>
-          </Flex>
-          <Content component="p" className="ols-ai-hub-page-disclaimer">
-            <InfoCircleIcon
-              style={{
-                color: 'var(--pf-t--global--icon--color--status--info--default)',
-                marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
-                verticalAlign: 'middle',
-                flexShrink: 0,
-              }}
-              aria-hidden
-            />
-            The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
-            review AI-generated content prior to use.
-          </Content>
-        </StackItem>
-
-        <StackItem>
-          <TriggerRequestSection
-            request={plan.request}
-            planId={plan.id}
-            logsLifecycle={analysisLogsLifecycle}
-            logFinding={analysisLogFinding}
-            logNarrative={analysisLogNarrative}
-            analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
-            traceId={plan.traceId}
-            runStatus={status}
-          />
-        </StackItem>
-
-        <StackItem>
-          <Flex
-            alignItems={{ default: 'alignItemsCenter' }}
-            gap={{ default: 'gapSm' }}
-            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-          >
-            <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-              Root cause analysis
-            </Title>
-            <Label color="grey" isCompact>AI-generated</Label>
-          </Flex>
-          {isAnalyzing || !drawer ? (
-            <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
-          ) : (
-            <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
-              <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                <span className="ols-aio-text-overline">Detected root cause</span>
-              </div>
-              <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                {drawer.aggregatedFinding}
-              </Content>
-              <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                {drawer.rootCauseNarrative}
-              </Content>
-            </div>
-          )}
-        </StackItem>
-
-        <StackItem>
-          <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-            Remediation hub
-          </Title>
-          <Card style={{ borderRadius: '16px' }}>
-            <CardHeader>
-              <Flex
-                justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                alignItems={{ default: 'alignItemsFlexStart' }}
-                flexWrap={{ default: 'nowrap' }}
-                style={{ width: '100%' }}
-              >
-                <FlexItem>
-                  <Flex
-                    direction={{ default: 'column' }}
-                    alignItems={{ default: 'alignItemsFlexStart' }}
-                    gap={{ default: 'gapXs' }}
-                  >
-                    <span style={{ fontWeight: 600, fontSize: '14px', whiteSpace: 'nowrap' }}>
-                      Remediation
-                    </span>
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        fontSize: '14px',
-                        lineHeight: 1.4,
-                        whiteSpace: 'normal',
-                        wordBreak: 'break-word',
-                      }}
-                    >
-                      {plan.synopsis}
-                    </span>
-                  </Flex>
-                </FlexItem>
-                <FlexItem>
-                  {isCompleted ? (
-                    <Label color="green" icon={<CheckCircleIcon />}>Completed</Label>
-                  ) : status === 'Failed' ? (
-                    <Label color="red" icon={<ExclamationCircleIcon />}>Failed</Label>
-                  ) : (isExecuting || isVerifying) ? (
-                    <Label color="blue" icon={<Spinner size="sm" aria-label="In progress" />}>In progress</Label>
-                  ) : isEscalated ? (
-                    <Label color="yellow" icon={<ExclamationTriangleIcon />}>Escalated</Label>
-                  ) : isDenied ? (
-                    <Label color="red" icon={<ExclamationCircleIcon />}>Denied</Label>
-                  ) : isEmergencyStopped ? (
-                    <Label color="orange" icon={<ExclamationTriangleIcon />}>Emergency stopped</Label>
-                  ) : null}
-                </FlexItem>
-              </Flex>
-            </CardHeader>
-            <CardBody className="ols-remediation-option-card__body">
-              {onRemediateInClusterUpdates ? (
-                <Button
-                  variant="link"
-                  isInline
-                  isDisabled={!isAgenticAutomationEnabled}
-                  onClick={onRemediateInClusterUpdates}
-                >
-                  Remediate in Cluster Updates
-                </Button>
-              ) : (
-                <Content component="p" style={{ margin: 0 }}>
-                  Continue remediation from Administration → Cluster Update.
-                </Content>
-              )}
-            </CardBody>
-          </Card>
-        </StackItem>
-
-        {/* ── Timeline (always last) ────────────────────────────────────── */}
-        <StackItem>
-          <AgenticRunTimeline
-            status={status}
-            createdAt={plan.createdAt}
-            isCapabilitiesDisabled={!isAgenticAutomationEnabled}
-          />
-        </StackItem>
-      </Stack>
-    );
-  }
-
-  // ── Pending HITL gate — Phase 1: Initializing / Phase 2: Ready for Analysis ──
-  if (isPending) {
-    return pendingSubState === 'INITIALIZING' ? (
       <EmptyState
         titleText={isAgenticAutomationEnabled ? 'Initializing plan...' : 'Analysis suspended'}
         headingLevel="h4"
         icon={() => isAgenticAutomationEnabled
           ? <Spinner size="lg" aria-label="Initializing" />
-          : <ExclamationTriangleIcon style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)', fontSize: '2rem' }} aria-hidden />
+          : <RhUiWarningFillIcon style={{ color: 'var(--pf-t--global--icon--color--status--warning--default)', fontSize: '2rem' }} aria-hidden />
         }
       >
         <EmptyStateBody>
@@ -3866,27 +6338,6 @@ export const RemediationBlueprintPanel: React.FC<{
             : 'Agentic capabilities are disabled. Analysis cannot be dispatched until capabilities are re-enabled by an administrator.'
           }
         </EmptyStateBody>
-      </EmptyState>
-    ) : (
-      <EmptyState
-        titleText="Ready for analysis"
-        headingLevel="h4"
-        style={{ paddingTop: '80px' }}
-      >
-        <EmptyStateBody>
-          Manual approval policy enabled. The proposal custom resource is ready for AI analysis.
-        </EmptyStateBody>
-        <EmptyStateFooter>
-          <EmptyStateActions>
-            <Button
-              variant="primary"
-              isDisabled={!isAgenticAutomationEnabled}
-              onClick={() => dispatchAnalysis(plan.id)}
-            >
-              Analyze with AI
-            </Button>
-          </EmptyStateActions>
-        </EmptyStateFooter>
       </EmptyState>
     );
   }
@@ -3897,189 +6348,239 @@ export const RemediationBlueprintPanel: React.FC<{
     approvedOptionId ? selectedOptionId === approvedOptionId : selectedOptionIndex === 0
   );
 
-  return (
-    <Stack style={{ gap: '24px' }}>
-      {/* ── Page heading + AI disclaimer ────────────────────────────────── */}
-      <StackItem>
-        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-          <AiExperienceIcon size={20} />
-          <Title headingLevel="h3" size="lg" style={{ marginBottom: 0 }}>
-            Agentic run details
-          </Title>
-        </Flex>
-        <Content component="p" className="ols-ai-hub-page-disclaimer">
-          <InfoCircleIcon
-            style={{
-              color: 'var(--pf-t--global--icon--color--status--info--default)',
-              marginInlineEnd: 'var(--pf-t--global--spacer--xs)',
-              verticalAlign: 'middle',
-              flexShrink: 0,
-            }}
+  const abortedAnalysisLog = isRunAborted ? generateAbortedAnalysisLogs(plan.id) : '';
+
+  const meldedAnalysisPhaseContent = isRunAborted ? (
+    <>
+      <TriggerRequestSection
+        request={plan.request}
+        planId={plan.id}
+        logsLifecycle="cancelled"
+        logFinding={abortedAnalysisLog}
+        logNarrative="Analysis stopped before root cause could be confirmed."
+        analysisFailedToInitialize={false}
+        traceId={plan.traceId}
+        runStatus={status}
+        showAnalysisLogs
+        alertInvestigation={getAlertInvestigationCard(plan.id)}
+      />
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        gap={{ default: 'gapSm' }}
+        style={{ marginBottom: 'var(--pf-t--global--spacer--md)', marginTop: 'var(--pf-t--global--spacer--lg)' }}
+      >
+        <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+          Root cause analysis
+        </Title>
+        <Label color="grey" isCompact>AI-generated</Label>
+      </Flex>
+      <div style={LOCKED_BOX_STYLE}>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <RhUiBanIcon
+            style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
             aria-hidden
           />
-          The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always
-          review AI-generated content prior to use.
-        </Content>
-      </StackItem>
-
-      <StackItem>
-        <TriggerRequestSection
-          request={plan.request}
-          planId={plan.id}
-          logsLifecycle={analysisLogsLifecycle}
-          logFinding={analysisLogFinding}
-          logNarrative={analysisLogNarrative}
-          analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
-          traceId={plan.traceId}
-          runStatus={status}
-        />
-      </StackItem>
-
-      {/* ── Status alerts (below heading) ────────────────────────────── */}
-      {isEscalating && (
-        <StackItem>
-          <Alert
-            isInline
-            variant="danger"
-            title="Automated remediation retries exhausted"
-          >
-            The autonomous agent failed to resolve this issue after 3 retry attempts. Escalation
-            handoff is in progress, and human intervention is now required.
-          </Alert>
-        </StackItem>
-      )}
-      {isEscalated && (
-        <StackItem>
-          <Alert
-            isInline
-            variant="warning"
-            title="Remediation action required"
-          >
-            Automated execution failed after reaching the maximum retry limit. Manual operator
-            intervention is required to resolve this escalation.
-          </Alert>
-        </StackItem>
-      )}
-      {isDenied && (
-        <StackItem>
-          <DeniedPlanBanner onStartNewInvestigation={isAgenticAutomationEnabled ? onStartNewInvestigation : undefined} />
-        </StackItem>
-      )}
-      {isEmergencyStopped && (
-        <StackItem>
-          <Alert
-            isInline
-            variant="warning"
-            title="Execution halted mid-flight"
-          >
-            This agentic run was stopped while execution was in progress. The cluster may be in a
-            partially modified state. Review the proposed agent commands below and complete or roll
-            back the operation manually during a scheduled maintenance window.
-          </Alert>
-        </StackItem>
-      )}
-
-      {/* ── Section A: Root cause analysis (top-level; OLS-3724 mutual exclusivity) ── */}
-      {showTopLevelRca && (
-      <StackItem>
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapSm' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-        >
-          <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
-            Root cause analysis
-          </Title>
-          <Label color="grey" isCompact>AI-generated</Label>
+          <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
+            Analysis was aborted before a root cause could be determined.
+          </Content>
         </Flex>
-          {isAnalyzing ? (
-            <>
-              <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
-            </>
-          ) : (
-          <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
-            <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              <span className="ols-aio-text-overline">Detected root cause</span>
-            </div>
-            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              {drawer!.aggregatedFinding}
-            </Content>
-            <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-              {drawer!.rootCauseNarrative}
-            </Content>
-          </div>
-          )}
-      </StackItem>
-      )}
-
-      {/* ── Section C: Remediation Hub (or investigation-only) ─────────── */}
-      <StackItem>
-        {isAnalysisOnly ? (
-          <>
-            <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-              Investigation findings
+      </div>
+    </>
+  ) : (
+    <>
+      <TriggerRequestSection
+        request={plan.request}
+        planId={plan.id}
+        logsLifecycle={analysisLogsLifecycle}
+        logFinding={analysisLogFinding}
+        logNarrative={analysisLogNarrative}
+        analysisFailedToInitialize={status === 'Failed' && !plan.request?.trim()}
+        traceId={plan.traceId}
+        runStatus={status}
+        showAnalysisLogs
+        alertInvestigation={getAlertInvestigationCard(plan.id)}
+      />
+      {showTopLevelRca && (
+        <>
+          <Flex
+            alignItems={{ default: 'alignItemsCenter' }}
+            gap={{ default: 'gapSm' }}
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)', marginTop: 'var(--pf-t--global--spacer--lg)' }}
+          >
+            <Title headingLevel="h4" size="md" style={{ marginBottom: 0 }}>
+              Root cause analysis
             </Title>
-            <Alert
-              variant="info"
-              isInline
-              title="Investigation-only proposal"
-              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-            >
+            <Label color="grey" isCompact>AI-generated</Label>
+          </Flex>
+          {isPendingReadyForAnalysis ? (
+            <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} isPendingApproval />
+          ) : isAnalyzing ? (
+            <RcaLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
+          ) : (
+            <div className={`ols-aio-rca-box ${rcaVariant}`} style={{ borderRadius: '16px', overflow: 'hidden' }}>
+              <div style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                <span className="ols-aio-text-overline">Detected root cause</span>
+              </div>
+              <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                {drawer!.aggregatedFinding}
+              </Content>
+              <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+                {drawer!.rootCauseNarrative}
+              </Content>
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+
+  const meldedHumanApprovalContent = isRunAborted ? (
+    <>
+      <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+        Remediation plans
+      </Title>
+      <div style={LOCKED_BOX_STYLE}>
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+          <RhUiBanIcon
+            style={{ color: 'var(--pf-t--global--icon--color--subtle)', flexShrink: 0 }}
+            aria-hidden
+          />
+          <Content component="p" className="ols-aio-text-subtle-sm" style={{ margin: 0, fontStyle: 'italic' }}>
+            No remediation options available because analysis was canceled.
+          </Content>
+        </Flex>
+      </div>
+    </>
+  ) : isClusterUpdatePlan ? (
+    <>
+      <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+        Remediation plans
+      </Title>
+      <Card style={{ borderRadius: '16px' }}>
+        <CardHeader>
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            alignItems={{ default: 'alignItemsFlexStart' }}
+            flexWrap={{ default: 'nowrap' }}
+            style={{ width: '100%' }}
+          >
+            <FlexItem>
+              <Flex
+                direction={{ default: 'column' }}
+                alignItems={{ default: 'alignItemsFlexStart' }}
+                gap={{ default: 'gapXs' }}
+              >
+                <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', whiteSpace: 'nowrap' }}>
+                  Remediation
+                </Content>
+                <Content
+                  component="p"
+                  style={{
+                    fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {plan.synopsis}
+                </Content>
+              </Flex>
+            </FlexItem>
+            <FlexItem>
+              {isCompleted ? (
+                <Label color="green" icon={<RhUiCheckCircleFillIcon />}>Completed</Label>
+              ) : status === 'Failed' ? (
+                <Label color="red" icon={<RhUiErrorFillIcon />}>Failed</Label>
+              ) : (isExecuting || isVerifying) ? (
+                <Label color="blue" icon={<Spinner size="sm" aria-label="In progress" />}>In progress</Label>
+              ) : isEscalated ? (
+                <Label color="yellow" icon={<RhUiWarningFillIcon />}>Escalated</Label>
+              ) : isDenied ? (
+                <Label color="red" icon={<RhUiErrorFillIcon />}>Denied</Label>
+              ) : isEmergencyStopped ? (
+                <Label color="orange" icon={<RhUiWarningFillIcon />}>Emergency stopped</Label>
+              ) : null}
+            </FlexItem>
+          </Flex>
+        </CardHeader>
+        <CardBody className="ols-remediation-option-card__body">
+          <Alert
+            variant="info"
+            isInline
+            title="External Workflow Required"
+          >
+            Cluster update readiness findings must be applied through the Cluster Settings portal
+            to preserve operator health validation checks.
+          </Alert>
+        </CardBody>
+      </Card>
+    </>
+  ) : (
+    <>
+      {isAnalysisOnly ? (
+        <>
+          <Title headingLevel="h4" size="md" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            Investigation findings
+          </Title>
+          <Alert
+            variant="info"
+            isInline
+            title="Investigation-only proposal"
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+          >
+            <Content component="p" style={{ margin: 0 }}>
+              This cluster update controller proposal gathered structured health data only. No remediation
+              options were generated — acknowledge after review to clear it from your active runs list.
+            </Content>
+          </Alert>
+          {isAcknowledged ? (
+            <Alert variant="success" isInline title="Plan acknowledged">
               <Content component="p" style={{ margin: 0 }}>
-                This cluster update controller proposal gathered structured health data only. No remediation
-                options were generated — acknowledge after review to clear it from your active runs list.
+                This investigation-only proposal has been marked as reviewed. No further action is required.
               </Content>
             </Alert>
-            {isAcknowledged ? (
-              <Alert variant="success" isInline title="Plan acknowledged">
-                <Content component="p" style={{ margin: 0 }}>
-                  This investigation-only proposal has been marked as reviewed. No further action is required.
-                </Content>
-              </Alert>
-            ) : (
-              <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-                <Button
-                  variant="primary"
-                  isDisabled={!isAgenticAutomationEnabled}
-                  onClick={handleAcknowledgePlan}
-                >
-                  Acknowledge
-                </Button>
-                <Button
-                  variant="link"
-                  icon={<RhUiDownloadIcon />}
-                  iconPosition="start"
-                  onClick={() =>
-                    downloadAnalysisReportMarkdown(plan, {
-                      aggregatedFinding: drawer!.aggregatedFinding,
-                      rootCauseNarrative: drawer!.rootCauseNarrative,
-                    })
-                  }
-                >
-                  Download analysis report
-                </Button>
-              </Flex>
-            )}
-          </>
-        ) : (
+          ) : (
+            <Flex gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+              <Button
+                variant="primary"
+                isDisabled={!isAgenticAutomationEnabled}
+                onClick={handleAcknowledgePlan}
+              >
+                Acknowledge
+              </Button>
+              <Button
+                variant="link"
+                icon={<RhUiDownloadIcon />}
+                iconPosition="start"
+                onClick={() =>
+                  downloadAnalysisReportMarkdown(plan, {
+                    aggregatedFinding: drawer!.aggregatedFinding,
+                    rootCauseNarrative: drawer!.rootCauseNarrative,
+                  })
+                }
+              >
+                Download analysis report
+              </Button>
+            </Flex>
+          )}
+        </>
+      ) : (
         <>
-        <Flex
-          direction={{ default: 'column' }}
-          alignItems={{ default: 'alignItemsFlexStart' }}
-          gap={{ default: 'gapXs' }}
-          style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-        >
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
-            <Title headingLevel="h4" size="md">Remediation hub</Title>
-            <Label color="grey" isCompact>AI-generated</Label>
-            {!isAnalyzing && !isTerminal && !isDenied && visibleOptionCount > 0 && (
-              <Label color="grey" isCompact variant="outline">{optionLabel}</Label>
-            )}
+          <Flex
+            direction={{ default: 'column' }}
+            alignItems={{ default: 'alignItemsFlexStart' }}
+            gap={{ default: 'gapXs' }}
+            style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
+          >
+            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'wrap' }}>
+              <Title headingLevel="h4" size="md">Remediation plans</Title>
+              <Label color="grey" isCompact>AI-generated</Label>
+            </Flex>
+            <WaitingApprovalPlanMeta plan={plan} />
           </Flex>
-          <WaitingApprovalPlanMeta plan={plan} />
-        </Flex>
-          {isAnalyzing ? (
-            <HubLockedPlaceholder isSuspended={!isAgenticAutomationEnabled} />
+          {(isPendingReadyForAnalysis || isAnalyzing) ? (
+            <HubLockedPlaceholder
+              isSuspended={!isAgenticAutomationEnabled}
+              awaitingAnalysis={isPendingReadyForAnalysis}
+            />
           ) : isEscalated ? (
             <>
               <div
@@ -4102,7 +6603,7 @@ export const RemediationBlueprintPanel: React.FC<{
                   style={{
                     display: 'block',
                     marginBottom: 'var(--pf-t--global--spacer--xs)',
-                    fontWeight: 600,
+                    fontWeight: 'var(--pf-t--global--font--weight--body--bold)' as React.CSSProperties['fontWeight'],
                   }}
                 >
                   {escalatedPlaybook.title}
@@ -4112,14 +6613,6 @@ export const RemediationBlueprintPanel: React.FC<{
                   code={escalatedPlaybook.command}
                   codeStyle={{ fontSize: '12px' }}
                 />
-                <Button variant="link" icon={<RhUiDownloadIcon />} iconPosition="start"
-                  onClick={() => downloadAnalysisReportMarkdown(plan, {
-                    aggregatedFinding: drawer?.aggregatedFinding ?? '',
-                    rootCauseNarrative: drawer?.rootCauseNarrative ?? '',
-                  })}
-                >
-                  Download plan
-                </Button>
               </div>
             </>
           ) : isEmergencyStopped ? (
@@ -4168,10 +6661,10 @@ export const RemediationBlueprintPanel: React.FC<{
                 );
               })}
             </Stack>
-          ) : isTerminal ? (
+          ) : (isTerminal || isVerifying) ? (
             <>
               {terminalVisibleOptions.length > 0 && (
-                <Stack hasGutter style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+                <Stack hasGutter>
                   {terminalVisibleOptions.map((opt) => {
                     const optionIndex = options.findIndex((o) => o.id === opt.id);
                     return (
@@ -4196,21 +6689,11 @@ export const RemediationBlueprintPanel: React.FC<{
                 </Stack>
               )}
               {terminalVisibleOptions.length === 0 && (
-                <TerminalEvidenceCard plan={plan} verification={workflow.verification} />
+                <TerminalEvidenceCard plan={plan} />
               )}
             </>
-          ) : isVerifying && verificationState ? (
-            <VerificationPanel
-              verification={verificationState}
-              isLive={Boolean(workflow.verification) && !showStaticVerification && isAgenticAutomationEnabled}
-              onComplete={handleVerificationComplete}
-            />
           ) : (
             <>
-              {retryBanner && (
-                <Alert variant="warning" isInline title={retryBanner} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
-              )}
-
               <div
                 style={{
                   opacity: !isAgenticAutomationEnabled ? 0.55 : 1,
@@ -4234,7 +6717,6 @@ export const RemediationBlueprintPanel: React.FC<{
                           isOptionLocked={isOptionLocked}
                           showExecutionLog={showExecutionLog && selectedOptionId === opt.id}
                           rootCause={opt.diagnosis}
-                          onExecute={isProposed ? () => { setSelectedOptionId(opt.id); setIsExecuteConfirmModalOpen(true); } : undefined}
                           approval={workflow.executionApproval}
                           verification={workflow.verification}
                         />
@@ -4244,258 +6726,519 @@ export const RemediationBlueprintPanel: React.FC<{
                 </Stack>
               </div>
 
-              {isProposed && onRejectPlan && (
-                <Flex style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+              {isProposed && isAutoExecuteQueued && (
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  gap={{ default: 'gapSm' }}
+                  style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                >
                   <FlexItem>
-                    <Button
-                      variant="secondary"
-                      isDisabled={!isAgenticAutomationEnabled}
-                      onClick={() => setIsDenyModalOpen(true)}
-                    >
-                      Deny run
-                    </Button>
+                    <Spinner size="sm" aria-label="Executing default remediation" />
+                  </FlexItem>
+                  <FlexItem>
+                    <Content component="p" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
+                      Executing default remediation (1 of {optionCount})…
+                    </Content>
                   </FlexItem>
                 </Flex>
               )}
 
-              {/* ── Deny run confirmation modal ────────────────────────────── */}
-              <Modal
-                variant={ModalVariant.small}
-                isOpen={isDenyModalOpen}
-                onClose={() => { setIsDenyModalOpen(false); setIsDenySelectOpen(false); setDenyReason(''); }}
-                aria-labelledby="deny-run-confirm-title"
-              >
-                <ModalHeader title="Confirm remediation denial" labelId="deny-run-confirm-title" />
-                <ModalBody>
-                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
-                    Denying this run will cancel all proposed automated actions. The associated alerts
-                    must then be investigated and resolved manually.
-                  </Content>
-                  <Content
-                    component="p"
-                    style={{
-                      marginBottom: 'var(--pf-t--global--spacer--xs)',
-                      fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
-                    }}
-                  >
-                    Reason for denial (optional)
-                  </Content>
-                  <Dropdown
-                    isOpen={isDenySelectOpen}
-                    onOpenChange={setIsDenySelectOpen}
-                    onSelect={(_e, val) => {
-                      setDenyReason(val as string);
-                      setIsDenySelectOpen(false);
-                    }}
-                    toggle={(ref) => (
-                      <MenuToggle
-                        ref={ref}
-                        onClick={() => setIsDenySelectOpen(!isDenySelectOpen)}
-                        isExpanded={isDenySelectOpen}
-                        style={{ width: '100%' }}
-                      >
-                        {({
-                          'incorrect-rca': 'Incorrect root cause diagnosis',
-                          'too-risky': 'Remediation too risky',
-                          'prefer-manual': 'Prefer manual fix',
-                          'false-positive': 'False positive',
-                          'other': 'Other',
-                        } as Record<string, string>)[denyReason] ?? 'Select a reason'}
-                      </MenuToggle>
-                    )}
-                  >
-                    <DropdownList>
-                      <DropdownItem value="incorrect-rca">Incorrect root cause diagnosis</DropdownItem>
-                      <DropdownItem value="too-risky">Remediation too risky</DropdownItem>
-                      <DropdownItem value="prefer-manual">Prefer manual fix</DropdownItem>
-                      <DropdownItem value="false-positive">False positive</DropdownItem>
-                      <DropdownItem value="other">Other</DropdownItem>
-                    </DropdownList>
-                  </Dropdown>
-                </ModalBody>
-                <ModalFooter>
-                  <Button
-                    variant="danger"
-                    onClick={() => {
-                      setIsDenyModalOpen(false);
-                      setIsDenySelectOpen(false);
-                      setDenyReason('');
-                      onRejectPlan?.();
-                    }}
-                  >
-                    Deny run
-                  </Button>
-                  <Button
-                    variant="link"
-                    onClick={() => { setIsDenyModalOpen(false); setIsDenySelectOpen(false); setDenyReason(''); }}
-                  >
-                    Cancel
-                  </Button>
-                </ModalFooter>
-              </Modal>
-
-              <Modal
-                variant={ModalVariant.small}
-                isOpen={isExecuteConfirmModalOpen}
-                onClose={() => setIsExecuteConfirmModalOpen(false)}
-                aria-labelledby="execute-remediation-confirm-title"
-              >
-                <ModalHeader title="Execute remediation?" labelId="execute-remediation-confirm-title" />
-                <ModalBody>
-                  <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-                    You&apos;re about to run the automated script for Option {selectedOptionIndex + 1}:{' '}
-                    <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
-                  </Content>
-                  {selectedOption?.reversible === 'Irreversible' && (
-                    <Alert
-                      isInline
-                      variant="warning"
-                      title="This action is irreversible"
-                      style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
-                    >
-                      You will not be able to roll back or automatically undo this remediation once
-                      execution begins. Ensure you have taken a full cluster backup if required.
-                    </Alert>
-                  )}
-                  <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
-                    OpenShift Lightspeed uses AI technology to help generate this remediation plan.
-                  </Content>
-                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
-                    <FlexItem>
-                      <InfoCircleIcon
-                        style={{
-                          color: 'var(--pf-t--global--icon--color--status--info--default)',
-                          fontSize: '12px',
-                        }}
-                        aria-hidden
-                      />
-                    </FlexItem>
-                    <FlexItem>
-                      <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', margin: 0 }}>
-                        Always review AI-generated content prior to use.
-                      </Content>
-                    </FlexItem>
-                  </Flex>
-                </ModalBody>
-                <ModalFooter>
-                  <Button
-                    variant={selectedOption?.reversible === 'Irreversible' ? 'danger' : 'primary'}
-                    isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
-                    isLoading={isExecutionRunning}
-                    onClick={() => {
-                      setIsExecuteConfirmModalOpen(false);
-                      handleExecuteRemediation();
-                    }}
-                  >
-                    Execute remediation
-                  </Button>
-                  <Button variant="link" onClick={() => setIsExecuteConfirmModalOpen(false)}>
-                    Cancel
-                  </Button>
-                </ModalFooter>
-              </Modal>
+              {isProposed && reversibilityCircuitBreakerActive && (
+                <Alert
+                  variant="warning"
+                  isInline
+                  title="Manual approval required"
+                  style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}
+                >
+                  Automatic execution was paused because the primary remediation option (
+                  <strong>{primaryOption?.title}</strong>) is{' '}
+                  <strong>{primaryOption?.reversible === 'Partial' ? 'partially reversible' : 'irreversible'}</strong>.
+                  Review the proposed commands and approve manually.
+                </Alert>
+              )}
             </>
           )}
         </>
-        )}
-      </StackItem>
+      )}
+    </>
+  );
 
-      {/* ── Stop execution action (Executing state only) ──────────────── */}
-      {isExecutionPhase && !executionKillState && (
-        <StackItem>
+  const remediationConfirmModals = (
+    <>
+      <Modal
+        variant={ModalVariant.small}
+        isOpen={isDenyModalOpen}
+        onClose={() => { setIsDenyModalOpen(false); setIsDenySelectOpen(false); setDenyReason(''); }}
+        aria-labelledby="deny-run-confirm-title"
+      >
+        <ModalHeader title="Confirm remediation denial" labelId="deny-run-confirm-title" />
+        <ModalBody>
+          <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}>
+            Denying this run will cancel all proposed automated actions. The associated alerts
+            must then be investigated and resolved manually.
+          </Content>
+          <Content
+            component="p"
+            style={{
+              marginBottom: 'var(--pf-t--global--spacer--xs)',
+              fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+            }}
+          >
+            Reason for denial (optional)
+          </Content>
+          <Dropdown
+            isOpen={isDenySelectOpen}
+            onOpenChange={setIsDenySelectOpen}
+            onSelect={(_e, val) => {
+              setDenyReason(val as string);
+              setIsDenySelectOpen(false);
+            }}
+            toggle={(ref) => (
+              <MenuToggle
+                ref={ref}
+                onClick={() => setIsDenySelectOpen(!isDenySelectOpen)}
+                isExpanded={isDenySelectOpen}
+                style={{ width: '100%' }}
+              >
+                {({
+                  'incorrect-rca': 'Incorrect root cause diagnosis',
+                  'too-risky': 'Remediation too risky',
+                  'prefer-manual': 'Prefer manual fix',
+                  'false-positive': 'False positive',
+                  'other': 'Other',
+                } as Record<string, string>)[denyReason] ?? 'Select a reason'}
+              </MenuToggle>
+            )}
+          >
+            <DropdownList>
+              <DropdownItem value="incorrect-rca">Incorrect root cause diagnosis</DropdownItem>
+              <DropdownItem value="too-risky">Remediation too risky</DropdownItem>
+              <DropdownItem value="prefer-manual">Prefer manual fix</DropdownItem>
+              <DropdownItem value="false-positive">False positive</DropdownItem>
+              <DropdownItem value="other">Other</DropdownItem>
+            </DropdownList>
+          </Dropdown>
+        </ModalBody>
+        <ModalFooter>
           <Button
             variant="danger"
-            isDisabled={!isAgenticAutomationEnabled}
-            onClick={() => setIsStopExecutionModalOpen(true)}
+            onClick={() => {
+              setIsDenyModalOpen(false);
+              setIsDenySelectOpen(false);
+              setDenyReason('');
+              onRejectPlan?.();
+            }}
           >
-            Stop execution
+            Deny run
           </Button>
-          <Modal
-            variant={ModalVariant.small}
-            isOpen={isStopExecutionModalOpen}
-            onClose={() => setIsStopExecutionModalOpen(false)}
-            aria-labelledby="stop-plan-execution-title"
-          >
-            <ModalHeader title="Stop execution?" labelId="stop-plan-execution-title" />
-            <ModalBody>
-              This will halt the execution run. This may result in partial execution. You may need to manually
-              complete or undo any partial changes.
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                variant="danger"
-                onClick={() => {
-                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
-                  setIsStopExecutionModalOpen(false);
-                }}
-              >
-                Yes, stop execution
-              </Button>
-              <Button variant="link" onClick={() => setIsStopExecutionModalOpen(false)}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </Modal>
-        </StackItem>
-      )}
-
-      {/* ── Stop analysis action (Analyzing state only) ──────────────── */}
-      {isAnalyzing && (
-        <StackItem>
           <Button
-            variant="danger"
-            isDisabled={!isAgenticAutomationEnabled}
-            onClick={() => setIsStopAnalysisModalOpen(true)}
+            variant="link"
+            onClick={() => { setIsDenyModalOpen(false); setIsDenySelectOpen(false); setDenyReason(''); }}
           >
-            Stop analysis
+            Cancel
           </Button>
-          <Modal
-            variant={ModalVariant.small}
-            isOpen={isStopAnalysisModalOpen}
-            onClose={() => setIsStopAnalysisModalOpen(false)}
-            aria-labelledby="stop-plan-analysis-title"
-          >
-            <ModalHeader title="Stop analysis?" labelId="stop-plan-analysis-title" />
-            <ModalBody>
-              This halts root cause investigation for this run. Partial findings are preserved but no
-              remediation options will be synthesized.
-            </ModalBody>
-            <ModalFooter>
-              <Button
-                variant="danger"
-                onClick={() => {
-                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
-                  setIsStopAnalysisModalOpen(false);
+        </ModalFooter>
+      </Modal>
+
+      <Modal
+        variant={ModalVariant.small}
+        isOpen={isExecuteConfirmModalOpen}
+        onClose={() => setIsExecuteConfirmModalOpen(false)}
+        aria-labelledby="execute-remediation-confirm-title"
+      >
+        <ModalHeader title="Execute remediation?" labelId="execute-remediation-confirm-title" />
+        <ModalBody>
+          <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
+            You&apos;re about to run the automated script for Plan {selectedOptionIndex + 1}:{' '}
+            <span style={{ fontWeight: 600 }}>{selectedOption?.title}</span>.
+          </Content>
+          {selectedOption?.reversible === 'Irreversible' && (
+            <Alert
+              isInline
+              variant="warning"
+              title="This action is irreversible"
+              style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
+            >
+              You will not be able to roll back or automatically undo this remediation once
+              execution begins. Ensure you have taken a full cluster backup if required.
+            </Alert>
+          )}
+          <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', marginBottom: 'var(--pf-t--global--spacer--xs)' }}>
+            OpenShift Lightspeed uses AI technology to help generate this remediation plan.
+          </Content>
+          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapXs' }}>
+            <FlexItem>
+              <InfoCircleIcon
+                style={{
+                  color: 'var(--pf-t--global--icon--color--status--info--default)',
+                  fontSize: '12px',
                 }}
-              >
-                Yes, stop analysis
-              </Button>
-              <Button variant="link" onClick={() => setIsStopAnalysisModalOpen(false)}>
-                Cancel
-              </Button>
-            </ModalFooter>
-          </Modal>
-        </StackItem>
-      )}
-
-      {/* ── Escalate to human action (Failed state only) ──────────────── */}
-      {status === 'Failed' && (
-        <StackItem>
-          <Button variant="secondary" isDisabled={!isAgenticAutomationEnabled}>
-            Escalate to human
+                aria-hidden
+              />
+            </FlexItem>
+            <FlexItem>
+              <Content component="p" style={{ fontSize: '12px', color: 'var(--pf-t--global--text--color--subtle)', margin: 0 }}>
+                Always review AI-generated content prior to use.
+              </Content>
+            </FlexItem>
+          </Flex>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant={selectedOption?.reversible === 'Irreversible' ? 'danger' : 'primary'}
+            isDisabled={!isAgenticAutomationEnabled || isExecutionRunning}
+            isLoading={isExecutionRunning}
+            onClick={() => {
+              setIsExecuteConfirmModalOpen(false);
+              handleExecuteRemediation();
+            }}
+          >
+            Execute remediation
           </Button>
-        </StackItem>
-      )}
+          <Button variant="link" onClick={() => setIsExecuteConfirmModalOpen(false)}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </>
+  );
 
-      {/* ── Section E: Timeline (always last) ────────────────────────── */}
-      <StackItem>
-        <AgenticRunTimeline
-          status={status}
-          createdAt={plan.createdAt}
-          isCapabilitiesDisabled={!isAgenticAutomationEnabled}
+  const meldedTimelineSlots: MeldedTimelineSlots = {
+    analysisPhaseStarted: meldedAnalysisPhaseContent,
+    humanApprovalRequested: isPendingReadyForAnalysis ? undefined : meldedHumanApprovalContent,
+    executionPhaseCompleted: (isVerifying || isTerminal || isEscalating || isEscalated || isEmergencyStopped || isPlanAborted) ? (
+      <ExecutionSummaryCard
+        plan={plan}
+        executionLog={summaryExecutionLog}
+        isExecuting={false}
+        isCompleted
+        selectedOptionTitle={selectedOption?.title}
+        maxAttempts={configMaxRetryAttempts}
+        approval={workflow.executionApproval}
+      />
+    ) : undefined,
+    verificationPhaseStarted: isVerifying ? (
+      isAwaitingVerificationApproval ? undefined : (
+        <VerificationSummaryCard
+          plan={plan}
+          verificationLog={summaryVerificationLog}
+          verification={workflow.verification ?? verificationState}
+          isVerifyingActive
+          isLive={Boolean(workflow.verification) && isAgenticAutomationEnabled}
+          onVerificationComplete={handleVerificationComplete}
+          onVerificationRetry={handleVerificationRetry}
         />
-      </StackItem>
-    </Stack>
+      )
+    ) : undefined,
+    verificationPhaseCompleted: isTerminal ? (
+      <VerificationSummaryCard
+        plan={plan}
+        verificationLog={summaryVerificationLog}
+        verification={workflow.verification ?? verificationState}
+        isVerifyingActive={false}
+        isLive={false}
+      />
+    ) : undefined,
+    escalationPhaseStarted: isEscalating && escalationPolicy === 'auto' ? (
+      <Alert
+        isInline
+        variant="danger"
+        title="Automated remediation retries exhausted"
+      >
+        The autonomous agent failed to resolve this issue after {configMaxRetryAttempts} retry attempt{configMaxRetryAttempts !== 1 ? 's' : ''}.{' '}
+        {escalationPolicy === 'auto'
+          ? 'Routing incident to configured external channels (PagerDuty / ITSM).'
+          : 'Escalation handoff is in progress, and human intervention is now required.'}
+      </Alert>
+    ) : undefined,
+    terminal: (
+      <StatusLabel status={status} terminatedAt={plan.terminatedAt} />
+    ),
+  };
+
+  const agenticRunActionsFooter = !isRunAborted ? (
+    <>
+      <ActionList style={{ '--pf-v6-c-action-list--ColumnGap': 'var(--pf-t--global--spacer--gap--action-to-action--default)' } as React.CSSProperties}>
+        {isClusterUpdatePlan && !(isEscalating && escalationPolicy === 'manual') ? (
+          <ActionListItem>
+            <Button
+              variant="primary"
+              isDisabled={!onRemediateInClusterUpdates}
+              onClick={onRemediateInClusterUpdates}
+            >
+              Go to Cluster Settings
+            </Button>
+          </ActionListItem>
+        ) : isAutomaticPhase ? (
+          <>
+            <ActionListItem>
+              <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                <FlexItem><Spinner size="sm" aria-label="Automatic phase in progress" /></FlexItem>
+                <FlexItem>
+                  <Content component="small" style={{ margin: 0, color: 'var(--pf-t--global--text--color--subtle)' }}>
+                    {isProposed ? 'Executing automatically…' : isVerifying ? 'Verifying automatically…' : 'Processing automatically…'}
+                  </Content>
+                </FlexItem>
+              </Flex>
+            </ActionListItem>
+          </>
+        ) : isPendingReadyForAnalysis ? (
+          <>
+            <ActionListItem>
+              <Button
+                variant="primary"
+                isDisabled={!isAgenticAutomationEnabled}
+                onClick={() => dispatchAnalysis(plan.id)}
+              >
+                Approve analysis
+              </Button>
+            </ActionListItem>
+            <ActionListItem>
+              <Button
+                variant="secondary"
+                isDisabled={!isAgenticAutomationEnabled || !onRejectPlan}
+                onClick={() => setIsDenyModalOpen(true)}
+              >
+                Deny run
+              </Button>
+            </ActionListItem>
+          </>
+        ) : isAwaitingVerificationApproval ? (
+          <>
+            <ActionListItem>
+              <Button
+                variant="primary"
+                isDisabled={!isAgenticAutomationEnabled}
+                onClick={handleApproveVerification}
+              >
+                Approve verification
+              </Button>
+            </ActionListItem>
+            <ActionListItem>
+              <Button
+                variant="link"
+                icon={<RhUiDownloadIcon />}
+                onClick={() => {
+                  if (selectedOption) {
+                    downloadRemediationPlanMarkdown(plan, selectedOption, stickyRootCause);
+                  } else {
+                    downloadAnalysisReportMarkdown(plan, stickyRootCause);
+                  }
+                }}
+              >
+                Download plan
+              </Button>
+            </ActionListItem>
+          </>
+        ) : isEscalating && escalationPolicy === 'manual' ? (
+          <>
+            <ActionListItem>
+              <Button
+                variant="danger"
+                isDisabled={!isAgenticAutomationEnabled}
+                onClick={handleAcknowledgePlan}
+              >
+                Escalate manually
+              </Button>
+            </ActionListItem>
+            <ActionListItem>
+              <Button
+                variant="secondary"
+                isDisabled={!isAgenticAutomationEnabled || !selectedOption}
+                onClick={() => {
+                  if (selectedOption) {
+                    executeRemediation(plan.id, {
+                      optionIndex: selectedOptionIndex,
+                      optionId: selectedOption.id,
+                      optionTitle: selectedOption.title,
+                      maxAttempts: configMaxRetryAttempts,
+                    });
+                  }
+                }}
+              >
+                Retry execution
+              </Button>
+            </ActionListItem>
+          </>
+        ) : isCompleted && plan.id === 'certmgr-renewal-pending' ? (
+          <ActionListItem>
+            <Button
+              variant="link"
+              icon={<RhUiDownloadIcon />}
+              onClick={() => {
+                if (selectedOption) {
+                  downloadRemediationPlanMarkdown(plan, selectedOption, stickyRootCause);
+                }
+              }}
+            >
+              Download plan
+            </Button>
+          </ActionListItem>
+        ) : (
+          <>
+            <ActionListItem>
+              {stickyBarExecuteDisabled ? (
+                <Tooltip content={executeTooltip}>
+                  <span>
+                    <Button variant="primary" isDisabled>Execute remediation</Button>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    if (selectedOption) {
+                      setSelectedOptionId(selectedOption.id);
+                      setIsExecuteConfirmModalOpen(true);
+                    }
+                  }}
+                >
+                  Execute remediation
+                </Button>
+              )}
+            </ActionListItem>
+            <ActionListItem>
+              {stickyBarDenyDisabled ? (
+                <Tooltip content={denyTooltip}>
+                  <span>
+                    <Button variant="secondary" isDisabled>Deny run</Button>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Button variant="secondary" onClick={() => setIsDenyModalOpen(true)}>
+                  Deny run
+                </Button>
+              )}
+            </ActionListItem>
+            <ActionListItem>
+              {stickyDownloadDisabled ? (
+                <Tooltip content={stickyDownloadTooltip}>
+                  <span>
+                    <Button variant="link" icon={<RhUiDownloadIcon />} isDisabled>Download plan</Button>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Button
+                  variant="link"
+                  icon={<RhUiDownloadIcon />}
+                  onClick={() => {
+                    if (selectedOption) {
+                      downloadRemediationPlanMarkdown(plan, selectedOption, stickyRootCause);
+                    } else {
+                      downloadAnalysisReportMarkdown(plan, stickyRootCause);
+                    }
+                  }}
+                >
+                  Download plan
+                </Button>
+              )}
+            </ActionListItem>
+          </>
+        )}
+      </ActionList>
+      <Content component="small" style={{ display: 'block', marginTop: 'var(--pf-t--global--spacer--sm)', color: 'var(--pf-t--global--text--color--subtle)' }}>
+        The autonomous features of OpenShift Lightspeed use AI technology to generate output. Always review AI-generated content prior to use.
+      </Content>
+    </>
+  ) : undefined;
+
+  return (
+    <>
+      <AgenticRunDetailsLayout
+        subheader={
+        <Stack style={{ gap: '24px' }}>
+          <StackItem>
+            <AgenticRunDetailsSectionHeading showAiDisclaimer={isRunAborted} />
+          </StackItem>
+          {isRunAborted ? (
+            <StackItem>
+              <Alert
+                isInline
+                variant="info"
+                title="Analysis stopped"
+                actionLinks={
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={() => {
+                      window.alert('Re-run analysis: In production this patches spec.revisionFeedback on the AgenticRun CR (OLS-3719). Not yet wired in prototype.');
+                    }}
+                  >
+                    Re-run analysis
+                  </Button>
+                }
+              >
+                Analysis was stopped on {plan.terminatedAt ?? '—'} by user {plan.abortedBy ?? 'platform-admin'}.
+              </Alert>
+            </StackItem>
+          ) : null}
+          {isEscalated && (
+            <StackItem>
+              <Alert
+                isInline
+                variant="warning"
+                title="Remediation action required"
+              >
+                Automated execution failed after reaching the maximum retry limit. Manual operator
+                intervention is required to resolve this escalation.
+              </Alert>
+            </StackItem>
+          )}
+          {isDenied && (
+            <StackItem>
+              <DeniedPlanBanner onStartNewInvestigation={isAgenticAutomationEnabled ? onStartNewInvestigation : undefined} />
+            </StackItem>
+          )}
+          {isEmergencyStopped && (
+            <StackItem>
+              <Alert
+                isInline
+                variant="warning"
+                title="Execution halted mid-flight"
+              >
+                This agentic run was stopped while execution was in progress. The cluster may be in a
+                partially modified state. Review the proposed agent commands below and complete or roll
+                back the operation manually during a scheduled maintenance window.
+              </Alert>
+            </StackItem>
+          )}
+        </Stack>
+        }
+        actions={agenticRunActionsFooter}
+      >
+        <Stack style={{ gap: '24px' }}>
+          <StackItem>
+            <AgenticRunTimeline
+              status={status}
+              createdAt={plan.createdAt}
+              retryCount={Math.max(0, (workflow.verification?.attempt ?? 1) - 1)}
+              isCapabilitiesDisabled={!isAgenticAutomationEnabled}
+              isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
+              executionApprovalMode={executionPolicy}
+              isAwaitingVerificationApproval={isAwaitingVerificationApproval}
+              phaseTransitions={runPayload.phaseTransitions}
+              hasEmbeddedExecutionApproval={hasEmbeddedExecutionApproval}
+              manualApprovalPhase={manualApprovalPhase}
+              evidence={timelineEvidence}
+              meldedSlots={meldedTimelineSlots}
+            />
+          </StackItem>
+          {(isPendingReadyForAnalysis || isProposed || isEscalated) && !isAutomaticPhase && (
+            <StackItem>{remediationConfirmModals}</StackItem>
+          )}
+          {isEscalated && (
+            <StackItem>
+              <EscalationSummaryCard
+                plan={plan}
+                escalationLog={summaryEscalationLog}
+                escalationPolicy={escalationPolicy}
+              />
+            </StackItem>
+          )}
+        </Stack>
+      </AgenticRunDetailsLayout>
+
+    </>
   );
 };
 
@@ -4539,9 +7282,30 @@ export function buildPlansForPerspective(
         applyScRemediationPatches(PLAN_REMEDIATION_OPTIONS[row.id] ?? [], row.id, isSingleCluster),
         drawerData?.confidence,
       );
+      const workflowRecord = workflowByPlanId[row.id];
+      const transitionDetails = {
+        selectedPlanName: workflowRecord?.executionApproval?.optionTitle
+          ?? remediationOptions[0]?.title
+          ?? PLAN_EXECUTION_SUMMARY[row.id]?.mockAudit?.selectedOptionTitle,
+        executionApprovalMode: workflowRecord?.executionApproval?.approvalMode,
+        executionApproverId: workflowRecord?.executionApproval?.approverId,
+        verificationApproved: Boolean(workflowRecord?.verification)
+          && !workflowRecord?.verificationApprovalPending
+          && !workflowRecord?.verification?.requiresNewApproval,
+        verificationApprovalMode: workflowRecord?.verification?.approvalMode,
+        verificationApproverId: workflowRecord?.verification?.approverId,
+      };
       const baseRow: PlanRow = {
         ...normalizedRow,
         status: normalizePlanStatus(normalizedRow.status),
+        agenticRun: buildAgenticRunPayload(
+          normalizePlanStatus(normalizedRow.status),
+          normalizedRow.agenticRun,
+          runtime.approvalPolicy,
+          runtime.maxRetryAttempts,
+          transitionDetails,
+        ),
+        proposedVerificationScript: buildProposedVerificationScript(normalizedRow),
         name: identity?.name ?? row.id,
         synopsis: identity?.synopsis ?? normalizedRow.synopsis,
         namespace: identity?.namespace,
@@ -4549,6 +7313,8 @@ export function buildPlansForPerspective(
         cluster: isSingleCluster
           ? CORE_PLATFORMS_CLUSTER_ID
           : identity?.fleetCluster ?? normalizedRow.drawerTargets[0] ?? '—',
+        clusterName: assignAgenticRunTargetCluster(row.id),
+        targetCluster: assignAgenticRunTargetCluster(row.id),
         scope: isSingleCluster
           ? identity?.namespace ?? '—'
           : identity?.fleetCluster ?? normalizedRow.drawerTargets[0] ?? '—',
@@ -4565,26 +7331,42 @@ export function buildPlansForPerspective(
             severity: normalizedRow.severity,
             namespace: identity?.namespace,
             triggerDomain: normalizedRow.triggerDomain,
+            alertName: getAlertInvestigationPrimaryAlertName(row.id),
           }),
       };
 
+      let resolvedRow: PlanRow = baseRow;
+
       if (abortedPlans[row.id]) {
-        return {
+        const abortEntry = abortedPlans[row.id];
+        // 'analysis' phase abort → analysis was stopped before execution began → 'Run aborted'
+        // 'execution' phase abort → execution was halted mid-flight → 'Plan aborted'
+        const abortStatus = abortEntry.phase === 'analysis' ? 'Run aborted' : 'Plan aborted';
+        resolvedRow = {
           ...baseRow,
-          status: 'Plan aborted',
-          terminatedAt: abortedPlans[row.id].terminatedAt,
+          status: abortStatus,
+          agenticRun: buildAgenticRunPayload(abortStatus, baseRow.agenticRun, undefined, undefined, transitionDetails),
+          terminatedAt: abortEntry.terminatedAt,
         };
+      } else {
+        const workflowPhase = workflowByPlanId[row.id]?.runtimePhase;
+        if (workflowPhase) {
+          resolvedRow = {
+            ...baseRow,
+            status: workflowPhase,
+            agenticRun: buildAgenticRunPayload(workflowPhase, baseRow.agenticRun, undefined, undefined, transitionDetails),
+          };
+        }
       }
 
-      const workflowPhase = workflowByPlanId[row.id]?.runtimePhase;
-      if (workflowPhase) {
-        return {
-          ...baseRow,
-          status: workflowPhase,
-        };
-      }
-
-      return baseRow;
+      return {
+        ...resolvedRow,
+        deletionTime: resolvePlanDeletionTime(
+          resolvedRow.status,
+          resolvedRow.createdAt,
+          normalizedRow.deletionTime,
+        ),
+      };
     });
 }
 

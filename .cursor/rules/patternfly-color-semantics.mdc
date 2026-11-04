@@ -1,0 +1,49 @@
+---
+description: PatternFly color associations and status semantics for UI components
+alwaysApply: true
+---
+
+# PatternFly Color Semantics (PF 6.x)
+
+Reference: https://www.patternfly.org/ai/guidelines/color/#color-associations-and-statuses
+
+Always apply these color associations when choosing Label colors, status indicators, icons, and severity styling:
+
+| Meaning              | Color token / PF color | Use case                                          |
+|----------------------|------------------------|---------------------------------------------------|
+| Success / Ready      | `green`                | Fully enabled, healthy, action succeeded          |
+| Neutral / N/A        | `grey`                 | Unavailable, not installed, no severity           |
+| Info / Note          | `purple`               | Helpful information, previously-visited links     |
+| Warning              | `yellow` / `gold`      | Act now to avoid error — non-critical             |
+| Caution              | `orange`               | Non-destructive fixable error                     |
+| Danger / Critical    | `red`                  | Destructive action, critical error, degraded      |
+| Link / Interaction   | blue (default PF link) | Buttons, links, interactive elements              |
+
+## Rules
+
+- ✅ Use `color="green"` + `CheckCircleIcon` for Ready / Fully enabled / Success states.
+- ✅ Use `color="grey"` for Not installed, unavailable, or neutral states — **not** `gold`/`yellow`.
+- ✅ Use `color="red"` + `ExclamationCircleIcon` for Degraded / Critical / Danger states.
+- ✅ Use `color="gold"` or `color="orange"` **only** for Warning / Caution states that require user action to avoid an error.
+- ❌ Never use `color="gold"` for "Partial setup" — that is a neutral/grey state (configuration incomplete, not a warning).
+- ❌ Never use red/orange/yellow for informational or "not yet installed" states.
+- ❌ Never use color to indicate AI features — AI uses the same colors as the rest of the interface.
+
+## Label examples
+
+```tsx
+// ✅ Ready / fully enabled
+<Label color="green" icon={<CheckCircleIcon />}>Ready</Label>
+
+// ✅ Not installed (neutral)
+<Label color="grey">Not installed</Label>
+
+// ✅ Partial setup (neutral — configuration incomplete, not an error)
+<Label color="grey">Partial setup</Label>
+
+// ✅ Degraded / critical
+<Label color="red" icon={<ExclamationCircleIcon />}>Degraded</Label>
+
+// ✅ Warning — user must act to avoid failure
+<Label color="gold" icon={<ExclamationTriangleIcon />}>Needs attention</Label>
+```

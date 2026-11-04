@@ -5,20 +5,20 @@ import {
   BreadcrumbItem,
   Flex,
   FlexItem,
-  Label,
   Title,
 } from '@patternfly/react-core';
 import { useActivePerspective } from '@app/shared/contexts/ActivePerspectiveContext';
 import {
   buildPlansForPerspective,
-  NamespaceResourceLink,
   PlanResourceBadge,
   RemediationBlueprintPanel,
   StatusLabel,
   WaitingApprovalPlanMeta,
   type PlanRow,
 } from '../ai-hub-plans-v2/PlansAndApprovalsTab';
+import { withAgenticRunTargetCluster } from '../ai-hub-plans-v2/PlansFilterToolbar';
 import { AgenticKillSwitchBanner } from '../../components/AgenticKillSwitchBanner';
+import { AgenticRunDetailMetadataLabels } from '../../components/AgenticRunDetailMetadataLabels';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
 import {
   buildPrototypeHref,
@@ -30,6 +30,7 @@ import {
 } from '../v2PlanRemediationDrillSession';
 import { resolvePlanDomainAnnotations } from '../ai-hub-plans-v2/domainPlanNavigation';
 import { usePlanBuildRuntime } from '../../hooks/usePlanBuildRuntime';
+import { usePlanWorkflow } from '../../context/PlanWorkflowContext';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { DEFAULT_PROTOTYPE_PERSPECTIVE } from '../../prototypePerspectiveUrl';
 import '../ai-hub-page.css';
@@ -54,6 +55,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
     : activePerspective === 'Core platforms';
 
   const planExecutionRuntime = usePlanBuildRuntime();
+  const { getPlanWorkflow } = usePlanWorkflow();
   const navigationState = location.state as TroubleshootingPlanDetailLocationState | null;
 
   /** Local denial override — transitions a Proposed plan to Denied without mutating mock data. */
@@ -63,14 +65,23 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
     setLocallyDenied(false);
   }, [planId]);
 
+  /**
+   * Tracks whether RemediationBlueprintPanel is in its 5-second INITIALIZING phase.
+   * Driven by the panel's onPendingInitializingChange callback — no duplicated timer needed.
+   * Full-width layout only during INITIALIZING; READY_FOR_ANALYSIS uses the default 60% CSS width.
+   */
+  const [isInitializingPhase, setIsInitializingPhase] = useState(false);
+
   const plan = useMemo(() => {
     if (!planId) return null;
     const decoded = decodeURIComponent(planId);
     const catalogPlan = buildPlansForPerspective(isSingleCluster, planExecutionRuntime).find(
-      (p) => p.id === decoded,
+      (p) => p.id === decoded || p.name === decoded,
     );
-    if (catalogPlan) return catalogPlan;
-    if (navigationState?.plan?.id === decoded) return navigationState.plan;
+    if (catalogPlan) return withAgenticRunTargetCluster(catalogPlan);
+    if (navigationState?.plan?.id === decoded || navigationState?.plan?.name === decoded) {
+      return withAgenticRunTargetCluster(navigationState.plan);
+    }
     return null;
   }, [isSingleCluster, navigationState?.plan, planExecutionRuntime, planId]);
 
@@ -114,6 +125,18 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
   const effectivePlan: PlanRow = locallyDenied
     ? { ...plan, status: 'Denied' as PlanRow['status'] }
     : plan;
+  const workflow = getPlanWorkflow(effectivePlan.id);
+  const currentStatus = effectivePlan.status === 'Denied'
+    ? effectivePlan.status
+    : workflow.runtimePhase ?? effectivePlan.status;
+  const verificationApprovalGateReached = currentStatus === 'Verifying'
+    && (
+      workflow.verificationApprovalPending
+      || (
+        effectivePlan.agenticRun?.phase.name === 'Verification'
+        && effectivePlan.agenticRun.phase.approvalGateReached
+      )
+    );
 
   const planDisplayName = plan.name ?? plan.id;
 
@@ -149,14 +172,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
                 </FlexItem>
               </Flex>
             </FlexItem>
-            {plan.namespace ? (
-              <FlexItem>
-                <NamespaceResourceLink name={plan.namespace} />
-              </FlexItem>
-            ) : null}
-            <FlexItem>
-              <Label color="grey" variant="outline" isCompact>Trigger domain: {plan.triggerDomain}</Label>
-            </FlexItem>
+            <AgenticRunDetailMetadataLabels plan={plan} />
           </Flex>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
@@ -165,7 +181,11 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
             style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
           >
             <FlexItem>
-              <StatusLabel status={effectivePlan.status} terminatedAt={effectivePlan.terminatedAt} />
+              <StatusLabel
+                status={currentStatus}
+                terminatedAt={effectivePlan.terminatedAt}
+                displayTextOverride={verificationApprovalGateReached ? 'Verification phase' : undefined}
+              />
             </FlexItem>
           </Flex>
           <div style={{ marginTop: 'var(--pf-t--global--spacer--xs)' }}>
@@ -182,7 +202,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
       >
         <div
           className="ols-plan-remediation-drilldown"
-          style={effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
+          style={isInitializingPhase && effectivePlan.status === 'Pending' ? { width: '100%' } : undefined}
         >
           <AgenticKillSwitchBanner />
           <RemediationBlueprintPanel
@@ -190,6 +210,7 @@ export const TroubleshootingPlanDetailV2: React.FC = () => {
             plan={effectivePlan}
             onRejectPlan={plan.status === 'Proposed' ? () => setLocallyDenied(true) : undefined}
             onStartNewInvestigation={navigateBackToPlans}
+            onPendingInitializingChange={setIsInitializingPhase}
           />
         </div>
       </div>
