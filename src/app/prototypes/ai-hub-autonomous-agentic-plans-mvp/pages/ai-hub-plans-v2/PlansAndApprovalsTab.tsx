@@ -73,6 +73,8 @@ import {
 import {
   AGENTIC_STATUS_FILTER_OPTIONS,
   PlansFilterToolbar,
+  type PlanStatusFilterValue,
+  type PlanStatusFilterResolver,
   resolveDisplayDomain,
   usePlansFilterState,
 } from './PlansFilterToolbar';
@@ -3312,7 +3314,7 @@ const STATUS_DISPLAY_TEXT: Partial<Record<PlanStatus, string>> = {
   'Plan aborted':     'Execution stopped',
   'Proposed':         'Execution phase',
   'Verifying':        'Verifying',
-  'Escalating':       'Escalation phase',
+  'Escalating':       'Escalating',
 };
 
 const STATUS_ICON_ROW_STYLE: React.CSSProperties = {
@@ -3918,6 +3920,9 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
             {(() => {
               const workflow = getPlanWorkflow(row.id);
               const analysisApprovalGateReached = row.status === 'Pending' && workflow.analysisApprovalGateReached;
+              const executionApprovalGateReached = row.status === 'Proposed'
+                && row.agenticRun?.phase.name === 'Execution'
+                && row.agenticRun.phase.approvalGateReached;
               const verificationApprovalGateReached = row.status === 'Verifying'
                 && (
                   workflow.verificationApprovalPending
@@ -3926,24 +3931,34 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
                     && row.agenticRun.phase.approvalGateReached
                   )
                 );
+              const escalationApprovalGateReached = row.status === 'Escalating'
+                && row.agenticRun?.phase.name === 'Escalation'
+                && row.agenticRun.phase.approvalGateReached;
               const awaitingApprovalPhase = analysisApprovalGateReached
                 ? 'Analysis'
-                : verificationApprovalGateReached
-                  ? 'Verification'
-                : row.agenticRun?.phase.approvalGateReached
-                  ? row.agenticRun.phase.name
-                  : undefined;
+                : executionApprovalGateReached
+                  ? 'Execution'
+                  : verificationApprovalGateReached
+                    ? 'Verification'
+                    : escalationApprovalGateReached
+                      ? 'Escalation'
+                      : undefined;
+              const displayTextOverride = analysisApprovalGateReached
+                ? 'Analysis phase'
+                : executionApprovalGateReached
+                  ? 'Execution phase'
+                  : verificationApprovalGateReached
+                    ? 'Verification phase'
+                    : escalationApprovalGateReached
+                      ? 'Escalation phase'
+                      : undefined;
               return (
             <StatusLabel
               status={row.status}
               terminatedAt={row.terminatedAt}
               awaitingApprovalPhase={awaitingApprovalPhase}
               displayStatus={analysisApprovalGateReached ? 'Analyzing' : undefined}
-              displayTextOverride={analysisApprovalGateReached
-                ? 'Analysis phase'
-                : verificationApprovalGateReached
-                  ? 'Verification phase'
-                  : undefined}
+              displayTextOverride={displayTextOverride}
             />
               );
             })()}
@@ -4000,15 +4015,50 @@ const PlansTable: React.FC<PlansTableProps> = ({
   isAgenticAutomationEnabled,
 }) => {
   const { isMultiClusterMode } = useMulticlusterDevMode();
+  const { getPlanWorkflow } = usePlanWorkflow();
   const showTargetClusterColumn = isMultiClusterMode;
   const clusterFilterOptions = useMemo(
     () => [...new Set(rows.map((row) => row.clusterName ?? row.targetCluster ?? assignAgenticRunTargetCluster(row.id)))].sort(),
     [rows],
   );
+  const resolveStatusFilter = useCallback<PlanStatusFilterResolver>((row): PlanStatusFilterValue => {
+    const workflow = getPlanWorkflow(row.id);
+    if (row.status === 'Pending' && workflow.analysisApprovalGateReached) {
+      return 'AnalysisPhase';
+    }
+    if (
+      row.status === 'Proposed'
+      && row.agenticRun?.phase.name === 'Execution'
+      && row.agenticRun.phase.approvalGateReached
+    ) {
+      return 'ExecutionPhase';
+    }
+    if (
+      row.status === 'Verifying'
+      && (
+        workflow.verificationApprovalPending
+        || (
+          row.agenticRun?.phase.name === 'Verification'
+          && row.agenticRun.phase.approvalGateReached
+        )
+      )
+    ) {
+      return 'VerificationPhase';
+    }
+    if (
+      row.status === 'Escalating'
+      && row.agenticRun?.phase.name === 'Escalation'
+      && row.agenticRun.phase.approvalGateReached
+    ) {
+      return 'EscalationPhase';
+    }
+    return row.status;
+  }, [getPlanWorkflow]);
   const plansFilter = usePlansFilterState({
     includeTriggerDomainFilter: true,
     includeClusterFilter: isMultiClusterMode,
     mapObservabilityDomains: true,
+    resolveStatusFilter,
   });
   const colVis = usePlansColumnVisibility('ols-agentic-plans-col-visibility');
 
@@ -4144,6 +4194,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
         includeClusterFilter={isMultiClusterMode}
         clusterFilterOptions={clusterFilterOptions}
         rows={rows}
+        resolveStatusFilter={resolveStatusFilter}
         pagination={<Pagination isCompact {...paginationProps} style={{ margin: 0 }} />}
         columnManagementControl={
           <Tooltip content="Manage columns">

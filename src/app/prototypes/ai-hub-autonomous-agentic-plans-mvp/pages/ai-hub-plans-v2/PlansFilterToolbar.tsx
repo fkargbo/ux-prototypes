@@ -19,21 +19,27 @@ import { assignAgenticRunTargetCluster } from './agenticRunTargetClusters';
 
 export type PlansSearchCategory = 'name';
 
-export const AGENTIC_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['status'] }[] = [
-  { label: 'Pending',           value: 'Pending' },
-  { label: 'Analyzing',         value: 'Analyzing' },
-  { label: 'Execution phase',   value: 'Proposed' },
-  { label: 'Executing',         value: 'Executing' },
-  { label: 'Verification phase', value: 'Verifying' },
+export type AgenticPhaseFilterValue = 'AnalysisPhase' | 'ExecutionPhase' | 'VerificationPhase' | 'EscalationPhase';
+export type PlanStatusFilterValue = PlanRow['status'] | AgenticPhaseFilterValue;
+
+export const AGENTIC_STATUS_FILTER_OPTIONS: { label: string; value: PlanStatusFilterValue }[] = [
+  { label: 'Pending',            value: 'Pending' },
+  { label: 'Analysis phase',     value: 'AnalysisPhase' },
+  { label: 'Analyzing',          value: 'Analyzing' },
+  { label: 'Execution phase',   value: 'ExecutionPhase' },
+  { label: 'Executing',          value: 'Executing' },
+  { label: 'Verification phase', value: 'VerificationPhase' },
+  { label: 'Verifying',          value: 'Verifying' },
   { label: 'Completed',         value: 'Completed' },
   { label: 'Failed',            value: 'Failed' },
   { label: 'Denied',            value: 'Denied' },
-  { label: 'Escalation phase',  value: 'Escalating' },
+  { label: 'Escalation phase',  value: 'EscalationPhase' },
+  { label: 'Escalating',        value: 'Escalating' },
   { label: 'Escalated',         value: 'Escalated' },
   { label: 'Emergency stopped', value: 'EmergencyStopped' },
 ];
 
-export const TROUBLESHOOTING_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['status'] }[] = [
+export const TROUBLESHOOTING_STATUS_FILTER_OPTIONS: { label: string; value: PlanStatusFilterValue }[] = [
   { label: 'Analyzing',         value: 'Analyzing' },
   { label: 'Execution phase',   value: 'Proposed' },
   { label: 'Executing',         value: 'Executing' },
@@ -76,6 +82,10 @@ const FILTER_SECTION_TITLE_STYLE: React.CSSProperties = {
   color: 'var(--pf-t--global--text--color--subtle)',
 };
 
+export type PlanStatusFilterResolver = (plan: PlanRow) => PlanStatusFilterValue;
+
+const resolveDefaultStatusFilter: PlanStatusFilterResolver = (plan) => plan.status;
+
 function planMatchesTextSearch(plan: PlanRow, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) {
@@ -86,14 +96,15 @@ function planMatchesTextSearch(plan: PlanRow, query: string): boolean {
 
 function planMatchesAttributeFilters(
   plan: PlanRow,
-  statusFilters: PlanRow['status'][],
+  statusFilters: PlanStatusFilterValue[],
   triggerDomainFilters: string[],
   clusterFilters: string[],
   includeTriggerDomainFilter: boolean,
   includeClusterFilter: boolean,
   mapObservabilityDomains: boolean,
+  resolveStatusFilter: PlanStatusFilterResolver,
 ): boolean {
-  if (statusFilters.length > 0 && !statusFilters.includes(plan.status)) {
+  if (statusFilters.length > 0 && !statusFilters.includes(resolveStatusFilter(plan))) {
     return false;
   }
   if (includeClusterFilter && clusterFilters.length > 0) {
@@ -140,15 +151,17 @@ export function withAgenticRunTargetCluster(plan: PlanRow): PlanRow {
 export function filterPlanRows(
   rows: PlanRow[],
   options: {
-    statusFilters: PlanRow['status'][];
+    statusFilters: PlanStatusFilterValue[];
     triggerDomainFilters: string[];
     clusterFilters: string[];
     includeTriggerDomainFilter: boolean;
     includeClusterFilter: boolean;
     mapObservabilityDomains: boolean;
     searchInputValue: string;
+    resolveStatusFilter?: PlanStatusFilterResolver;
   },
 ): PlanRow[] {
+  const resolveStatusFilter = options.resolveStatusFilter ?? resolveDefaultStatusFilter;
   return rows.filter((plan) => {
     if (
       !planMatchesAttributeFilters(
@@ -159,6 +172,7 @@ export function filterPlanRows(
         options.includeTriggerDomainFilter,
         options.includeClusterFilter,
         options.mapObservabilityDomains,
+        resolveStatusFilter,
       )
     ) {
       return false;
@@ -174,14 +188,17 @@ export interface UsePlansFilterStateOptions {
   /** When true, granular observability telemetry domains (Prometheus, Thanos, etc.)
    *  are coalesced to "Observability" for filtering. Use in fleet/Agentic Plans view. */
   mapObservabilityDomains?: boolean;
+  /** Resolves live workflow state used by status matching and option counts. */
+  resolveStatusFilter?: PlanStatusFilterResolver;
 }
 
 export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
   const includeTriggerDomainFilter = options.includeTriggerDomainFilter ?? false;
   const includeClusterFilter = options.includeClusterFilter ?? false;
   const mapObservabilityDomains = options.mapObservabilityDomains ?? false;
+  const resolveStatusFilter = options.resolveStatusFilter ?? resolveDefaultStatusFilter;
 
-  const [statusFilters, setStatusFilters] = useState<PlanRow['status'][]>([]);
+  const [statusFilters, setStatusFilters] = useState<PlanStatusFilterValue[]>([]);
   const [triggerDomainFilters, setTriggerDomainFilters] = useState<string[]>([]);
   const [clusterFilters, setClusterFilters] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
@@ -223,12 +240,14 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
         includeClusterFilter,
         mapObservabilityDomains,
         searchInputValue,
+        resolveStatusFilter,
       }),
     [
       clusterFilters,
       includeClusterFilter,
       includeTriggerDomainFilter,
       mapObservabilityDomains,
+      resolveStatusFilter,
       searchInputValue,
       statusFilters,
       triggerDomainFilters,
@@ -256,7 +275,7 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
 
 export interface PlansFilterToolbarProps {
   filterAriaLabel: string;
-  statusOptions: { label: string; value: PlanRow['status'] }[];
+  statusOptions: { label: string; value: PlanStatusFilterValue }[];
   includeTriggerDomainFilter?: boolean;
   /** Hub multicluster filter section (HPUX-2155). */
   includeClusterFilter?: boolean;
@@ -266,10 +285,12 @@ export interface PlansFilterToolbarProps {
   triggerDomainOptions?: readonly string[];
   /** Full unfiltered row set — used to compute per-option counts in the filter dropdowns. */
   rows?: PlanRow[];
+  /** Resolves live workflow state used by status matching and option counts. */
+  resolveStatusFilter?: PlanStatusFilterResolver;
   pagination?: React.ReactNode;
   /** Optional control rendered after the search input — e.g. a column management button. */
   columnManagementControl?: React.ReactNode;
-  statusFilters: PlanRow['status'][];
+  statusFilters: PlanStatusFilterValue[];
   triggerDomainFilters: string[];
   clusterFilters: string[];
   filterMenuOpen: boolean;
@@ -280,7 +301,7 @@ export interface PlansFilterToolbarProps {
   clearAllFilters: () => void;
   activeFilterCount: number;
   hasActiveFilters: boolean;
-  setStatusFilters: React.Dispatch<React.SetStateAction<PlanRow['status'][]>>;
+  setStatusFilters: React.Dispatch<React.SetStateAction<PlanStatusFilterValue[]>>;
   setTriggerDomainFilters: React.Dispatch<React.SetStateAction<string[]>>;
   setClusterFilters: React.Dispatch<React.SetStateAction<string[]>>;
 }
@@ -295,6 +316,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   pagination,
   columnManagementControl,
   rows = [],
+  resolveStatusFilter = resolveDefaultStatusFilter,
   statusFilters,
   triggerDomainFilters,
   clusterFilters,
@@ -314,10 +336,11 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   const countsByStatus = useMemo<Record<string, number>>(() => {
     const counts: Record<string, number> = {};
     for (const row of rows) {
-      counts[row.status] = (counts[row.status] ?? 0) + 1;
+      const status = resolveStatusFilter(row);
+      counts[status] = (counts[status] ?? 0) + 1;
     }
     return counts;
-  }, [rows]);
+  }, [resolveStatusFilter, rows]);
 
   /** Count of runs per trigger domain (after macro-category mapping) across the full dataset. */
   const countsByDomain = useMemo<Record<string, number>>(() => {
@@ -346,7 +369,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
         return;
       }
       if (statusOptions.some((opt) => opt.value === value)) {
-        toggleFilterValue(value as PlanRow['status'], setStatusFilters);
+        toggleFilterValue(value as PlanStatusFilterValue, setStatusFilters);
         return;
       }
       if (includeTriggerDomainFilter && (triggerDomainOptions as readonly string[]).includes(value)) {
@@ -370,7 +393,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
     ],
   );
 
-  const statusFilterLabel = (value: PlanRow['status']) =>
+  const statusFilterLabel = (value: PlanStatusFilterValue) =>
     statusOptions.find((opt) => opt.value === value)?.label ?? value;
 
   /** "/" keyboard shortcut — focuses the search field, mirroring the console's global search convention. */
