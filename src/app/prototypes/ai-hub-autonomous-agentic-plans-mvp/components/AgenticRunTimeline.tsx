@@ -136,7 +136,11 @@ const ManualApprovalNotice: React.FC<{ phaseName: string }> = ({ phaseName }) =>
 };
 
 const PhaseTransitionMetadata: React.FC<{ transition: PhaseTransitionApproval; isExecution: boolean }> = ({ transition, isExecution }) => (
-  <DescriptionList isHorizontal isCompact horizontalTermWidthModifier={{ default: '15ch' }}>
+  <DescriptionList
+    isHorizontal
+    isCompact
+    horizontalTermWidthModifier={{ default: 'max-content' }}
+  >
     <DescriptionListGroup>
       <DescriptionListTerm>Approved by</DescriptionListTerm>
       <DescriptionListDescription>{transition.approverId}</DescriptionListDescription>
