@@ -2,8 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Badge,
   Button,
-  Flex,
-  FlexItem,
+  Checkbox,
   Label,
   LabelGroup,
   MenuToggle,
@@ -12,6 +11,10 @@ import {
   SelectList,
   SelectOption,
   TextInput,
+  Toolbar,
+  ToolbarContent,
+  ToolbarFilter,
+  ToolbarItem,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import type { PlanRow } from './PlansAndApprovalsTab';
@@ -21,6 +24,19 @@ export type PlansSearchCategory = 'name';
 
 export type AgenticPhaseFilterValue = 'AnalysisPhase' | 'ExecutionPhase' | 'VerificationPhase' | 'EscalationPhase';
 export type PlanStatusFilterValue = PlanRow['status'] | AgenticPhaseFilterValue;
+
+const AWAITING_APPROVAL_PHASE_FILTER_VALUES = new Set<AgenticPhaseFilterValue>([
+  'AnalysisPhase',
+  'ExecutionPhase',
+  'VerificationPhase',
+  'EscalationPhase',
+]);
+
+export function isAwaitingApprovalPhaseFilterValue(
+  value: PlanStatusFilterValue,
+): value is AgenticPhaseFilterValue {
+  return AWAITING_APPROVAL_PHASE_FILTER_VALUES.has(value as AgenticPhaseFilterValue);
+}
 
 export const AGENTIC_STATUS_FILTER_OPTIONS: { label: string; value: PlanStatusFilterValue }[] = [
   { label: 'Pending',            value: 'Pending' },
@@ -82,9 +98,9 @@ const FILTER_SECTION_TITLE_STYLE: React.CSSProperties = {
   color: 'var(--pf-t--global--text--color--subtle)',
 };
 
-export type PlanStatusFilterResolver = (plan: PlanRow) => PlanStatusFilterValue;
+export type PlanStatusFilterResolver = (plan: PlanRow) => PlanStatusFilterValue[];
 
-const resolveDefaultStatusFilter: PlanStatusFilterResolver = (plan) => plan.status;
+const resolveDefaultStatusFilter: PlanStatusFilterResolver = (plan) => [plan.status];
 
 function planMatchesTextSearch(plan: PlanRow, query: string): boolean {
   const q = query.trim().toLowerCase();
@@ -104,7 +120,8 @@ function planMatchesAttributeFilters(
   mapObservabilityDomains: boolean,
   resolveStatusFilter: PlanStatusFilterResolver,
 ): boolean {
-  if (statusFilters.length > 0 && !statusFilters.includes(resolveStatusFilter(plan))) {
+  const resolvedStatuses = resolveStatusFilter(plan);
+  if (statusFilters.length > 0 && !statusFilters.some((status) => resolvedStatuses.includes(status))) {
     return false;
   }
   if (includeClusterFilter && clusterFilters.length > 0) {
@@ -122,6 +139,10 @@ function planMatchesAttributeFilters(
     }
   }
   return true;
+}
+
+function planIsAwaitingApproval(plan: PlanRow, resolveStatusFilter: PlanStatusFilterResolver): boolean {
+  return resolveStatusFilter(plan).some(isAwaitingApprovalPhaseFilterValue);
 }
 
 export function resolvePlanTargetCluster(plan: PlanRow): string {
@@ -159,6 +180,7 @@ export function filterPlanRows(
     mapObservabilityDomains: boolean;
     searchInputValue: string;
     resolveStatusFilter?: PlanStatusFilterResolver;
+    awaitingApprovalOnly?: boolean;
   },
 ): PlanRow[] {
   const resolveStatusFilter = options.resolveStatusFilter ?? resolveDefaultStatusFilter;
@@ -175,6 +197,9 @@ export function filterPlanRows(
         resolveStatusFilter,
       )
     ) {
+      return false;
+    }
+    if (options.awaitingApprovalOnly && !planIsAwaitingApproval(plan, resolveStatusFilter)) {
       return false;
     }
     return planMatchesTextSearch(plan, options.searchInputValue);
@@ -199,6 +224,7 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
   const resolveStatusFilter = options.resolveStatusFilter ?? resolveDefaultStatusFilter;
 
   const [statusFilters, setStatusFilters] = useState<PlanStatusFilterValue[]>([]);
+  const [awaitingApprovalOnly, setAwaitingApprovalOnly] = useState(false);
   const [triggerDomainFilters, setTriggerDomainFilters] = useState<string[]>([]);
   const [clusterFilters, setClusterFilters] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
@@ -210,6 +236,7 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
 
   const clearAllFilters = useCallback(() => {
     setStatusFilters([]);
+    setAwaitingApprovalOnly(false);
     setTriggerDomainFilters([]);
     setClusterFilters([]);
     setSearchInputValue('');
@@ -217,6 +244,9 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
 
   const activeFilterCount = useMemo(() => {
     let count = statusFilters.length;
+    if (awaitingApprovalOnly) {
+      count += 1;
+    }
     if (includeTriggerDomainFilter) {
       count += triggerDomainFilters.length;
     }
@@ -224,7 +254,7 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
       count += clusterFilters.length;
     }
     return count;
-  }, [clusterFilters.length, includeClusterFilter, includeTriggerDomainFilter, statusFilters.length, triggerDomainFilters.length]);
+  }, [awaitingApprovalOnly, clusterFilters.length, includeClusterFilter, includeTriggerDomainFilter, statusFilters.length, triggerDomainFilters.length]);
 
   const hasActiveAttributeFilters = activeFilterCount > 0;
   const hasActiveTextSearch = searchInputValue.trim().length > 0;
@@ -241,9 +271,11 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
         mapObservabilityDomains,
         searchInputValue,
         resolveStatusFilter,
+        awaitingApprovalOnly,
       }),
     [
       clusterFilters,
+      awaitingApprovalOnly,
       includeClusterFilter,
       includeTriggerDomainFilter,
       mapObservabilityDomains,
@@ -257,6 +289,8 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
   return {
     statusFilters,
     setStatusFilters,
+    awaitingApprovalOnly,
+    setAwaitingApprovalOnly,
     triggerDomainFilters,
     setTriggerDomainFilters,
     clusterFilters,
@@ -291,6 +325,7 @@ export interface PlansFilterToolbarProps {
   /** Optional control rendered after the search input — e.g. a column management button. */
   columnManagementControl?: React.ReactNode;
   statusFilters: PlanStatusFilterValue[];
+  awaitingApprovalOnly: boolean;
   triggerDomainFilters: string[];
   clusterFilters: string[];
   filterMenuOpen: boolean;
@@ -302,6 +337,7 @@ export interface PlansFilterToolbarProps {
   activeFilterCount: number;
   hasActiveFilters: boolean;
   setStatusFilters: React.Dispatch<React.SetStateAction<PlanStatusFilterValue[]>>;
+  setAwaitingApprovalOnly: React.Dispatch<React.SetStateAction<boolean>>;
   setTriggerDomainFilters: React.Dispatch<React.SetStateAction<string[]>>;
   setClusterFilters: React.Dispatch<React.SetStateAction<string[]>>;
 }
@@ -318,6 +354,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   rows = [],
   resolveStatusFilter = resolveDefaultStatusFilter,
   statusFilters,
+  awaitingApprovalOnly,
   triggerDomainFilters,
   clusterFilters,
   filterMenuOpen,
@@ -329,6 +366,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   activeFilterCount,
   hasActiveFilters,
   setStatusFilters,
+  setAwaitingApprovalOnly,
   setTriggerDomainFilters,
   setClusterFilters,
 }) => {
@@ -336,10 +374,23 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   const countsByStatus = useMemo<Record<string, number>>(() => {
     const counts: Record<string, number> = {};
     for (const row of rows) {
-      const status = resolveStatusFilter(row);
-      counts[status] = (counts[status] ?? 0) + 1;
+      for (const status of resolveStatusFilter(row)) {
+        counts[status] = (counts[status] ?? 0) + 1;
+      }
     }
     return counts;
+  }, [resolveStatusFilter, rows]);
+
+  const awaitingApprovalStatusValues = useMemo(() => {
+    const values = new Set<AgenticPhaseFilterValue>();
+    for (const row of rows) {
+      for (const status of resolveStatusFilter(row)) {
+        if (isAwaitingApprovalPhaseFilterValue(status)) {
+          values.add(status);
+        }
+      }
+    }
+    return values;
   }, [resolveStatusFilter, rows]);
 
   /** Count of runs per trigger domain (after macro-category mapping) across the full dataset. */
@@ -396,6 +447,11 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   const statusFilterLabel = (value: PlanStatusFilterValue) =>
     statusOptions.find((opt) => opt.value === value)?.label ?? value;
 
+  const isAwaitingApprovalActive = awaitingApprovalOnly;
+  const deleteAwaitingApprovalChip = useCallback(() => {
+    setAwaitingApprovalOnly(false);
+  }, [setAwaitingApprovalOnly]);
+
   /** "/" keyboard shortcut — focuses the search field, mirroring the console's global search convention. */
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -421,15 +477,12 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
 
   return (
     <>
-      <Flex
-        alignItems={{ default: 'alignItemsCenter' }}
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        flexWrap={{ default: 'nowrap' }}
+      <Toolbar
         className="ols-ai-hub-plans-toolbar"
+        clearAllFilters={clearAllFilters}
       >
-        <FlexItem style={{ minWidth: 0 }}>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-            <FlexItem>
+        <ToolbarContent rowWrap={{ default: 'nowrap' }} alignItems="center">
+          <ToolbarItem>
               <Select
                 aria-label={filterAriaLabel}
                 role="menu"
@@ -452,12 +505,15 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                   <div style={FILTER_SECTION_TITLE_STYLE}>Status</div>
                   {statusOptions.map((opt) => {
                     const count = countsByStatus[opt.value] ?? 0;
+                    const isAwaitingApprovalPhase = isAwaitingApprovalActive
+                      && isAwaitingApprovalPhaseFilterValue(opt.value)
+                      && awaitingApprovalStatusValues.has(opt.value);
                     return (
                       <SelectOption
                         key={opt.value}
                         hasCheckbox
                         value={opt.value}
-                        isSelected={statusFilters.includes(opt.value)}
+                        isSelected={statusFilters.includes(opt.value) || isAwaitingApprovalPhase}
                       >
                         <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                           <span>{opt.label}</span>
@@ -512,9 +568,9 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                   )}
                 </SelectList>
               </Select>
-            </FlexItem>
+          </ToolbarItem>
 
-            <FlexItem style={{ minWidth: 0 }}>
+          <ToolbarItem style={{ minWidth: 0 }}>
               <div style={{ position: 'relative', minWidth: 220 }}>
                 <TextInput
                   ref={searchInputRef}
@@ -555,22 +611,51 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                   </kbd>
                 )}
               </div>
-            </FlexItem>
-            {columnManagementControl && (
-              <FlexItem>{columnManagementControl}</FlexItem>
-            )}
-          </Flex>
-        </FlexItem>
+          </ToolbarItem>
 
-        {pagination && <FlexItem>{pagination}</FlexItem>}
-      </Flex>
+          <ToolbarFilter
+            categoryName="Status"
+            labels={[]}
+            deleteLabel={deleteAwaitingApprovalChip}
+            alignItems="center"
+          >
+            <Checkbox
+              id="awaiting-approval-quick-filter"
+              label="Awaiting approval"
+              aria-label="Filter to show only runs awaiting approval"
+              isChecked={isAwaitingApprovalActive}
+              onChange={(_event, checked) => setAwaitingApprovalOnly(checked)}
+            />
+          </ToolbarFilter>
+
+          <ToolbarItem variant="separator" aria-hidden="true" />
+
+          {columnManagementControl && (
+            <ToolbarItem>{columnManagementControl}</ToolbarItem>
+          )}
+
+          {pagination && <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>{pagination}</ToolbarItem>}
+        </ToolbarContent>
+      </Toolbar>
 
       {hasActiveFilters && (
         <div className="ols-ai-hub-plans-filter-chips ols-ai-hub-plans-filter-chips--active" style={{ marginTop: '12px' }}>
-          {statusFilters.length > 0 && (
-            <LabelGroup categoryName="Status" isClosable onClick={() => setStatusFilters([])}>
+          {(isAwaitingApprovalActive || statusFilters.length > 0) && (
+            <LabelGroup
+              categoryName="Status"
+              isClosable
+              onClick={() => {
+                setStatusFilters([]);
+                setAwaitingApprovalOnly(false);
+              }}
+            >
+              {isAwaitingApprovalActive && (
+                <Label isCompact onClose={deleteAwaitingApprovalChip}>
+                  Awaiting approval
+                </Label>
+              )}
               {statusFilters.map((status) => (
-                <Label key={status} isCompact onClose={() => toggleFilterValue(status, setStatusFilters)}>
+                <Label key={status} isCompact onClose={() => toggleFilterValue(status as PlanStatusFilterValue, setStatusFilters)}>
                   {statusFilterLabel(status)}
                 </Label>
               ))}
@@ -595,7 +680,7 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
             </LabelGroup>
           )}
           <Button variant="link" isInline onClick={clearAllFilters} style={{ fontSize: 'var(--pf-t--global--font--size--sm)' }}>
-            Clear all
+            Clear all filters
           </Button>
         </div>
       )}

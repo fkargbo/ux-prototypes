@@ -4021,17 +4021,18 @@ const PlansTable: React.FC<PlansTableProps> = ({
     () => [...new Set(rows.map((row) => row.clusterName ?? row.targetCluster ?? assignAgenticRunTargetCluster(row.id)))].sort(),
     [rows],
   );
-  const resolveStatusFilter = useCallback<PlanStatusFilterResolver>((row): PlanStatusFilterValue => {
+  const resolveStatusFilter = useCallback<PlanStatusFilterResolver>((row): PlanStatusFilterValue[] => {
     const workflow = getPlanWorkflow(row.id);
+    const resolvedStatuses: PlanStatusFilterValue[] = [row.status];
     if (row.status === 'Pending' && workflow.analysisApprovalGateReached) {
-      return 'AnalysisPhase';
+      return [...resolvedStatuses, 'AnalysisPhase'];
     }
     if (
       row.status === 'Proposed'
       && row.agenticRun?.phase.name === 'Execution'
       && row.agenticRun.phase.approvalGateReached
     ) {
-      return 'ExecutionPhase';
+      return [...resolvedStatuses, 'ExecutionPhase'];
     }
     if (
       row.status === 'Verifying'
@@ -4043,16 +4044,16 @@ const PlansTable: React.FC<PlansTableProps> = ({
         )
       )
     ) {
-      return 'VerificationPhase';
+      return [...resolvedStatuses, 'VerificationPhase'];
     }
     if (
       row.status === 'Escalating'
       && row.agenticRun?.phase.name === 'Escalation'
       && row.agenticRun.phase.approvalGateReached
     ) {
-      return 'EscalationPhase';
+      return [...resolvedStatuses, 'EscalationPhase'];
     }
-    return row.status;
+    return resolvedStatuses;
   }, [getPlanWorkflow]);
   const plansFilter = usePlansFilterState({
     includeTriggerDomainFilter: true,
