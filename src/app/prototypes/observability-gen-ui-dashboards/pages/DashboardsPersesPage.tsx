@@ -149,7 +149,7 @@ const olsLogoUrl = new URL('../../observability-agentic-troubleshooting-ai/asset
 const userAvatarSrc = userProfilePicUrl;
 const botAvatarSrc = olsLogoUrl;
 
-const OlsLogoIcon: React.FC = () => (
+const OlsLogoIcon = (): React.ReactElement => (
   <img src={olsLogoUrl} alt="OpenShift Lightspeed" className="chatbot-ols-logo" />
 );
 
