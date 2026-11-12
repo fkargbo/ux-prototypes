@@ -326,6 +326,36 @@ button[aria-label="View task details"] {
   max-width: 48px !important;
   max-height: 48px !important;
   flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border-radius: 50% !important;
+}
+
+/* PatternFly Chatbot renders the avatar itself as `.pf-chatbot__message-avatar`. */
+.ai-assistant-drawer-wrapper .pf-chatbot__message-avatar {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  max-width: 48px !important;
+  max-height: 48px !important;
+  overflow: hidden !important;
+  border-radius: 50% !important;
+  clip-path: circle(50% at 50% 50%) !important;
+  object-fit: cover !important;
+  object-position: center !important;
+}
+
+.ai-assistant-drawer-wrapper .pf-chatbot__message--bot .pf-chatbot__message-avatar > * {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+.ai-assistant-drawer-wrapper .lightspeed-bot-avatar > * {
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
 /* Floating chatbot toggle button - adjust position when drawer is open */
@@ -352,6 +382,37 @@ button[aria-label="View task details"] {
   transform: translateY(-48px);
 }
 
+.chatbot-ols-logo {
+  display: block;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.ai-assistant-drawer-wrapper .lightspeed-header-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-left: 8px;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.ai-assistant-drawer-wrapper .lightspeed-header-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.ai-assistant-drawer-wrapper .lightspeed-header-title-text {
+  font-size: 22px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .chatbot-toggle-button.drawer-open {
   /* No special positioning needed; it stays in the content viewport */
 }
@@ -365,10 +426,12 @@ button[aria-label="View task details"] {
 
 .ai-assistant-drawer-wrapper .pf-v6-c-message__avatar img,
 .ai-assistant-drawer-wrapper .pf-v6-c-avatar img {
+  display: block !important;
   width: 48px !important;
   height: 48px !important;
   object-fit: cover !important;
   border-radius: 50% !important;
+  overflow: hidden !important;
 }
 
 .ai-assistant-drawer-wrapper .pf-v6-c-message__avatar svg,

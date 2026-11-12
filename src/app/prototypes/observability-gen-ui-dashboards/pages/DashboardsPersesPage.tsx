@@ -76,6 +76,8 @@ import {
   CheckIcon,
   CheckCircleIcon,
   ExternalLinkAltIcon,
+  TrashIcon,
+  MinusIcon,
   AngleRightIcon,
   ServerIcon,
   CpuIcon,
@@ -123,10 +125,6 @@ import ChatbotHeader, {
 import '@patternfly/chatbot/dist/css/main.css';
 import './dashboards-perses.css';
 
-// Import custom profile images
-import userProfilePicUrl from '../assets/user-profile.png';
-import botProfilePicUrl from '../assets/bot-profile.png';
-
 // Helper function to create SVG data URL
 const createIconDataUrl = (svgContent: string): string => {
   const encoded = encodeURIComponent(svgContent);
@@ -144,9 +142,35 @@ const robotIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 5
   <path fill="currentColor" d="M32 224h32v192H32c-17.7 0-32-14.3-32-32V256c0-17.7 14.3-32 32-32zm544-32c17.7 0 32 14.3 32 32v128c0 17.7-14.3 32-32 32h-32V224h32zm-120 96c0 4.4-3.6 8-8 8h-16c-4.4 0-8-3.6-8-8v-64c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v64zm192 0c0 4.4-3.6 8-8 8h-16c-4.4 0-8-3.6-8-8v-64c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v64zM592 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h544c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zM160 368H64v-64h96v64zm0-128H64v-64h96v64zm160 128h-96v-64h96v64zm0-128h-96v-64h96v64zm160 128h-96v-64h96v64zm0-128h-96v-64h96v64z"/>
 </svg>`;
 
-// Avatar configuration - use custom images, fallback to icon data URLs if images fail to load
-const userAvatarSrc = userProfilePicUrl || createIconDataUrl(userIconSvg);
-const botAvatarSrc = botProfilePicUrl || createIconDataUrl(robotIconSvg);
+// Resolve image assets through webpack so avatars work in both dev and GitHub Pages builds.
+const userProfilePicUrl = new URL('../assets/user-profile.png', import.meta.url).toString();
+const olsLogoUrl = new URL('../../observability-agentic-troubleshooting-ai/assets/ols-logo.png', import.meta.url).toString();
+
+const userAvatarSrc = userProfilePicUrl;
+const botAvatarSrc = olsLogoUrl;
+
+const OlsLogoIcon: React.FC = () => (
+  <img src={olsLogoUrl} alt="OpenShift Lightspeed" className="chatbot-ols-logo" />
+);
+
+const withLightspeedBotAvatar = <T extends MessageProps>(message: T): T => {
+  if (message.role !== 'bot') return message;
+  return {
+    ...message,
+    avatarProps: {
+      ...message.avatarProps,
+      className: `${message.avatarProps?.className ?? ''} lightspeed-bot-avatar`.trim(),
+      style: {
+        ...message.avatarProps?.style,
+        backgroundColor: '#fff',
+        backgroundImage: `url(${olsLogoUrl})`,
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: '34px 34px',
+      },
+    },
+  } as T;
+};
 
 // Welcome prompts will be defined inside the component to access handleSendMessage
 
@@ -1758,7 +1782,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: DISCLAIMER_TEXT,
-        name: 'Aladdin',
+        name: 'OpenShift Lightspeed',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -1775,7 +1799,7 @@ export const DashboardsPersesPage: React.FC = () => {
         }
       };
       setMessages((prev) => [...prev, userMessage, botMessage]);
-      setAnnouncement(`Message from Aladdin: ${DISCLAIMER_TEXT}`);
+      setAnnouncement(`Message from OpenShift Lightspeed: ${DISCLAIMER_TEXT}`);
       return;
     }
 
@@ -1821,14 +1845,14 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Thinking...',
-      name: 'Aladdin',
+      name: 'OpenShift Lightspeed',
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
 
     setMessages((prev) => [...prev, userMessage, loadingBotMessage]);
-    setAnnouncement(`Message from User: ${messageText}. Message from Aladdin is loading.`);
+    setAnnouncement(`Message from User: ${messageText}. Message from OpenShift Lightspeed is loading.`);
 
     // Simulate AI response (replace with actual API call)
     setTimeout(() => {
@@ -1836,7 +1860,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
-        name: 'Aladdin',
+        name: 'OpenShift Lightspeed',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -1856,7 +1880,7 @@ export const DashboardsPersesPage: React.FC = () => {
         }
         return newMessages;
       });
-      setAnnouncement(`Message from Aladdin: ${botMessage.content}`);
+      setAnnouncement(`Message from OpenShift Lightspeed: ${botMessage.content}`);
       setIsSendButtonDisabled(false);
     }, 2000);
   }, []);
@@ -1865,6 +1889,50 @@ export const DashboardsPersesPage: React.FC = () => {
   const onSelectModel = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
     setSelectedModel(value as string);
   };
+
+  const handleClearChat = () => {
+    setMessages([]);
+    setSelectedQuickResponses([]);
+    setAnnouncement('Chat history cleared.');
+  };
+
+  // PatternFly's bot Message always renders its own robot SVG. Replace that
+  // child after render so the chat consistently shows the OLS logo instead.
+  useEffect(() => {
+    const applyLightspeedAvatars = () => {
+      document
+        .querySelectorAll<HTMLElement>('.ai-assistant-drawer-wrapper .pf-chatbot__message--bot .pf-chatbot__message-avatar')
+        .forEach((avatar) => {
+          avatar.style.position = 'relative';
+          avatar.style.overflow = 'hidden';
+          avatar.querySelectorAll(':scope > *:not(.lightspeed-avatar-image)').forEach((child) => {
+            (child as HTMLElement).style.display = 'none';
+          });
+
+          if (!avatar.querySelector('.lightspeed-avatar-image')) {
+            const logo = document.createElement('img');
+            logo.className = 'lightspeed-avatar-image';
+            logo.src = olsLogoUrl;
+            logo.alt = 'OpenShift Lightspeed';
+            Object.assign(logo.style, {
+              position: 'absolute',
+              width: '34px',
+              height: '34px',
+              objectFit: 'contain',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+            });
+            avatar.appendChild(logo);
+          }
+        });
+    };
+
+    applyLightspeedAvatars();
+    const observer = new MutationObserver(applyLightspeedAvatars);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [isDrawerOpen, messages.length]);
 
   // Handle starting troubleshooting workflow from alert
   const handleStartTroubleshooting = useCallback((alertName: string) => {
@@ -1898,7 +1966,7 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Analyzing alert...',
-      name: 'Aladdin',
+      name: 'OpenShift Lightspeed',
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
@@ -1913,7 +1981,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU. Would you like to analyze the root cause or check the node capacity?',
-        name: 'Aladdin',
+        name: 'OpenShift Lightspeed',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -1957,7 +2025,7 @@ export const DashboardsPersesPage: React.FC = () => {
     id: generateId(),
     role: 'bot',
     content: 'I recommend scaling down the **web-head** deployment in **marketing-prod**. You can resolve this by following the steps below.',
-    name: 'Aladdin',
+    name: 'OpenShift Lightspeed',
     avatar: botAvatarSrc,
     isLoading: false,
     timestamp: new Date().toLocaleString(),
@@ -1977,7 +2045,7 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Analyzing root cause...',
-      name: 'Aladdin',
+      name: 'OpenShift Lightspeed',
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
@@ -1993,7 +2061,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota. Would you like to see a troubleshooting dashboard or see scaling steps?',
-        name: 'Aladdin',
+        name: 'OpenShift Lightspeed',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -2062,7 +2130,7 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Building Perses Dashboard Definition...',
-      name: 'Aladdin',
+      name: 'OpenShift Lightspeed',
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
@@ -2077,7 +2145,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. Would you like to save this dashboard?',
-        name: 'Aladdin',
+        name: 'OpenShift Lightspeed',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -2280,11 +2348,11 @@ export const DashboardsPersesPage: React.FC = () => {
                   return (
                     <React.Fragment key={message.id}>
                       <div ref={messagesEndRef}></div>
-                      <Message {...messageProps} />
+                      <Message {...withLightspeedBotAvatar(messageProps)} />
                     </React.Fragment>
                   );
                 }
-                return <Message key={message.id} {...messageProps} />;
+                return <Message key={message.id} {...withLightspeedBotAvatar(messageProps)} />;
               })}
             </MessageBox>
           </ChatbotContent>
@@ -2814,22 +2882,25 @@ export const DashboardsPersesPage: React.FC = () => {
                     aria-expanded={isDrawerOpen}
                     onMenuToggle={() => setIsDrawerOpen(!isDrawerOpen)}
                   />
-                  <ChatbotHeaderTitle>AI Assistant</ChatbotHeaderTitle>
+                  <span className="lightspeed-header-mark" aria-hidden>
+                    <img src={olsLogoUrl} alt="" className="lightspeed-header-logo" />
+                  </span>
+                  <ChatbotHeaderTitle className="lightspeed-header-title">
+                    <Title headingLevel="h2" size="2xl" className="lightspeed-header-title-text">
+                      Red Hat OpenShift Lightspeed
+                    </Title>
+                  </ChatbotHeaderTitle>
                 </ChatbotHeaderMain>
                 <ChatbotHeaderActions>
-                  <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
-                    <DropdownList>
-                      <DropdownItem value="Granite 7B" key="granite">
-                        Granite 7B
-                      </DropdownItem>
-                      <DropdownItem value="Llama 3.0" key="llama">
-                        Llama 3.0
-                      </DropdownItem>
-                      <DropdownItem value="Mistral 3B" key="mistral">
-                        Mistral 3B
-                      </DropdownItem>
-                    </DropdownList>
-                  </ChatbotHeaderSelectorDropdown>
+                  <Tooltip content="Clear chat history">
+                    <Button variant="plain" aria-label="Clear chat history" icon={<TrashIcon />} onClick={handleClearChat} />
+                  </Tooltip>
+                  <Tooltip content="Minimize">
+                    <Button variant="plain" aria-label="Minimize assistant" icon={<MinusIcon />} onClick={() => setIsDrawerOpen(false)} />
+                  </Tooltip>
+                  <Tooltip content="Open in console (prototype)">
+                    <Button variant="plain" aria-label="Expand or pop out assistant" icon={<ExternalLinkAltIcon />} />
+                  </Tooltip>
                 </ChatbotHeaderActions>
               </ChatbotHeader>
               <ChatbotContent style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
@@ -2867,21 +2938,24 @@ export const DashboardsPersesPage: React.FC = () => {
                       return (
                         <React.Fragment key={message.id}>
                           <div ref={messagesEndRef}></div>
-                          <Message {...messageProps} />
+                          <Message {...withLightspeedBotAvatar(messageProps)} />
                         </React.Fragment>
                       );
                     }
-                    return <Message key={message.id} {...messageProps} />;
+                    return <Message key={message.id} {...withLightspeedBotAvatar(messageProps)} />;
                   })}
                 </MessageBox>
               </ChatbotContent>
               <ChatbotFooter style={{ flexShrink: 0, display: 'flex', visibility: 'visible' }}>
                 <MessageBar 
+                  displayMode={ChatbotDisplayMode.drawer}
                   onSendMessage={handleSendMessage} 
-                  hasMicrophoneButton 
+                  hasAttachButton
+                  alwayShowSendButton
+                  placeholder="Send a message…"
                   isSendButtonDisabled={isSendButtonDisabled} 
                 />
-                <ChatbotFootnote {...footnoteProps} />
+                <ChatbotFootnote label="Always review AI-generated content prior to use." />
               </ChatbotFooter>
             </Chatbot>
             </div>
@@ -2901,6 +2975,7 @@ export const DashboardsPersesPage: React.FC = () => {
             onClick={() => setIsDrawerOpen(!isDrawerOpen)}
             aria-label="AI assistant"
             tooltipLabel="AI assistant"
+            closedToggleIcon={OlsLogoIcon}
           />
         </div>
       </div>,
