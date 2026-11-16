@@ -12,7 +12,6 @@ export function usePlanBuildRuntime(): PlanExecutionRuntime {
     executionPolicy,
     verificationPolicy,
     escalationPolicy,
-    maxRetryAttempts,
   } = useApprovalPolicy();
   return useMemo(
     () => ({
@@ -24,14 +23,12 @@ export function usePlanBuildRuntime(): PlanExecutionRuntime {
         verification: verificationPolicy,
         escalation: escalationPolicy,
       },
-      maxRetryAttempts,
     }),
     [
       abortedPlans,
       analysisPolicy,
       escalationPolicy,
       executionPolicy,
-      maxRetryAttempts,
       verificationPolicy,
       workflowByPlanId,
     ],

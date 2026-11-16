@@ -19,8 +19,6 @@ export type PolicyConfig = {
   verificationPolicy: ApprovalMode;
   /** Phase 4 — Failure escalation: Manual requires "Escalate manually"; Auto routes to external channels. */
   escalationPolicy: ApprovalMode;
-  /** Maximum automated re-execution attempts before escalation. Sourced from Configuration page. */
-  maxRetryAttempts: number;
 };
 
 type PolicyConfigContextValue = PolicyConfig & {
@@ -28,7 +26,6 @@ type PolicyConfigContextValue = PolicyConfig & {
   setExecutionPolicy: (policy: ApprovalMode) => void;
   setVerificationPolicy: (policy: ApprovalMode) => void;
   setEscalationPolicy: (policy: ApprovalMode) => void;
-  setMaxRetryAttempts: (n: number) => void;
   /** Bulk-update all policy settings in one call (from Configuration page Save). */
   applyPolicyConfig: (config: PolicyConfig) => void;
 };
@@ -40,7 +37,6 @@ const DEFAULT_POLICY: PolicyConfig = {
   executionPolicy: 'manual',
   verificationPolicy: 'auto',
   escalationPolicy: 'manual',
-  maxRetryAttempts: 3,
 };
 
 export const ApprovalPolicyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -53,7 +49,6 @@ export const ApprovalPolicyProvider: React.FC<{ children: React.ReactNode }> = (
       setExecutionPolicy: (executionPolicy) => setConfig((prev) => ({ ...prev, executionPolicy })),
       setVerificationPolicy: (verificationPolicy) => setConfig((prev) => ({ ...prev, verificationPolicy })),
       setEscalationPolicy: (escalationPolicy) => setConfig((prev) => ({ ...prev, escalationPolicy })),
-      setMaxRetryAttempts: (maxRetryAttempts) => setConfig((prev) => ({ ...prev, maxRetryAttempts })),
       applyPolicyConfig: (next) => setConfig(next),
     }),
     [config],

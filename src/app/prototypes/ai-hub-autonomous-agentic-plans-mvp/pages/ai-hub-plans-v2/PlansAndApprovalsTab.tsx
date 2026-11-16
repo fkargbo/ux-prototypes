@@ -122,7 +122,6 @@ import {
 import {
   enrichRemediationOptionsWithConfidence,
   getPlanTokenBurn,
-  GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
   MVP_PLAN_IDS,
   normalizeTriggerDomain,
   resolveOptionRollbackPlan,
@@ -143,7 +142,6 @@ type AgenticRunPhaseName = 'Analysis' | 'Execution' | 'Verification' | 'Escalati
 export type AgenticRunPayload = {
   /** Snapshot of the phase policy stored with this run when it was created. */
   approvalPolicy: AgenticRunApprovalPolicy;
-  maxRetryAttempts: number;
   /** Backend phase status used by the details view to decide whether the run is paused. */
   phase: {
     name: AgenticRunPhaseName;
@@ -257,7 +255,6 @@ function buildAgenticRunPayload(
   status: PlanStatus,
   existing?: AgenticRunPayload,
   configuredPolicy?: AgenticRunApprovalPolicy,
-  configuredMaxRetryAttempts?: number,
   transitionDetails?: {
     selectedPlanName?: string;
     executionApprovalMode?: 'manual' | 'auto';
@@ -304,7 +301,6 @@ function buildAgenticRunPayload(
   };
   return {
     approvalPolicy,
-    maxRetryAttempts: existing?.maxRetryAttempts ?? configuredMaxRetryAttempts ?? GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
     phaseTransitions,
     phase: {
       name: phaseName,
@@ -545,7 +541,7 @@ const PLAN_TABLE_IDENTITY: Record<
   },
   'ingress-controller-escalated': {
     name: 'ingress-controller-scale-escalated',
-    synopsis: 'Ingress controller minimum replica scale-out escalated after execution retry limit reached',
+    synopsis: 'Ingress controller minimum replica scale-out escalated after verification failed',
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-ingress',
   },
@@ -1010,7 +1006,7 @@ const ALL_PLANS: RawPlanRow[] = [
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'alert', text: 'IngressControllerMinReplicasNotMet: automated scale-out failed after 2 execution attempts.' },
-      { icon: 'ban', text: 'Escalation triggered: MaxRetriesExhausted — requires manual operator intervention.' },
+      { icon: 'ban', text: 'Escalation triggered after verification failed — requires manual operator intervention.' },
     ],
   },
   {
@@ -1052,7 +1048,7 @@ const ALL_PLANS: RawPlanRow[] = [
     drawerTargets: ['prod-east-1'],
     expandedReasons: [
       { icon: 'alert', text: 'GrafanaDown: Grafana startup blocked by stale SQLite WAL lock on PVC.' },
-      { icon: 'ban', text: 'MaxRetriesExhausted: escalation_request.tmpl type mismatch on StepResultRef — manual policy paused handoff.' },
+      { icon: 'ban', text: 'Escalation request blocked by an escalation_request.tmpl type mismatch on StepResultRef — manual policy paused handoff.' },
     ],
   },
   ...NEW_ALERT_INVESTIGATION_PLANS,
@@ -1845,7 +1841,7 @@ spec:
       { id: 's1', time: '14:22:05', status: 'done', icon: 'exclamation', title: 'IngressControllerMinReplicasNotMet alert fired', detail: 'Ingress controller replica count dropped below 2 after node eviction' },
       { id: 's2', time: '14:22:19', status: 'alert', icon: 'database', title: 'Attempted automated scale-out — attempt 1', detail: 'Execution failed: insufficient resource quota in openshift-ingress' },
       { id: 's3', time: '14:22:41', status: 'alert', icon: 'database', title: 'Attempted automated scale-out — attempt 2', detail: 'Execution failed: quota limit unchanged, same error' },
-      { id: 's4', time: '14:23:00', status: 'alert', icon: 'exclamation', title: 'MaxRetriesExhausted — escalated to operator', detail: 'Proposal marked Escalated; requires human quota adjustment' },
+      { id: 's4', time: '14:23:00', status: 'alert', icon: 'exclamation', title: 'Verification failed — escalation triggered', detail: 'Proposal marked Escalated; requires human quota adjustment' },
     ],
     aggregatedFinding: 'Ingress controller fell below minimum replicas after node eviction. Two automated scale-out attempts failed due to namespace quota limits.',
     rootCauseNarrative: 'A node eviction event on worker-bm-03 caused the ingress controller replica count to drop to 1. Two consecutive automated remediation executions failed because the openshift-ingress namespace quota prevented scheduling additional pods. After exhausting the MaxRetries threshold, the proposal was automatically escalated for manual operator intervention.',
@@ -1880,7 +1876,7 @@ status:
       { id: 's1', time: '09:14:33', status: 'done', icon: 'exclamation', title: 'GrafanaDown alert fired', detail: 'Grafana pod CrashLoopBackOff — stale SQLite WAL lock detected on PVC' },
       { id: 's2', time: '09:14:47', status: 'alert', icon: 'database', title: 'Execution attempt 1 — failed', detail: 'Template rendering error: escalation_request.tmpl:9 type mismatch on StepResultRef' },
       { id: 's3', time: '09:15:12', status: 'alert', icon: 'database', title: 'Execution attempt 2 — failed', detail: 'Same template error; StepResultRef.Success field does not exist in v1alpha1 API' },
-      { id: 's4', time: '09:15:37', status: 'alert', icon: 'database', title: 'Execution attempt 3 — failed', detail: 'MaxRetriesExhausted: template error uncorrected across all attempts' },
+      { id: 's4', time: '09:15:37', status: 'alert', icon: 'database', title: 'Verification failed — escalation triggered', detail: 'Escalation request could not be generated because of a template error.' },
       { id: 's5', time: '09:15:45', status: 'alert', icon: 'exclamation', title: 'Manual escalation policy — handoff paused', detail: 'Awaiting SRE confirmation before dispatching to external channels' },
     ],
     aggregatedFinding: 'Grafana startup is blocked by a stale SQLite WAL lock file on the PVC. Three automated execution attempts failed due to a Go template rendering error in the escalation pipeline.',
@@ -1937,7 +1933,7 @@ Block Id    Min Time                Max Time                Duration    Num Samp
       { id: 's3', time: '08:44:29', status: 'done',    icon: 'search',      title: 'Identified workload contributing to exhaustion',          detail: 'payments-api StatefulSet expanded from 3→9 replicas during flash traffic event' },
       { id: 's4', time: '08:44:44', status: 'alert',   icon: 'exclamation', title: 'Automated quota adjustment failed — attempt 1 of 3',      detail: 'Execution blocked: ResourceQuota patch requires cluster-admin binding' },
       { id: 's5', time: '08:44:58', status: 'alert',   icon: 'exclamation', title: 'Automated quota adjustment failed — attempt 2 of 3',      detail: 'Retry failed: RBAC denial unchanged after permission re-check' },
-      { id: 's6', time: '08:45:11', status: 'alert',   icon: 'exclamation', title: 'Automated quota adjustment failed — attempt 3 of 3',      detail: 'Max retries exhausted — escalating to human operator' },
+      { id: 's6', time: '08:45:11', status: 'alert',   icon: 'exclamation', title: 'Verification failed — escalation triggered',      detail: 'Escalating to a human operator for manual quota adjustment' },
     ],
     aggregatedFinding: 'Namespace resource quotas are fully exhausted across 3 namespaces. Three automated remediation attempts failed due to RBAC permission restrictions.',
     rootCauseNarrative: 'A sudden scale-out of the payments-api StatefulSet consumed all remaining CPU and memory quota headroom across retail-prod, payments-staging, and auth-dev. The autonomous agent attempted to patch the ResourceQuota objects directly but was blocked by a missing cluster-admin binding on the automation service account. All 3 retry attempts failed with the same RBAC denial. Escalation to a human operator with the correct permissions is required.',
@@ -2060,7 +2056,6 @@ export interface ExecutionSummaryData {
     selectedOptionTitle: string;
     approvedBy: string;
     approvedAt: string;
-    maxAttempts: number;
   };
 }
 
@@ -2724,7 +2719,7 @@ Retrying... (attempt 1/3) connection refused
 Retrying... (attempt 2/3) connection refused
 Retrying... (attempt 3/3) connection refused
 
-FATAL: Node drain failed after 3 attempts.
+FATAL: Node drain failed during execution.
 BareMetalHost state: provisioning-error
 Rollback: node taint removed, workloads rescheduled to compute-node-7
 Exit code: 1`,
@@ -2740,12 +2735,12 @@ Exit code: 1`,
 [10:32:17 UTC] Retry 2/3: waiting 10s before re-attempt...
 [10:32:27 UTC] Retry 2/3: oc adm drain master-node-3 (attempt 3)
 [10:32:57 UTC] ERROR: connection refused
-[10:32:57 UTC] Max retries exhausted. Initiating rollback sequence.
+[10:32:57 UTC] Verification failed. Initiating escalation handoff.
 [10:32:58 UTC] Rollback: removing taint node-role.kubernetes.io/unschedulable from master-node-3
 [10:32:59 UTC] Rollback: rescheduling workloads to compute-node-7
 [10:33:01 UTC] Rollback complete. 4 pods migrated to compute-node-7.
 [10:33:01 UTC] Execution terminated — manual operator intervention required.
-Exit code: 1 — Execution failed after 3 attempts.`,
+Exit code: 1 — Execution failed; escalation handoff initiated.`,
   },
   ap6: {
     type: 'success',
@@ -2925,7 +2920,6 @@ const PLAN_EXECUTION_SUMMARY: Record<string, ExecutionSummaryData> = {
       selectedOptionTitle: 'Reconcile Prometheus operator ServiceMonitor targets and refresh TLS trust',
       approvedBy: 'Marcus Chen',
       approvedAt: 'Jun 9, 2026, 4:15 PM',
-      maxAttempts: 3,
     },
   },
   op2: {
@@ -2976,7 +2970,6 @@ const PLAN_EXECUTION_SUMMARY: Record<string, ExecutionSummaryData> = {
       selectedOptionTitle: 'Sequential etcd defragmentation across control plane members',
       approvedBy: 'Marcus Chen',
       approvedAt: 'Jun 9, 2026, 5:44 PM',
-      maxAttempts: 3,
     },
   },
 };
@@ -3070,7 +3063,7 @@ const PLAN_VERIFICATION_SUMMARY: Record<string, VerificationSummaryData> = {
 const PLAN_ESCALATION_SUMMARY: Record<string, EscalationSummaryData> = {
   'ingress-controller-escalated': {
     details:
-      'The ingress controller replica count dropped to 1 after a node eviction on worker-bm-03. Two consecutive automated scale-out executions failed because the openshift-ingress namespace quota hard ceiling was reached (pods=10/10). MaxRetriesExhausted was triggered after 2 failed attempts and the escalation payload was automatically routed to PagerDuty (P2) and ServiceNow (INC-0087342).',
+      'The ingress controller replica count dropped to 1 after a node eviction on worker-bm-03. The single-shot scale-out execution failed because the openshift-ingress namespace quota hard ceiling was reached (pods=10/10), triggering escalation to PagerDuty (P2) and ServiceNow (INC-0087342).',
     failureReason:
       'Automated scale-out blocked by ResourceQuota ceiling in openshift-ingress (pods=10/10). Manual quota increase required before remediation can proceed.',
     dispatchedTargets: ['PagerDuty — P2 incident created', 'ServiceNow — INC-0087342 opened'],
@@ -3084,7 +3077,7 @@ const PLAN_ESCALATION_SUMMARY: Record<string, EscalationSummaryData> = {
   },
   'op5-manual-escalation': {
     details:
-      'The failure is in the escalation rendering path, not in the Grafana pod or WAL lock itself. The escalation_request.tmpl template tries to access .Success on a value of type v1alpha1.StepResultRef, but StepResultRef does not expose a Success field. Go template execution fails as a result, which means prior failed attempts cannot be packaged for handoff.',
+      'The failure is in the escalation rendering path, not in the Grafana pod or WAL lock itself. The escalation_request.tmpl template tries to access .Success on a value of type v1alpha1.StepResultRef, but StepResultRef does not expose a Success field. Go template execution fails, so the handoff requires manual troubleshooting.',
     failureReason:
       'Verification failed: PVC payments-db-data still Pending after remediation retries.',
     dispatchedTargets: [],
@@ -4287,7 +4280,7 @@ function generateEscalationLogs(planId: string): string {
   };
   return [
     `${ts(0)}  INFO [escalation]  Starting escalation pipeline — plan_id=${planId}`,
-    `${ts(1)}  INFO [escalation]  Max retries exhausted (attempts=3) — triggering escalation path`,
+    `${ts(1)}  INFO [escalation]  Verification failed — triggering escalation path`,
     `${ts(2)}  INFO [escalation]  Loading escalation_request.tmpl...`,
     `${ts(3)}  ERROR[escalation]  Template rendering failed: escalation_request.tmpl:9 type mismatch on StepResultRef`,
     `${ts(4)}  WARN [escalation]  Cannot generate escalation payload — template execution aborted`,
@@ -4388,16 +4381,14 @@ const ExecutionSummaryCard: React.FC<{
   /** When true the card renders in its final completed state — no spinners or loading text. */
   isCompleted?: boolean;
   selectedOptionTitle?: string;
-  maxAttempts?: number;
   approval?: import('../../context/PlanWorkflowContext').ExecutionApproval | null;
-}> = ({ plan, executionLog, isExecuting = false, isCompleted = false, selectedOptionTitle, maxAttempts, approval }) => {
+}> = ({ plan, executionLog, isExecuting = false, isCompleted = false, selectedOptionTitle, approval }) => {
   // Only show pre-seeded summary data when execution is no longer active.
   const summary = isExecuting ? null : PLAN_EXECUTION_SUMMARY[plan.id];
 
   // For pre-seeded terminal runs that were never executed in the current session,
   // fall back to the mock audit baked into PLAN_EXECUTION_SUMMARY.
   const resolvedOptionTitle  = selectedOptionTitle  ?? summary?.mockAudit?.selectedOptionTitle;
-  const resolvedMaxAttempts  = maxAttempts          ?? summary?.mockAudit?.maxAttempts;
   const resolvedApprovedBy   = approval?.approvedBy ?? summary?.mockAudit?.approvedBy;
   const resolvedApprovedAt   = approval?.approvedAt ?? summary?.mockAudit?.approvedAt;
 
@@ -4413,19 +4404,13 @@ const ExecutionSummaryCard: React.FC<{
       <Card style={{ borderRadius: '16px' }}>
       <CardBody>
         {/* ── Audit record (OLS-3694) ── */}
-        {(resolvedOptionTitle || resolvedMaxAttempts !== undefined || resolvedApprovedBy) && (
+        {(resolvedOptionTitle || resolvedApprovedBy) && (
           <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
             <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '15ch' }}>
               {resolvedOptionTitle && (
                 <DescriptionListGroup>
                   <DescriptionListTerm>Selected plan</DescriptionListTerm>
                   <DescriptionListDescription>{resolvedOptionTitle}</DescriptionListDescription>
-                </DescriptionListGroup>
-              )}
-              {resolvedMaxAttempts !== undefined && (
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Max attempts</DescriptionListTerm>
-                  <DescriptionListDescription>{resolvedMaxAttempts}</DescriptionListDescription>
                 </DescriptionListGroup>
               )}
               {resolvedApprovedBy && (
@@ -4564,8 +4549,7 @@ const VerificationSummaryCard: React.FC<{
   isVerifyingActive?: boolean;
   isLive?: boolean;
   onVerificationComplete?: () => void;
-  onVerificationRetry?: () => void;
-}> = ({ plan, verificationLog, verification, isVerifyingActive = false, isLive = false, onVerificationComplete, onVerificationRetry }) => {
+}> = ({ plan, verificationLog, verification, isVerifyingActive = false, isLive = false, onVerificationComplete }) => {
   const summary = isVerifyingActive ? null : PLAN_VERIFICATION_SUMMARY[plan.id];
   const isInProgress = isVerifyingActive;
 
@@ -4575,13 +4559,6 @@ const VerificationSummaryCard: React.FC<{
     : VERIFICATION_CHECK_LINES;
 
   const [visibleCount, setVisibleCount] = useState(isLive ? 0 : checkLines.length);
-  const attempt = verification?.attempt ?? 1;
-  const maxAttempts = verification?.maxAttempts ?? 3;
-  const isRetryPending =
-    isInProgress
-    && verification?.outcome === 'failed'
-    && !verification.requiresNewApproval
-    && attempt < maxAttempts;
 
   // Stream check lines one-by-one while verifying.
   useEffect(() => {
@@ -4597,17 +4574,12 @@ const VerificationSummaryCard: React.FC<{
       if (count >= checkLines.length) window.clearInterval(interval);
     }, 700);
     return () => window.clearInterval(interval);
-  }, [checkLines, isInProgress, isLive, verification?.attempt]);
+  }, [checkLines, isInProgress, isLive]);
 
   // Complete verification after health-check stream finishes. Manual policy gates
   // before this component mounts; once approved, verification runs automatically.
   // This replaces the timer that previously lived in VerificationPanel.
   useEffect(() => {
-    if (isRetryPending) {
-      if (!isLive || !onVerificationRetry) return undefined;
-      const retryTimer = window.setTimeout(onVerificationRetry, 1200);
-      return () => window.clearTimeout(retryTimer);
-    }
     if (!isInProgress || !isLive || !onVerificationComplete || verification?.outcome === 'failed') {
       return undefined;
     }
@@ -4618,9 +4590,7 @@ const VerificationSummaryCard: React.FC<{
     checkLines.length,
     isInProgress,
     isLive,
-    isRetryPending,
     onVerificationComplete,
-    onVerificationRetry,
     verification?.outcome,
   ]);
 
@@ -4640,19 +4610,6 @@ const VerificationSummaryCard: React.FC<{
         </Flex>
         <Card style={{ borderRadius: '16px' }}>
           <CardBody>
-            {/* Attempt counter */}
-            <Flex
-              alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapSm' }}
-              style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
-            >
-              <FlexItem>
-                <Label color="blue" isCompact>
-                  Attempt {attempt} of {maxAttempts}
-                </Label>
-              </FlexItem>
-            </Flex>
-
             {/* Live health check probe stream */}
             <div style={{ marginBottom: 'var(--pf-t--global--spacer--lg)' }}>
               <Content component="small" style={SECTION_OVERLINE_STYLE}>Health check probes</Content>
@@ -4682,16 +4639,12 @@ const VerificationSummaryCard: React.FC<{
               component="small"
               style={{
                 display: 'block',
-                color: isRetryPending
-                  ? 'var(--pf-t--global--text--color--default)'
-                  : 'var(--pf-t--global--text--color--subtle)',
-                fontStyle: isRetryPending ? 'normal' : 'italic',
+                color: 'var(--pf-t--global--text--color--subtle)',
+                fontStyle: 'italic',
                 marginBottom: verificationLog ? 'var(--pf-t--global--spacer--lg)' : 0,
               }}
             >
-              {isRetryPending
-                ? `Verification failed. Initiating retry ${attempt + 1} of ${maxAttempts}...`
-                : 'Outcome assessment will be generated upon completion of health checks.'}
+              Outcome assessment will be generated upon completion of health checks.
             </Content>
 
             {/* Log footer */}
@@ -5949,10 +5902,7 @@ export const RemediationBlueprintPanel: React.FC<{
   const isPending = status === 'Pending';
   const isClusterUpdatePlan = resolvePlanDomainAnnotations(plan).sourceDomain === 'cluster-update';
   const runPayload = plan.agenticRun ?? buildAgenticRunPayload(status);
-  const {
-    approvalPolicy,
-    maxRetryAttempts: configMaxRetryAttempts,
-  } = runPayload;
+  const { approvalPolicy } = runPayload;
   const {
     analysis: analysisPolicy,
     execution: executionPolicy,
@@ -6066,7 +6016,6 @@ export const RemediationBlueprintPanel: React.FC<{
     startVerification,
     verificationPolicy,
     verificationChecks,
-    workflow.verification?.attempt,
   ]);
 
   // Full Agentic Run Details layout is shown when Pending has passed the 5s INITIALIZING window
@@ -6188,7 +6137,6 @@ export const RemediationBlueprintPanel: React.FC<{
       optionIndex: selectedOptionIndex,
       optionId: selectedOption.id,
       optionTitle: selectedOption.title,
-      maxAttempts: configMaxRetryAttempts,
     });
   };
 
@@ -6220,7 +6168,6 @@ export const RemediationBlueprintPanel: React.FC<{
         optionIndex: 0,
         optionId: primaryOption.id,
         optionTitle: primaryOption.title,
-        maxAttempts: configMaxRetryAttempts,
       }, 'auto');
       setIsAutoExecuteQueued(false);
     }, 2000);
@@ -6237,15 +6184,8 @@ export const RemediationBlueprintPanel: React.FC<{
     if (!verification || verification.outcome) {
       return;
     }
-    const shouldPass = plan.id === 'certmgr-renewal-pending'
-      || verification.attempt >= verification.maxAttempts;
-    completeVerification(plan.id, shouldPass, verification.requiresNewApproval === true);
+    completeVerification(plan.id, plan.id === 'certmgr-renewal-pending', verification.requiresNewApproval === true);
   }, [completeVerification, isAgenticAutomationEnabled, plan.id, workflow.verification]);
-
-  const handleVerificationRetry = useCallback(() => {
-    if (!isAgenticAutomationEnabled) return;
-    startVerification(plan.id, verificationChecks);
-  }, [isAgenticAutomationEnabled, plan.id, startVerification, verificationChecks]);
 
   const handleApproveVerification = useCallback(() => {
     if (!isAgenticAutomationEnabled) return;
@@ -6965,7 +6905,6 @@ export const RemediationBlueprintPanel: React.FC<{
         isExecuting={false}
         isCompleted
         selectedOptionTitle={selectedOption?.title}
-        maxAttempts={configMaxRetryAttempts}
         approval={workflow.executionApproval}
       />
     ) : undefined,
@@ -6978,7 +6917,6 @@ export const RemediationBlueprintPanel: React.FC<{
           isVerifyingActive
           isLive={Boolean(workflow.verification) && isAgenticAutomationEnabled}
           onVerificationComplete={handleVerificationComplete}
-          onVerificationRetry={handleVerificationRetry}
         />
       )
     ) : undefined,
@@ -6991,16 +6929,13 @@ export const RemediationBlueprintPanel: React.FC<{
         isLive={false}
       />
     ) : undefined,
-    escalationPhaseStarted: isEscalating && escalationPolicy === 'auto' ? (
+    escalationPhaseStarted: isEscalating ? (
       <Alert
         isInline
         variant="danger"
-        title="Automated remediation retries exhausted"
+        title="Automated remediation failed"
       >
-        The autonomous agent failed to resolve this issue after {configMaxRetryAttempts} retry attempt{configMaxRetryAttempts !== 1 ? 's' : ''}.{' '}
-        {escalationPolicy === 'auto'
-          ? 'Routing incident to configured external channels (PagerDuty / ITSM).'
-          : 'Escalation handoff is in progress, and human intervention is now required.'}
+        The autonomous agent failed to verify the cluster resolution. Escalation handoff is in progress, and human intervention is now required.
       </Alert>
     ) : undefined,
     terminal: (
@@ -7103,7 +7038,6 @@ export const RemediationBlueprintPanel: React.FC<{
                       optionIndex: selectedOptionIndex,
                       optionId: selectedOption.id,
                       optionTitle: selectedOption.title,
-                      maxAttempts: configMaxRetryAttempts,
                     });
                   }
                 }}
@@ -7229,10 +7163,9 @@ export const RemediationBlueprintPanel: React.FC<{
               <Alert
                 isInline
                 variant="warning"
-                title="Remediation action required"
+                title="Automated remediation failed"
               >
-                Automated execution failed after reaching the maximum retry limit. Manual operator
-                intervention is required to resolve this escalation.
+                The autonomous agent failed to verify the cluster resolution. Escalation handoff is in progress, and human intervention is now required.
               </Alert>
             </StackItem>
           )}
@@ -7263,7 +7196,6 @@ export const RemediationBlueprintPanel: React.FC<{
             <AgenticRunTimeline
               status={status}
               createdAt={plan.createdAt}
-              retryCount={Math.max(0, (workflow.verification?.attempt ?? 1) - 1)}
               isCapabilitiesDisabled={!isAgenticAutomationEnabled}
               isAwaitingAnalysisApproval={isPendingReadyForAnalysis}
               executionApprovalMode={executionPolicy}
@@ -7354,7 +7286,6 @@ export function buildPlansForPerspective(
           normalizePlanStatus(normalizedRow.status),
           normalizedRow.agenticRun,
           runtime.approvalPolicy,
-          runtime.maxRetryAttempts,
           transitionDetails,
         ),
         proposedVerificationScript: buildProposedVerificationScript(normalizedRow),
@@ -7397,7 +7328,7 @@ export function buildPlansForPerspective(
         resolvedRow = {
           ...baseRow,
           status: abortStatus,
-          agenticRun: buildAgenticRunPayload(abortStatus, baseRow.agenticRun, undefined, undefined, transitionDetails),
+          agenticRun: buildAgenticRunPayload(abortStatus, baseRow.agenticRun, undefined, transitionDetails),
           terminatedAt: abortEntry.terminatedAt,
         };
       } else {
@@ -7406,7 +7337,7 @@ export function buildPlansForPerspective(
           resolvedRow = {
             ...baseRow,
             status: workflowPhase,
-            agenticRun: buildAgenticRunPayload(workflowPhase, baseRow.agenticRun, undefined, undefined, transitionDetails),
+            agenticRun: buildAgenticRunPayload(workflowPhase, baseRow.agenticRun, undefined, transitionDetails),
           };
         }
       }

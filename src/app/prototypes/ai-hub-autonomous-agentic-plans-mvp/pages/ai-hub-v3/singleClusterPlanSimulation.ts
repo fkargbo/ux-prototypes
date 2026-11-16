@@ -49,7 +49,7 @@ export const SC_PLAN_TABLE_IDENTITY: Record<string, ScPlanTableIdentity> = {
   'certmgr-renewal-pending':        { name: 'certmgr-tls-renewal-pending',           synopsis: 'Certificate renewal queued for expiring ingress TLS — awaiting agent assignment', namespace: 'cert-manager',              fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   'acs-netpol-remediation-denied':  { name: 'acs-netpol-remediation-denied',          synopsis: 'ACS network policy remediation proposal denied by cluster administrator',         namespace: 'retail-prod',               fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   'quota-exhaustion-escalating':    { name: 'quota-exhaustion-escalating',            synopsis: 'Namespace quota exhaustion escalating to operator after automated remediation failed', namespace: 'openshift-ingress',     fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
-  'ingress-controller-escalated':   { name: 'ingress-controller-scale-escalated',     synopsis: 'Ingress controller scale-out escalated after retry limit reached',                namespace: 'openshift-ingress',         fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
+  'ingress-controller-escalated':   { name: 'ingress-controller-scale-escalated',     synopsis: 'Ingress controller scale-out escalated after verification failed',                namespace: 'openshift-ingress',         fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   'prometheus-wal-emergency-stopped': { name: 'prometheus-wal-repair-emergency-stopped', synopsis: 'Prometheus WAL repair halted by emergency stop during active write window',    namespace: 'openshift-monitoring',      fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   'etcd-defrag-failed':               { name: 'etcd-defrag-compaction',                  synopsis: 'Compact and defragment etcd database to reduce fragmentation ratio below 0.5', namespace: 'openshift-etcd',             fleetCluster: CORE_PLATFORMS_CLUSTER_ID },
   ...NEW_ALERT_INVESTIGATION_PLAN_IDENTITY,
@@ -250,8 +250,8 @@ export const SC_PLAN_ROW_PATCHES: Record<string, ScPlanRowPatch> = {
   'ingress-controller-escalated': {
     consolidationScope: '2 Alerts / 1 Escalation',
     expandedReasons: [
-      { icon: 'alert', text: 'IngressControllerMinReplicasNotMet: scale-out failed after 2 attempts in openshift-ingress.' },
-      { icon: 'ban', text: 'MaxRetriesExhausted — escalated for manual quota adjustment.' },
+      { icon: 'alert', text: 'IngressControllerMinReplicasNotMet: scale-out failed during the single execution in openshift-ingress.' },
+      { icon: 'ban', text: 'Verification failed — escalated for manual quota adjustment.' },
     ],
   },
   'prometheus-wal-emergency-stopped': {

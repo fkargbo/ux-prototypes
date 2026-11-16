@@ -7,24 +7,33 @@ jest.mock('./AnalysisLogsExpandable', () => ({ AnalysisLogsExpandable: () => nul
 
 test('shows the configured approval gates and a completed audit trail', () => {
   const createdAt = '2026-06-09T04:07:00Z';
-  const proposed = buildTimelineSteps('Proposed', createdAt, 0, false, 'auto');
+  const proposed = buildTimelineSteps('Proposed', createdAt, false, 'auto');
   expect(proposed.find((step) => step.event === 'agenticrun.human_approval')?.label)
     .toBe('Remediation plan ready — executing automatically');
 
-  const waitingForVerification = buildTimelineSteps('Verifying', createdAt, 0, false, 'manual', true);
+  const waitingForVerification = buildTimelineSteps('Verifying', createdAt, false, 'manual', true);
   expect(waitingForVerification.find((step) => step.event === 'agenticrun.verify')?.label)
     .toBe('Human approval requested - Verification');
 
-  const waitingForAnalysis = buildTimelineSteps('Pending', createdAt, 0, true);
+  const waitingForAnalysis = buildTimelineSteps('Pending', createdAt, true);
   expect(waitingForAnalysis.find((step) => step.isCurrent)?.label)
     .toBe('Human approval requested - Analysis');
-  expect(buildTimelineSteps('Proposed', createdAt, 0, false, 'manual').find((step) => step.isCurrent)?.label)
+  expect(buildTimelineSteps('Proposed', createdAt, false, 'manual').find((step) => step.isCurrent)?.label)
     .toBe('Human approval requested - Execution');
 
-  const completed = buildTimelineSteps('Completed', createdAt, 0, false, 'auto');
+  const completed = buildTimelineSteps('Completed', createdAt, false, 'auto');
   expect(completed).toHaveLength(8);
   expect(completed.every((step) => step.variant === 'success')).toBe(true);
   expect(completed.some((step) => step.event === 'agenticrun.human_approval')).toBe(false);
+});
+
+test('moves verification failures directly into escalation without retry steps', () => {
+  const steps = buildTimelineSteps('Escalating');
+  const verificationFailure = steps.find((step) => step.event === 'agenticrun.verification.completed');
+
+  expect(verificationFailure?.label).toBe('Verification failed — Triggering escalation');
+  expect(steps.some((step) => step.event === 'agenticrun.verification.retry')).toBe(false);
+  expect(steps.find((step) => step.event === 'agenticrun.escalate')?.isCurrent).toBe(true);
 });
 
 test('amalgamates phase approvals into started nodes and shows structured audit metadata first', () => {
@@ -33,7 +42,7 @@ test('amalgamates phase approvals into started nodes and shows structured audit 
     Execution: { approvalMethod: 'manual' as const, approverId: '@mchen', selectedPlanName: 'Rotate Alertmanager secret' },
     Verification: { approvalMethod: 'manual' as const, approverId: '@mchen' },
   };
-  const steps = buildTimelineSteps('Completed', '2026-09-01T12:00:00Z', 0, false, 'manual', false, phaseTransitions);
+  const steps = buildTimelineSteps('Completed', '2026-09-01T12:00:00Z', false, 'manual', false, phaseTransitions);
   expect(steps.map((step) => step.label)).toEqual(expect.arrayContaining([
     'Analysis phase started — Automatically approved',
     'Execution phase started — Manually approved',

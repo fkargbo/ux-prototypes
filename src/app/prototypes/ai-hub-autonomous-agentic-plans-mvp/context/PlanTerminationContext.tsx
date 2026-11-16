@@ -15,7 +15,6 @@ export type PlanExecutionRuntime = {
   workflowByPlanId?: PlanWorkflowSnapshot;
   /** Current configuration snapshot used when creating mock AgenticRun payloads. */
   approvalPolicy?: AgenticRunApprovalPolicy;
-  maxRetryAttempts?: number;
 };
 
 type PlanTerminationContextValue = {

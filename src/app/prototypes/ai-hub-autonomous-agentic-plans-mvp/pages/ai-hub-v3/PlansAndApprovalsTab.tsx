@@ -104,7 +104,6 @@ import {
   enrichRemediationOptionsWithConfidence,
   getOptionExecutionTokenBurn,
   getPlanTokenBurn,
-  GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
   MVP_PLAN_IDS,
   normalizeTriggerDomain,
 } from './plansMvpConstants';
@@ -382,7 +381,7 @@ const PLAN_TABLE_IDENTITY: Record<
   },
   'ingress-controller-escalated': {
     name: 'ingress-controller-scale-escalated',
-    synopsis: 'Ingress controller minimum replica scale-out escalated after execution retry limit reached',
+    synopsis: 'Ingress controller minimum replica scale-out escalated after verification failed',
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-ingress',
   },
@@ -837,7 +836,7 @@ const ALL_PLANS: RawPlanRow[] = [
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'alert', text: 'IngressControllerMinReplicasNotMet: automated scale-out failed after 2 execution attempts.' },
-      { icon: 'ban', text: 'Escalation triggered: MaxRetriesExhausted — requires manual operator intervention.' },
+      { icon: 'ban', text: 'Escalation triggered after verification failed — requires manual operator intervention.' },
     ],
   },
   {
@@ -1324,7 +1323,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '14:22:05', status: 'done', icon: 'exclamation', title: 'IngressControllerMinReplicasNotMet alert fired', detail: 'Ingress controller replica count dropped below 2 after node eviction' },
       { id: 's2', time: '14:22:19', status: 'done', icon: 'database', title: 'Attempted automated scale-out — attempt 1', detail: 'Execution failed: insufficient resource quota in openshift-ingress' },
       { id: 's3', time: '14:22:41', status: 'done', icon: 'database', title: 'Attempted automated scale-out — attempt 2', detail: 'Execution failed: quota limit unchanged, same error' },
-      { id: 's4', time: '14:23:00', status: 'done', icon: 'exclamation', title: 'MaxRetriesExhausted — escalated to operator', detail: 'Proposal marked Escalated; requires human quota adjustment' },
+      { id: 's4', time: '14:23:00', status: 'done', icon: 'exclamation', title: 'Verification failed — escalation triggered', detail: 'Proposal marked Escalated; requires human quota adjustment' },
     ],
     aggregatedFinding: 'Ingress controller fell below minimum replicas after node eviction. Two automated scale-out attempts failed due to namespace quota limits.',
     rootCauseNarrative: 'A node eviction event on worker-bm-03 caused the ingress controller replica count to drop to 1. Two consecutive automated remediation executions failed because the openshift-ingress namespace quota prevented scheduling additional pods. After exhausting the MaxRetries threshold, the proposal was automatically escalated for manual operator intervention.',
@@ -1520,7 +1519,7 @@ Retrying... (attempt 1/3) connection refused
 Retrying... (attempt 2/3) connection refused
 Retrying... (attempt 3/3) connection refused
 
-FATAL: Node drain failed after 3 attempts.
+FATAL: Node drain failed during execution.
 BareMetalHost state: provisioning-error
 Rollback: node taint removed, workloads rescheduled to compute-node-7
 Exit code: 1`,
@@ -2839,12 +2838,6 @@ const PostMortemPanel: React.FC<{
                   {verification.outcome === 'passed' ? 'Passed' : verification.outcome === 'failed' ? 'Failed' : '—'}
                 </DescriptionListDescription>
               </DescriptionListGroup>
-              <DescriptionListGroup>
-                <DescriptionListTerm>Verification attempt</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {verification.attempt} of {verification.maxAttempts}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
             </>
           )}
           {postMortem.gitCommitRef && (
@@ -3327,7 +3320,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const workflow = getPlanWorkflow(plan.id);
   const [isStopAnalysisModalOpen, setIsStopAnalysisModalOpen] = useState(false);
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
-  const [retryBanner, setRetryBanner] = useState<string | null>(null);
   const [isAiDisclaimerDismissed, setIsAiDisclaimerDismissed] = useState(false);
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
@@ -3340,7 +3332,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
 
   useEffect(() => {
     setIsExecutionRunning(false);
-    setRetryBanner(null);
     setShowAnalysisLogs(false);
     setAnalysisLogsQuery('');
   }, [plan.id]);
@@ -3356,7 +3347,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
       setIsExecutionRunning(false);
     }, 4000);
     return () => window.clearTimeout(timer);
-  }, [isExecuting, plan.id, startVerification, workflow.verification?.attempt]);
+  }, [isExecuting, plan.id, startVerification]);
 
   const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
@@ -3411,12 +3402,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     if (!selectedOption || !isAgenticAutomationEnabled) {
       return;
     }
-    setRetryBanner(null);
     executeRemediation(plan.id, {
       optionIndex: selectedOptionIndex,
       optionId: selectedOption.id,
       optionTitle: selectedOption.title,
-      maxAttempts: GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
     });
   };
 
@@ -3429,13 +3418,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     if (!verification || verification.outcome) {
       return;
     }
-    const shouldPass = verification.attempt >= verification.maxAttempts;
-    const nextStatus = completeVerification(plan.id, shouldPass);
-    if (!shouldPass && nextStatus === 'Executing') {
-      setRetryBanner(
-        `Verification failed — retrying execution (attempt ${verification.attempt + 1} of ${verification.maxAttempts})`,
-      );
-    }
+    completeVerification(plan.id, plan.id === 'certmgr-renewal-pending');
   }, [completeVerification, plan.id, workflow.verification]);
 
   if (!drawer && !isEscalating) return null;
@@ -3700,11 +3683,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <Alert
                 variant="warning"
                 isInline
-                title="Remediation action required"
+                title="Automated remediation failed"
                 style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
               >
-                Automated execution failed after reaching the maximum retry limit. Manual operator
-                intervention is required to resolve this escalation.
+                The autonomous agent failed to verify the cluster resolution. Escalation handoff is in progress, and human intervention is now required.
               </Alert>
               <div
                 style={LOCKED_BOX_STYLE}
@@ -3782,9 +3764,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             />
           ) : (
             <>
-              {retryBanner && (
-                <Alert variant="warning" isInline title={retryBanner} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
-              )}
 
               {workflow.executionApproval && (isExecuting || isVerifying) && (
                 <ProposalApprovalArtifact approval={workflow.executionApproval} />

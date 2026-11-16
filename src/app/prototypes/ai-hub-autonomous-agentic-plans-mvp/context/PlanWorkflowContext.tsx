@@ -1,12 +1,10 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { PlanStatus } from '../types/planStatus';
-import { GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS } from '../pages/ai-hub-v3/plansMvpConstants';
 
 export type ExecutionApproval = {
   optionIndex: number;
   optionId: string;
   optionTitle: string;
-  maxAttempts: number;
   approvedAt: string;
   approvedBy: string;
   approverId?: string;
@@ -14,8 +12,6 @@ export type ExecutionApproval = {
 };
 
 export type VerificationState = {
-  attempt: number;
-  maxAttempts: number;
   startedAt: string;
   checks: string[];
   outcome?: 'passed' | 'failed';
@@ -204,16 +200,10 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const requestVerificationApproval = useCallback(
     (planId: string, checks: string[]) => {
-      const record = workflowByPlanId[planId] ?? createEmptyRecord();
-      const approval = record.executionApproval;
-      const maxAttempts = approval?.maxAttempts ?? GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS;
-      const priorAttempt = record.verification?.attempt ?? 0;
       patchPlan(planId, {
         runtimePhase: 'Verifying',
         verificationApprovalPending: true,
         verification: {
-          attempt: priorAttempt + 1,
-          maxAttempts,
           startedAt: new Date().toISOString(),
           checks,
           requiresNewApproval: false,
@@ -248,17 +238,12 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const startVerification = useCallback(
     (planId: string, checks: string[], approvalMode: 'manual' | 'auto' = 'auto') => {
-      const approval = workflowByPlanId[planId]?.executionApproval;
-      const maxAttempts = approval?.maxAttempts ?? GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS;
       const priorVerification = workflowByPlanId[planId]?.verification;
-      const priorAttempt = priorVerification?.attempt ?? 0;
       const retainedMode = priorVerification?.approvalMode ?? approvalMode;
       patchPlan(planId, {
         runtimePhase: 'Verifying',
         verificationApprovalPending: false,
         verification: {
-          attempt: priorAttempt + 1,
-          maxAttempts,
           startedAt: new Date().toISOString(),
           checks,
           requiresNewApproval: false,
@@ -287,26 +272,17 @@ export const PlanWorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return 'Completed';
       }
 
-      if (verification.attempt < verification.maxAttempts) {
-        patchPlan(planId, {
-          runtimePhase: 'Verifying',
-          verificationApprovalPending: requiresNewApproval,
-          verification: {
-            ...verification,
-            outcome: 'failed',
-            completedAt: new Date().toISOString(),
-            requiresNewApproval,
-          },
-        });
-        return 'Verifying';
-      }
-
       patchPlan(planId, {
-        runtimePhase: 'Failed',
+        runtimePhase: 'Escalating',
         verificationApprovalPending: false,
-        verification: { ...verification, outcome: 'failed', completedAt: new Date().toISOString() },
+        verification: {
+          ...verification,
+          outcome: 'failed',
+          completedAt: new Date().toISOString(),
+          requiresNewApproval,
+        },
       });
-      return 'Failed';
+      return 'Escalating';
     },
     [patchPlan, workflowByPlanId],
   );

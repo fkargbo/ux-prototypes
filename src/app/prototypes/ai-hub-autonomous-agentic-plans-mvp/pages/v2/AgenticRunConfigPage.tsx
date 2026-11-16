@@ -17,7 +17,6 @@ import {
   ModalBody,
   ModalFooter,
   ModalHeader,
-  NumberInput,
   Stack,
   StackItem,
   Title,
@@ -175,14 +174,12 @@ const ApprovalPolicyView: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
     executionPolicy: globalExecutionPolicy,
     verificationPolicy: globalVerificationPolicy,
     escalationPolicy: globalEscalationPolicy,
-    maxRetryAttempts: globalMaxRetryAttempts,
     applyPolicyConfig,
   } = useApprovalPolicy();
   const [analysisPolicy, setAnalysisPolicy] = useState<ApprovalMode>(globalAnalysisPolicy);
   const [executionPolicy, setExecutionPolicy] = useState<ApprovalMode>(globalExecutionPolicy);
   const [verificationPolicy, setVerificationPolicy] = useState<ApprovalMode>(globalVerificationPolicy);
   const [escalationPolicy, setEscalationPolicy] = useState<ApprovalMode>(globalEscalationPolicy);
-  const [maxRetryAttempts, setMaxRetryAttempts] = useState(globalMaxRetryAttempts);
   const [isDirty, setIsDirty] = useState(false);
   /** Stage awaiting Manual → Automatic confirmation; null when modal is closed. */
   const [pendingAutoStage, setPendingAutoStage] = useState<PolicyStage | null>(null);
@@ -240,11 +237,6 @@ const ApprovalPolicyView: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
     setPendingAutoStage(null);
   };
 
-  const markDirtyRetry = (next: number) => {
-    setMaxRetryAttempts(next);
-    setIsDirty(true);
-  };
-
   const renderToggleRow = (stage: PolicyStage, ariaLabel: string) => (
     <PolicyRow label={POLICY_STAGE_LABELS[stage]} fieldId={`${ariaLabel}-toggle`}>
       <ToggleGroup isCompact aria-label={ariaLabel} id={`${ariaLabel}-toggle`}>
@@ -269,26 +261,6 @@ const ApprovalPolicyView: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
         {renderToggleRow('execution', 'Execution policy')}
         {renderToggleRow('verification', 'Verification policy')}
         {renderToggleRow('escalation', 'Escalation policy')}
-        <PolicyRow label="Max retry attempts" fieldId="max-retry-attempts" isLast>
-          <NumberInput
-            id="max-retry-attempts"
-            value={maxRetryAttempts}
-            min={0}
-            max={10}
-            onMinus={() => markDirtyRetry(Math.max(0, maxRetryAttempts - 1))}
-            onPlus={() => markDirtyRetry(Math.min(10, maxRetryAttempts + 1))}
-            onChange={(event) => {
-              const parsed = Number((event.target as HTMLInputElement).value);
-              if (!Number.isNaN(parsed)) {
-                markDirtyRetry(Math.min(10, Math.max(0, parsed)));
-              }
-            }}
-            inputName="max-retry-attempts"
-            inputAriaLabel="Max retry attempts"
-            minusBtnAriaLabel="Decrement max retry attempts"
-            plusBtnAriaLabel="Increment max retry attempts"
-          />
-        </PolicyRow>
       </Form>
       <Flex style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }} gap={{ default: 'gapSm' }}>
         <FlexItem>
@@ -296,7 +268,7 @@ const ApprovalPolicyView: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
             variant="primary"
             isDisabled={!isDirty}
             onClick={() => {
-              applyPolicyConfig({ analysisPolicy, executionPolicy, verificationPolicy, escalationPolicy, maxRetryAttempts });
+              applyPolicyConfig({ analysisPolicy, executionPolicy, verificationPolicy, escalationPolicy });
               onSaved();
               setIsDirty(false);
             }}
@@ -355,7 +327,7 @@ export const AgenticRunConfigPage: React.FC = () => {
           </FlexItem>
         </Flex>
         <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}>
-          Manage manual or automatic stage approval modes and retry limits across the agentic troubleshooting lifecycle.
+          Manage manual or automatic stage approval modes across the agentic troubleshooting lifecycle.
         </Content>
       </AiHubPageHeading>
 

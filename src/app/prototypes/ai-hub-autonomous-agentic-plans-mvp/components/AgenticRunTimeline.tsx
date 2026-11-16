@@ -330,7 +330,7 @@ function resolveMeldedBody(
   }
   if (event === 'agenticrun.execute' && slots.humanApprovalRequested) return slots.humanApprovalRequested;
   if (
-    (event === 'agenticrun.verification.completed' || event === 'agenticrun.verification.retry')
+    event === 'agenticrun.verification.completed'
     && slots.verificationPhaseCompleted
   ) {
     return slots.verificationPhaseCompleted;
@@ -356,7 +356,7 @@ const PHASE_EVENT_CANDIDATES: Record<DefaultExpandedPhaseId, readonly string[]> 
   analysis: ['agenticrun.analyze'],
   remediation: ['agenticrun.human_approval'],
   execution: ['agenticrun.execution.completed', 'agenticrun.execute'],
-  verification: ['agenticrun.verification.completed', 'agenticrun.verification.retry', 'agenticrun.verify'],
+  verification: ['agenticrun.verification.completed', 'agenticrun.verify'],
   escalation: ['agenticrun.escalation.completed', 'agenticrun.escalate'],
 };
 
@@ -529,7 +529,7 @@ function resolveTimelinePhaseEvidence(
     };
   }
 
-  if (event === 'agenticrun.verification.completed' || event === 'agenticrun.verification.retry') {
+  if (event === 'agenticrun.verification.completed') {
     if (!ctx.verificationLogText?.trim()) return null;
     return {
       toggleCollapsed: 'View verification logs',
@@ -614,7 +614,6 @@ function offsetTimestamp(baseIso: string, offsetMinutes: number): string {
 export function buildTimelineSteps(
   status: PlanStatus,
   createdAt: string = new Date().toISOString(),
-  retryCount = 0,
   isAwaitingAnalysisApproval = false,
   executionApprovalMode?: 'manual' | 'auto',
   isAwaitingVerificationApproval = false,
@@ -715,31 +714,17 @@ export function buildTimelineSteps(
       ];
 
     // ── Execution ─────────────────────────────────────────────────────────────
-    case 'Executing': {
-      const retrySteps: TimelineStep[] = [];
-      for (let i = 0; i < retryCount; i++) {
-        retrySteps.push(
-          warn(`sr-verify-${i}`, 'agenticrun.verification.retry',
-            `Verification failed — execution retry ${i + 1}`, 18 + i * 8),
-          done(`sr-exec-${i}`, 'agenticrun.execute',
-            `Execution phase started (retry ${i + 1})`, 20 + i * 8),
-        );
-      }
-      const execLabel = retryCount > 0
-        ? `Execution phase started (retry ${retryCount + 1})`
-        : 'Execution phase started';
+    case 'Executing':
       return [
         done  ('s1', 'agenticrun.received',           'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',             'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed',  'Analysis completed', 4),
-        ...retrySteps,
-        active('s5', 'agenticrun.execute',             execLabel, 7 + retryCount * 8),
+        active('s5', 'agenticrun.execute',             'Execution phase started', 7),
         waiting('s6', 'agenticrun.execution.completed', 'Execution phase completed'),
         waiting('s7', 'agenticrun.verify',              'Verification phase started'),
         waiting('s8', 'agenticrun.verification.completed', 'Verification phase completed'),
         waiting('s9', 'agenticrun.terminal',           'Terminal state reached'),
       ];
-    }
 
     // ── Verifying ────────────────────────────────────────────────────────────
     case 'Verifying':
@@ -778,10 +763,8 @@ export function buildTimelineSteps(
         done  ('s5', 'agenticrun.execute',              'Execution phase started', 7),
         done  ('s6', 'agenticrun.execution.completed',  'Execution phase completed', 14),
         done  ('s7', 'agenticrun.verify',               'Verification phase started', 15),
-        warn  ('s8', 'agenticrun.verification.retry',   'Verification failed — execution retry 1', 18),
-        warn  ('sr2', 'agenticrun.verification.retry',  'Verification failed — execution retry 2', 26),
-        warn  ('sr3', 'agenticrun.verification.retry',  'Verification failed — execution retry 3', 34),
-        failed('s9', 'agenticrun.terminal',             'Terminal state reached', 36),
+        warn  ('s8', 'agenticrun.verification.completed', 'Verification failed — Triggering escalation', 18),
+        failed('s9', 'agenticrun.terminal',             'Terminal state reached', 20),
       ];
 
     // ── Escalating ────────────────────────────────────────────────────────────
@@ -793,8 +776,8 @@ export function buildTimelineSteps(
         done  ('s5', 'agenticrun.execute',              'Execution phase started', 7),
         done  ('s6', 'agenticrun.execution.completed',  'Execution phase completed', 14),
         done  ('s7', 'agenticrun.verify',               'Verification phase started', 15),
-        warn  ('s8', 'agenticrun.verification.retry',   'Verification failed — execution retries exhausted', 34),
-        active('s9', 'agenticrun.escalate',             'Escalation phase started', 36),
+        warn  ('s8', 'agenticrun.verification.completed', 'Verification failed — Triggering escalation', 18),
+        active('s9', 'agenticrun.escalate',             'Escalation phase started', 20),
         waiting('s10', 'agenticrun.escalation.completed', 'Escalation completed'),
         waiting('s11', 'agenticrun.terminal',            'Terminal state reached'),
       ];
@@ -808,10 +791,10 @@ export function buildTimelineSteps(
         done('s5', 'agenticrun.execute',                'Execution phase started', 7),
         done('s6', 'agenticrun.execution.completed',    'Execution completed', 14),
         done('s7', 'agenticrun.verify',                 'Verification phase started', 15),
-        warn('s8', 'agenticrun.verification.retry',     'Verification failed — execution retries exhausted', 34),
-        warn('s9', 'agenticrun.escalate',               'Escalation phase started', 36),
-        warn('s10', 'agenticrun.escalation.completed',  'Escalation completed — human intervention required', 42),
-        warn('s11', 'agenticrun.terminal',              'Terminal state reached — Escalated', 43),
+        warn('s8', 'agenticrun.verification.completed', 'Verification failed — Triggering escalation', 18),
+        warn('s9', 'agenticrun.escalate',               'Escalation phase started', 20),
+        warn('s10', 'agenticrun.escalation.completed',  'Escalation completed — human intervention required', 26),
+        warn('s11', 'agenticrun.terminal',              'Terminal state reached — Escalated', 27),
       ];
 
     // ── Run aborted (analysis canceled before execution) ─────────────────────
@@ -887,7 +870,6 @@ export function buildTimelineSteps(
 interface AgenticRunTimelineProps {
   status: PlanStatus;
   createdAt?: string;
-  retryCount?: number;
   /**
    * When true (agentic kill switch engaged), any in-progress `info` step is
    * converted to `warning` and its description is updated to reflect that the
@@ -923,7 +905,6 @@ interface AgenticRunTimelineProps {
 export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
   status,
   createdAt,
-  retryCount = 0,
   isCapabilitiesDisabled = false,
   isAwaitingAnalysisApproval = false,
   executionApprovalMode,
@@ -941,7 +922,7 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
     ? approvalPhaseCopy(manualApprovalPhase, status)
     : null;
   const steps = buildTimelineSteps(
-    status, createdAt, retryCount, isAwaitingAnalysisApproval,
+    status, createdAt, isAwaitingAnalysisApproval,
     executionApprovalMode, isAwaitingVerificationApproval, phaseTransitions,
   )
     .filter((s) => s.variant !== 'pending')
