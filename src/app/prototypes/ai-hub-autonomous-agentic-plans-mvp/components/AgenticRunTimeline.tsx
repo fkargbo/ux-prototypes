@@ -102,7 +102,7 @@ function approvalPhaseCopy(phaseName: string | null | undefined, status: PlanSta
 const MANUAL_APPROVAL_NOTICE_COPY: Record<string, { title: string; body: string; variant: 'info' | 'danger' }> = {
   Analysis: {
     title: 'Awaiting manual approval',
-    body: 'Review the proposed diagnostic actions before authorizing the agent to investigate the cluster.',
+    body: 'Approve the AI agent to begin analyzing the cluster.',
     variant: 'info',
   },
   Execution: {
@@ -114,11 +114,6 @@ const MANUAL_APPROVAL_NOTICE_COPY: Record<string, { title: string; body: string;
     title: 'Awaiting manual approval',
     body: 'Review the proposed checks before authorizing the agent to validate the resolution.',
     variant: 'info',
-  },
-  Escalation: {
-    title: 'Manual intervention required',
-    body: 'Review the failure logs below. The agent cannot proceed and requires you to take over manual troubleshooting.',
-    variant: 'danger',
   },
 };
 
@@ -293,7 +288,9 @@ const TimelineItem: React.FC<{
                   />
                 </div>
               )}
-              {manualApprovalPhase && <ManualApprovalNotice phaseName={manualApprovalPhase} />}
+              {manualApprovalPhase && manualApprovalPhase !== 'Escalation' && (
+                <ManualApprovalNotice phaseName={manualApprovalPhase} />
+              )}
               {meldedBody && (
                 <div style={manualApprovalPhase ? { marginTop: 'var(--pf-t--global--spacer--md)' } : undefined}>
                   {meldedBody}
@@ -609,7 +606,7 @@ function offsetTimestamp(baseIso: string, offsetMinutes: number): string {
  * the current active step.
  *
  * @param isAwaitingAnalysisApproval - When true (Pending + manual policy gate),
- *   inserts an explicit "Human approval requested" active step before analysis begins.
+ *   inserts an explicit "Manual approval requested" active step before analysis begins.
  */
 export function buildTimelineSteps(
   status: PlanStatus,
@@ -622,7 +619,7 @@ export function buildTimelineSteps(
   const t = (min: number) => offsetTimestamp(createdAt, min);
   const proposedApprovalLabel = executionApprovalMode === 'auto'
     ? 'Remediation plan ready — executing automatically'
-    : 'Human approval requested - Execution';
+    : 'Manual approval requested - Execution';
 
   // Helper to build a step
   const step = (
@@ -651,12 +648,12 @@ export function buildTimelineSteps(
   switch (status) {
     // ── Pre-analysis ──────────────────────────────────────────────────────────
     case 'Pending':
-      // When the run is gated on human approval before analysis can begin,
+      // When the run is gated on manual approval before analysis can begin,
       // surface that gate as an explicit active step so the operator understands why nothing has progressed.
       if (isAwaitingAnalysisApproval) {
         return [
           done  ('s1', 'agenticrun.received',            'Run created — controller dispatched', 0),
-          active('s2', 'agenticrun.human_approval',       'Human approval requested - Analysis', 1),
+          active('s2', 'agenticrun.human_approval',       'Manual approval requested - Analysis', 1),
           waiting('s3', 'agenticrun.analyze',             'Analysis phase started'),
           waiting('s4', 'agenticrun.analysis.completed',  'Analysis completed'),
           waiting('s5', 'agenticrun.execute',             'Execution phase started'),
@@ -709,7 +706,7 @@ export function buildTimelineSteps(
         done  ('s1', 'agenticrun.received',          'Run created — controller dispatched', 0),
         done  ('s2', 'agenticrun.analyze',            'Analysis phase started', 1),
         done  ('s3', 'agenticrun.analysis.completed', 'Analysis completed', 4),
-        failed('s4', 'agenticrun.human_approval',     'Human approval — denied by operator', 6),
+        failed('s4', 'agenticrun.human_approval',     'Manual approval — denied by operator', 6),
         failed('s5', 'agenticrun.terminal',           'Terminal state reached', 6),
       ];
 
@@ -735,7 +732,7 @@ export function buildTimelineSteps(
         done  ('s5', 'agenticrun.execute',              'Execution phase started', 7),
         done  ('s6', 'agenticrun.execution.completed',  'Execution phase completed', 14),
         active('s7', 'agenticrun.verify',               isAwaitingVerificationApproval
-          ? 'Human approval requested - Verification'
+          ? 'Manual approval requested - Verification'
           : 'Verification phase started', 15),
         waiting('s8', 'agenticrun.verification.completed', 'Verification phase completed'),
         waiting('s9', 'agenticrun.terminal',            'Terminal state reached'),
@@ -793,7 +790,7 @@ export function buildTimelineSteps(
         done('s7', 'agenticrun.verify',                 'Verification phase started', 15),
         warn('s8', 'agenticrun.verification.completed', 'Verification failed — Triggering escalation', 18),
         warn('s9', 'agenticrun.escalate',               'Escalation phase started', 20),
-        warn('s10', 'agenticrun.escalation.completed',  'Escalation completed — human intervention required', 26),
+        warn('s10', 'agenticrun.escalation.completed',  'Escalation completed — manual intervention required', 26),
         warn('s11', 'agenticrun.terminal',              'Terminal state reached — Escalated', 27),
       ];
 
@@ -877,7 +874,7 @@ interface AgenticRunTimelineProps {
    */
   isCapabilitiesDisabled?: boolean;
   /**
-   * When true, the Pending timeline shows an explicit "Human approval requested"
+   * When true, the Pending timeline shows an explicit "Manual approval requested"
    * active step, reflecting that the run is gated on manual analysis approval.
    */
   isAwaitingAnalysisApproval?: boolean;
@@ -895,7 +892,7 @@ interface AgenticRunTimelineProps {
   evidence?: AgenticRunTimelineEvidenceContext;
   /** Melded run-details bodies nested under chronological phases (HPUX-2106). */
   meldedSlots?: MeldedTimelineSlots;
-  /** Audit events whose expandable section starts expanded (e.g. human approval while Proposed). */
+  /** Audit events whose expandable section starts expanded (e.g. manual approval while Proposed). */
   defaultExpandedEvents?: readonly string[];
 }
 
@@ -932,7 +929,7 @@ export const AgenticRunTimeline: React.FC<AgenticRunTimelineProps> = ({
         ? { ...s, phaseTransition: undefined }
         : s;
       const labeledStep = approvalStep
-        ? { ...visibleStep, label: `Human approval requested - ${approvalPhase === 'current' ? 'Current phase' : approvalPhase}` }
+        ? { ...visibleStep, label: `Manual approval requested - ${approvalPhase === 'current' ? 'Current phase' : approvalPhase}` }
         : visibleStep;
       if (isCapabilitiesDisabled && s.variant === 'info') {
         return {

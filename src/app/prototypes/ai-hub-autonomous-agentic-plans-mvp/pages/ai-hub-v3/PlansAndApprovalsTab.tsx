@@ -3686,7 +3686,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                 title="Automated remediation failed"
                 style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
               >
-                The autonomous agent failed to verify the cluster resolution. Escalation handoff is in progress, and human intervention is now required.
+                The autonomous agent failed to verify the cluster resolution. Escalation handoff is in progress, and manual intervention is now required.
               </Alert>
               <div
                 style={LOCKED_BOX_STYLE}

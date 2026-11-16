@@ -13,13 +13,13 @@ test('shows the configured approval gates and a completed audit trail', () => {
 
   const waitingForVerification = buildTimelineSteps('Verifying', createdAt, false, 'manual', true);
   expect(waitingForVerification.find((step) => step.event === 'agenticrun.verify')?.label)
-    .toBe('Human approval requested - Verification');
+    .toBe('Manual approval requested - Verification');
 
   const waitingForAnalysis = buildTimelineSteps('Pending', createdAt, true);
   expect(waitingForAnalysis.find((step) => step.isCurrent)?.label)
-    .toBe('Human approval requested - Analysis');
+    .toBe('Manual approval requested - Analysis');
   expect(buildTimelineSteps('Proposed', createdAt, false, 'manual').find((step) => step.isCurrent)?.label)
-    .toBe('Human approval requested - Execution');
+    .toBe('Manual approval requested - Execution');
 
   const completed = buildTimelineSteps('Completed', createdAt, false, 'auto');
   expect(completed).toHaveLength(8);
@@ -127,32 +127,36 @@ test.each([
       }}
     />,
   );
-  const activeItem = screen.getByText(`Human approval requested - ${props.phase}`).closest('li');
-  expect(activeItem).toHaveTextContent(`Human approval requested - ${props.phase}`);
+  const activeItem = screen.getByText(`Manual approval requested - ${props.phase}`).closest('li');
+  expect(activeItem).toHaveTextContent(`Manual approval requested - ${props.phase}`);
   expect(activeItem).toHaveTextContent('Awaiting approval');
   expect(activeItem?.querySelector('button')).toHaveAttribute('aria-expanded', 'true');
-  const expectedNotice = props.phase === 'Escalation'
-    ? 'Manual intervention required'
-    : 'Awaiting manual approval';
-  const notice = screen.getByText(expectedNotice).closest('.pf-v6-c-alert');
+  const notice = props.phase === 'Escalation'
+    ? null
+    : screen.getByText('Awaiting manual approval').closest('.pf-v6-c-alert');
   const expectedBody = props.phase === 'Analysis'
-    ? 'Review the proposed diagnostic actions before authorizing the agent to investigate the cluster.'
+    ? 'Approve the AI agent to begin analyzing the cluster.'
     : props.phase === 'Execution'
       ? 'Review the proposed remediation and expected impact before authorizing changes to the cluster.'
       : props.phase === 'Verification'
         ? 'Review the proposed checks before authorizing the agent to validate the resolution.'
         : 'Review the failure logs below. The agent cannot proceed and requires you to take over manual troubleshooting.';
-  expect(notice).toHaveTextContent(expectedBody);
+  if (notice) {
+    expect(notice).toHaveTextContent(expectedBody);
+  }
   const followingContent = activeItem?.querySelector('.pf-v6-c-alert + div');
   if (props.phase === 'Analysis' || props.phase === 'Escalation') {
     expect(followingContent).toBeNull();
-    expect(notice?.parentElement?.children).toHaveLength(1);
+    if (notice) {
+      expect(notice.parentElement?.children).toHaveLength(1);
+    }
     expect((notice?.parentElement as HTMLElement).style.paddingBottom)
       .toBe('var(--pf-t--global--spacer--md)');
     expect(screen.queryByText('Remediation plans')).not.toBeInTheDocument();
     expect(screen.queryByText('AI-generated')).not.toBeInTheDocument();
     expect(screen.queryByText('Awaiting root cause analysis.')).not.toBeInTheDocument();
     expect(screen.queryByText('Analysis phase started')).not.toBeInTheDocument();
+    expect(screen.queryByText('Manual intervention required')).not.toBeInTheDocument();
   } else {
     expect(followingContent).not.toBeNull();
   }
@@ -172,7 +176,7 @@ test('omits manual approval messaging during automatic execution and falls back 
       createdAt="2026-09-01T12:00:00Z"
     />,
   );
-  expect(screen.getByText('Human approval requested - Verification')).toBeInTheDocument();
+  expect(screen.getByText('Manual approval requested - Verification')).toBeInTheDocument();
   expect(screen.getByText('Awaiting manual approval')).toBeInTheDocument();
   expect(screen.getByText('Needs approval')).toBeInTheDocument();
   rerender(<AgenticRunTimeline status="Completed" createdAt="2026-09-01T12:00:00Z" />);

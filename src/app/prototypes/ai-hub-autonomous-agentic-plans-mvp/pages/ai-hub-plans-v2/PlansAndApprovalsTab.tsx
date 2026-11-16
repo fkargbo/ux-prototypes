@@ -6933,9 +6933,10 @@ export const RemediationBlueprintPanel: React.FC<{
       <Alert
         isInline
         variant="danger"
+        className="pf-v6-u-mb-md"
         title="Automated remediation failed"
       >
-        The autonomous agent failed to verify the cluster resolution. Escalation handoff is in progress, and human intervention is now required.
+        The autonomous agent failed to verify the cluster resolution. Escalation handoff is in progress, and manual intervention is now required.
       </Alert>
     ) : undefined,
     terminal: (
@@ -7026,23 +7027,6 @@ export const RemediationBlueprintPanel: React.FC<{
                 onClick={handleAcknowledgePlan}
               >
                 Escalate manually
-              </Button>
-            </ActionListItem>
-            <ActionListItem>
-              <Button
-                variant="secondary"
-                isDisabled={!isAgenticAutomationEnabled || !selectedOption}
-                onClick={() => {
-                  if (selectedOption) {
-                    executeRemediation(plan.id, {
-                      optionIndex: selectedOptionIndex,
-                      optionId: selectedOption.id,
-                      optionTitle: selectedOption.title,
-                    });
-                  }
-                }}
-              >
-                Retry execution
               </Button>
             </ActionListItem>
           </>
@@ -7165,7 +7149,7 @@ export const RemediationBlueprintPanel: React.FC<{
                 variant="warning"
                 title="Automated remediation failed"
               >
-                The autonomous agent failed to verify the cluster resolution. Escalation handoff is in progress, and human intervention is now required.
+                The autonomous agent failed to verify the cluster resolution. Escalation handoff is in progress, and manual intervention is now required.
               </Alert>
             </StackItem>
           )}
