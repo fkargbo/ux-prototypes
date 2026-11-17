@@ -44,7 +44,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleDownIcon, AngleUpIcon, ColumnsIcon, EllipsisVIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiBanIcon, RhUiCheckCircleFillIcon, RhUiDownloadIcon, RhUiErrorFillIcon, RhUiInProgressIcon, RhUiPauseCircleIcon, RhUiPendingIcon, RhUiRunningIcon, RhUiSyncIcon, RhUiWarningFillIcon, SearchIcon } from '@patternfly/react-icons';
+import { AngleDownIcon, AngleUpIcon, ColumnsIcon, EllipsisVIcon, ExternalLinkAltIcon, HelpIcon, InfoCircleIcon, OutlinedClockIcon, RhUiBanIcon, RhUiCheckCircleFillIcon, RhUiDownloadIcon, RhUiErrorFillIcon, RhUiInProgressIcon, RhUiPauseCircleIcon, RhUiPendingIcon, RhUiWarningFillIcon, SearchIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { DeniedPlanBanner } from '../v2/PlanStatusBanners';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
@@ -3223,8 +3223,8 @@ const STATUS_VISUAL: Record<PlanStatus, StatusVisual> = {
   // ── Active / transient — vibrant PF6 info purple (#5E40BE) ─────────────────
   'Analyzing':        { kind: 'status', status: 'info',  icon: <RhUiInProgressIcon /> },
   'Proposed':         { kind: 'status', status: 'info',  icon: <RhUiPauseCircleIcon /> },
-  'Executing':        { kind: 'status', status: 'info',  icon: <RhUiRunningIcon /> },
-  'Verifying':        { kind: 'status', status: 'info',  icon: <RhUiSyncIcon /> },
+  'Executing':        { kind: 'status', status: 'info',  icon: <RhUiInProgressIcon /> },
+  'Verifying':        { kind: 'status', status: 'info',  icon: <RhUiInProgressIcon /> },
 
   // ── Terminal success — vibrant PF6 status green ──────────────────────────
   'Acknowledged':     { kind: 'status', status: 'success', icon: <RhUiCheckCircleFillIcon /> },
@@ -3397,13 +3397,18 @@ export const StatusLabel: React.FC<{
         {displayText}
       </span>
       {awaitingApprovalPhase && (
-        <Label
-          color="purple"
-          isCompact
-          aria-label={`Awaiting approval for ${awaitingApprovalPhase} phase`}
-        >
-          Awaiting approval
-        </Label>
+        <>
+          <Label
+            color="purple"
+            isCompact
+            aria-label={`Awaiting approval for ${awaitingApprovalPhase} phase`}
+          >
+            Awaiting approval
+          </Label>
+          <span className="pf-v6-screen-reader">
+            Paused while awaiting manual approval for the {awaitingApprovalPhase} phase.
+          </span>
+        </>
       )}
     </span>
   );
@@ -3950,7 +3955,7 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
               status={row.status}
               terminatedAt={row.terminatedAt}
               awaitingApprovalPhase={awaitingApprovalPhase}
-              displayStatus={analysisApprovalGateReached ? 'Analyzing' : undefined}
+              displayStatus={awaitingApprovalPhase ? (awaitingApprovalPhase === 'Escalation' ? 'Escalating' : 'Proposed') : undefined}
               displayTextOverride={displayTextOverride}
             />
               );
