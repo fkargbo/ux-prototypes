@@ -22,6 +22,7 @@ import {
   Title,
   ToggleGroup,
   ToggleGroupItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import { AiHubPageHeading } from '../../components/AiHubPageHeading';
 import { TechPreviewBadge } from '../../components/TechPreviewBadge';
@@ -40,6 +41,25 @@ const POLICY_STAGE_LABELS: Record<PolicyStage, string> = {
 };
 
 const AGENTIC_RUNS_LIST_PATH = '/v2/ai-hub/observe/plans';
+
+const POLICY_TOOLTIP_COPY: Record<PolicyStage, { manual: string; automatic: string }> = {
+  analysis: {
+    manual: 'Require approval before cluster investigation.',
+    automatic: 'Investigate the cluster without approval.',
+  },
+  execution: {
+    manual: 'Require approval before applying remediation.',
+    automatic: 'Apply remediation changes without approval.',
+  },
+  verification: {
+    manual: 'Require approval to confirm issue resolution.',
+    automatic: 'Verify cluster health without approval.',
+  },
+  escalation: {
+    manual: 'Require approval for manual handoff on failure.',
+    automatic: 'Escalation always requires human intervention.',
+  },
+};
 
 // ─── Manual → Automatic 3-click safety modal ─────────────────────────────────
 
@@ -173,13 +193,12 @@ const ApprovalPolicyView: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
     analysisPolicy: globalAnalysisPolicy,
     executionPolicy: globalExecutionPolicy,
     verificationPolicy: globalVerificationPolicy,
-    escalationPolicy: globalEscalationPolicy,
     applyPolicyConfig,
   } = useApprovalPolicy();
   const [analysisPolicy, setAnalysisPolicy] = useState<ApprovalMode>(globalAnalysisPolicy);
   const [executionPolicy, setExecutionPolicy] = useState<ApprovalMode>(globalExecutionPolicy);
   const [verificationPolicy, setVerificationPolicy] = useState<ApprovalMode>(globalVerificationPolicy);
-  const [escalationPolicy, setEscalationPolicy] = useState<ApprovalMode>(globalEscalationPolicy);
+  const [escalationPolicy, setEscalationPolicy] = useState<ApprovalMode>('manual');
   const [isDirty, setIsDirty] = useState(false);
   /** Stage awaiting Manual → Automatic confirmation; null when modal is closed. */
   const [pendingAutoStage, setPendingAutoStage] = useState<PolicyStage | null>(null);
@@ -237,22 +256,45 @@ const ApprovalPolicyView: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
     setPendingAutoStage(null);
   };
 
-  const renderToggleRow = (stage: PolicyStage, ariaLabel: string) => (
-    <PolicyRow label={POLICY_STAGE_LABELS[stage]} fieldId={`${ariaLabel}-toggle`}>
-      <ToggleGroup isCompact aria-label={ariaLabel} id={`${ariaLabel}-toggle`}>
-        <ToggleGroupItem
-          text="Manual"
-          isSelected={policyValues[stage] === 'manual'}
-          onChange={() => requestPolicyChange(stage, 'manual')}
-        />
-        <ToggleGroupItem
-          text="Automatic"
-          isSelected={policyValues[stage] === 'auto'}
-          onChange={() => requestPolicyChange(stage, 'auto')}
-        />
-      </ToggleGroup>
-    </PolicyRow>
-  );
+  const renderToggleRow = (stage: PolicyStage, ariaLabel: string) => {
+    const manualButtonId = `${stage}-policy-manual`;
+    const automaticButtonId = `${stage}-policy-automatic`;
+    const isEscalation = stage === 'escalation';
+    const tooltipTrigger = (buttonId: string, useWrapper = false) => () => {
+      const button = document.getElementById(buttonId);
+      return (useWrapper ? button?.parentElement : button) as HTMLElement;
+    };
+
+    return (
+      <PolicyRow label={POLICY_STAGE_LABELS[stage]} fieldId={`${ariaLabel}-toggle`}>
+        <>
+          <ToggleGroup isCompact aria-label={ariaLabel} id={`${ariaLabel}-toggle`}>
+            <ToggleGroupItem
+              text="Manual"
+              buttonId={manualButtonId}
+              isSelected={isEscalation || policyValues[stage] === 'manual'}
+              onChange={() => requestPolicyChange(stage, 'manual')}
+            />
+            <ToggleGroupItem
+              text="Automatic"
+              buttonId={automaticButtonId}
+              isSelected={!isEscalation && policyValues[stage] === 'auto'}
+              isDisabled={isEscalation}
+              onChange={() => requestPolicyChange(stage, 'auto')}
+            />
+          </ToggleGroup>
+          <Tooltip
+            triggerRef={tooltipTrigger(manualButtonId)}
+            content={POLICY_TOOLTIP_COPY[stage].manual}
+          />
+          <Tooltip
+            triggerRef={tooltipTrigger(automaticButtonId, isEscalation)}
+            content={POLICY_TOOLTIP_COPY[stage].automatic}
+          />
+        </>
+      </PolicyRow>
+    );
+  };
 
   return (
     <>
@@ -327,7 +369,7 @@ export const AgenticRunConfigPage: React.FC = () => {
           </FlexItem>
         </Flex>
         <Content component="p" style={{ marginTop: 'var(--pf-t--global--spacer--sm)', marginBottom: 0 }}>
-          Manage manual or automatic stage approval modes across the agentic troubleshooting lifecycle.
+          Set approval requirements for each troubleshooting phase. Select <strong>Manual</strong> to require human approval, or <strong>Automatic</strong> to continue without review.
         </Content>
       </AiHubPageHeading>
 
