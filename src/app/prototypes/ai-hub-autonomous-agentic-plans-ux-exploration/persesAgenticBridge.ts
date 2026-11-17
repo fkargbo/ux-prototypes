@@ -1,0 +1,74 @@
+import { clearSimulationPlayAlong, mergeSimulationPlayAlong } from './simulation/simulationStore';
+
+export type { SimulationPlayAlong } from './simulation/simulationTypes';
+
+export { clearSimulationPlayAlong, mergeSimulationPlayAlong };
+
+/**
+ * Optional callbacks from Dashboards (Perses) so the globally mounted AI assistant
+ * can drive Perses-only UI (notifications drawer, troubleshooting dashboard) without
+ * coupling the shell layout.
+ */
+export const persesAgenticBridge = {
+  setShowTroubleshootingDashboard: null as null | ((show: boolean) => void),
+  setIsGeneratingDashboard: null as null | ((generating: boolean) => void),
+  closeNotificationsDrawer: null as null | (() => void),
+};
+
+export type DiscussLightspeedContext = {
+  alertId: string;
+  /** e.g. `rca` | `remediation` — maps to diagnosis card scope. */
+  cardId: string;
+  /** Short label shown in the opening line (e.g. "Root cause analysis"). */
+  diagnosisName: string;
+};
+
+export type NodeInvestigationLightspeedContext = {
+  assetName: string;
+  investigationSummary: string;
+};
+
+export type RemediationDiscussionContext = {
+  planSynopsis: string;
+  optionTitle: string;
+  rootCause: string;
+  remediationProposal: string;
+  riskAssessment: string;
+  blastRadius: string;
+  severity: 'critical' | 'warning' | string;
+};
+
+export type RevisionDiscussionContext = {
+  planId: string;
+  planSynopsis: string;
+  aggregatedFinding: string;
+  rootCauseNarrative: string;
+  optionsSummary: string;
+  revisionCount: number;
+};
+
+type RevisionFeedbackHandler = (planId: string, text: string) => void;
+
+export const revisionDiscussionBridge = {
+  registerFeedbackHandler: (handler: RevisionFeedbackHandler) => {
+    revisionDiscussionBridge._handler = handler;
+  },
+  unregisterFeedbackHandler: () => {
+    revisionDiscussionBridge._handler = null;
+  },
+  submitFeedback: (planId: string, text: string) => {
+    revisionDiscussionBridge._handler?.(planId, text);
+  },
+  _handler: null as RevisionFeedbackHandler | null,
+};
+
+export const agenticGlobalAiApi = {
+  startTroubleshootingForAlert: null as null | ((alertName: string) => void),
+  openDiscussWithLightspeed: null as null | ((ctx: DiscussLightspeedContext) => void),
+  /** Core platforms Node & component summary → OLS chat handoff. */
+  openLightspeedFromNodeInvestigation: null as null | ((ctx: NodeInvestigationLightspeedContext) => void),
+  /** Remediation Hub → OLS chat: plan overview + fix + risk briefing. */
+  openRemediationDiscussion: null as null | ((ctx: RemediationDiscussionContext) => void),
+  /** Proposed plan → OLS chat: refine analysis before re-run. */
+  openRevisionDiscussion: null as null | ((ctx: RevisionDiscussionContext) => void),
+};

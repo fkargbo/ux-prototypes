@@ -23,6 +23,7 @@ export const MVP_PLAN_IDS = new Set([
   'ingress-controller-escalated',
   'prometheus-wal-emergency-stopped',
   'etcd-defrag-failed',
+  'op5-manual-escalation',
   'inv-alert-node-not-ready',
   'inv-alert-mds-cache-high',
   'inv-alert-vm-cannot-evict',
@@ -30,9 +31,6 @@ export const MVP_PLAN_IDS = new Set([
 ]);
 
 export const MVP_TRIGGER_DOMAINS = ['Observability', 'Cluster update', 'Security'] as const;
-
-/** Cluster `ApprovalPolicy` default for execution verification retries (all proposals). */
-export const GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS = 2;
 
 export function normalizeTriggerDomain(domain: string): string {
   return domain === 'Control Plane' ? 'Cluster update' : domain;
@@ -54,6 +52,7 @@ export const PLAN_TOKEN_BURN: Record<string, PlanTokenBurn> = {
   'inv-alert-vm-cannot-evict': { analysis: 400 },
   'inv-alert-node-cpu-high': { analysis: 390 },
   'etcd-defrag-failed': { analysis: 720, execution: 1450 },
+  'op5-manual-escalation': { analysis: 520, execution: 640 },
 };
 
 /** Per-option diagnosis confidence (backend: options[].diagnosis.confidence). */

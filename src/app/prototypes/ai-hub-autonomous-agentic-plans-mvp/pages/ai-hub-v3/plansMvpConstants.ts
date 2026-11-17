@@ -31,9 +31,6 @@ export const MVP_PLAN_IDS = new Set([
 
 export const MVP_TRIGGER_DOMAINS = ['Observability', 'Cluster update', 'Security'] as const;
 
-/** Cluster `ApprovalPolicy` default for execution verification retries (all proposals). */
-export const GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS = 2;
-
 export function normalizeTriggerDomain(domain: string): string {
   return domain === 'Control Plane' ? 'Cluster update' : domain;
 }

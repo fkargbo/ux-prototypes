@@ -1,14 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Badge,
   Button,
-  Dropdown,
-  DropdownItem,
-  DropdownList,
-  Flex,
-  FlexItem,
-  InputGroup,
-  InputGroupItem,
+  Checkbox,
   Label,
   LabelGroup,
   MenuToggle,
@@ -17,31 +11,55 @@ import {
   SelectList,
   SelectOption,
   TextInput,
+  Toolbar,
+  ToolbarContent,
+  ToolbarFilter,
+  ToolbarItem,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import type { PlanRow } from './PlansAndApprovalsTab';
+import { assignAgenticRunTargetCluster } from './agenticRunTargetClusters';
 
-export type PlansSearchCategory = 'name' | 'label';
+export type PlansSearchCategory = 'name';
 
-export const AGENTIC_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['status'] }[] = [
-  { label: 'Pending',           value: 'Pending' },
-  { label: 'Analyzing',         value: 'Analyzing' },
-  { label: 'Proposed',          value: 'Proposed' },
-  { label: 'Executing',         value: 'Executing' },
-  { label: 'Verifying',         value: 'Verifying' },
+export type AgenticPhaseFilterValue = 'AnalysisPhase' | 'ExecutionPhase' | 'VerificationPhase' | 'EscalationPhase';
+export type PlanStatusFilterValue = PlanRow['status'] | AgenticPhaseFilterValue;
+
+const AWAITING_APPROVAL_PHASE_FILTER_VALUES = new Set<AgenticPhaseFilterValue>([
+  'AnalysisPhase',
+  'ExecutionPhase',
+  'VerificationPhase',
+  'EscalationPhase',
+]);
+
+export function isAwaitingApprovalPhaseFilterValue(
+  value: PlanStatusFilterValue,
+): value is AgenticPhaseFilterValue {
+  return AWAITING_APPROVAL_PHASE_FILTER_VALUES.has(value as AgenticPhaseFilterValue);
+}
+
+export const AGENTIC_STATUS_FILTER_OPTIONS: { label: string; value: PlanStatusFilterValue }[] = [
+  { label: 'Pending',            value: 'Pending' },
+  { label: 'Analysis phase',     value: 'AnalysisPhase' },
+  { label: 'Analyzing',          value: 'Analyzing' },
+  { label: 'Execution phase',   value: 'ExecutionPhase' },
+  { label: 'Executing',          value: 'Executing' },
+  { label: 'Verification phase', value: 'VerificationPhase' },
+  { label: 'Verifying',          value: 'Verifying' },
   { label: 'Completed',         value: 'Completed' },
   { label: 'Failed',            value: 'Failed' },
   { label: 'Denied',            value: 'Denied' },
+  { label: 'Escalation phase',  value: 'EscalationPhase' },
   { label: 'Escalating',        value: 'Escalating' },
   { label: 'Escalated',         value: 'Escalated' },
   { label: 'Emergency stopped', value: 'EmergencyStopped' },
 ];
 
-export const TROUBLESHOOTING_STATUS_FILTER_OPTIONS: { label: string; value: PlanRow['status'] }[] = [
+export const TROUBLESHOOTING_STATUS_FILTER_OPTIONS: { label: string; value: PlanStatusFilterValue }[] = [
   { label: 'Analyzing',         value: 'Analyzing' },
-  { label: 'Proposed',          value: 'Proposed' },
+  { label: 'Execution phase',   value: 'Proposed' },
   { label: 'Executing',         value: 'Executing' },
-  { label: 'Verifying',         value: 'Verifying' },
+  { label: 'Verification phase', value: 'Verifying' },
   { label: 'Completed',         value: 'Completed' },
   { label: 'Escalated',         value: 'Escalated' },
   { label: 'Emergency stopped', value: 'EmergencyStopped' },
@@ -80,26 +98,37 @@ const FILTER_SECTION_TITLE_STYLE: React.CSSProperties = {
   color: 'var(--pf-t--global--text--color--subtle)',
 };
 
-function planMatchesTextSearch(plan: PlanRow, query: string, category: PlansSearchCategory): boolean {
+export type PlanStatusFilterResolver = (plan: PlanRow) => PlanStatusFilterValue[];
+
+const resolveDefaultStatusFilter: PlanStatusFilterResolver = (plan) => [plan.status];
+
+function planMatchesTextSearch(plan: PlanRow, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) {
     return true;
   }
-  if (category === 'name') {
-    return (plan.name ?? plan.id).toLowerCase().includes(q);
-  }
-  return plan.triggerDomain.toLowerCase().includes(q);
+  return (plan.name ?? plan.id).toLowerCase().includes(q);
 }
 
 function planMatchesAttributeFilters(
   plan: PlanRow,
-  statusFilters: PlanRow['status'][],
+  statusFilters: PlanStatusFilterValue[],
   triggerDomainFilters: string[],
+  clusterFilters: string[],
   includeTriggerDomainFilter: boolean,
+  includeClusterFilter: boolean,
   mapObservabilityDomains: boolean,
+  resolveStatusFilter: PlanStatusFilterResolver,
 ): boolean {
-  if (statusFilters.length > 0 && !statusFilters.includes(plan.status)) {
+  const resolvedStatuses = resolveStatusFilter(plan);
+  if (statusFilters.length > 0 && !statusFilters.some((status) => resolvedStatuses.includes(status))) {
     return false;
+  }
+  if (includeClusterFilter && clusterFilters.length > 0) {
+    const target = resolvePlanTargetCluster(plan);
+    if (!clusterFilters.includes(target)) {
+      return false;
+    }
   }
   if (includeTriggerDomainFilter && triggerDomainFilters.length > 0) {
     const effectiveDomain = mapObservabilityDomains
@@ -112,49 +141,93 @@ function planMatchesAttributeFilters(
   return true;
 }
 
+function planIsAwaitingApproval(plan: PlanRow, resolveStatusFilter: PlanStatusFilterResolver): boolean {
+  return resolveStatusFilter(plan).some(isAwaitingApprovalPhaseFilterValue);
+}
+
+export function resolvePlanTargetCluster(plan: PlanRow): string {
+  if (plan.clusterName?.trim()) {
+    return plan.clusterName.trim();
+  }
+  if (plan.targetCluster?.trim()) {
+    return plan.targetCluster.trim();
+  }
+  const cluster = plan.cluster?.trim();
+  if (cluster && cluster !== '—') {
+    return cluster;
+  }
+  return assignAgenticRunTargetCluster(plan.id);
+}
+
+/** Normalizes drill-down rows so clusterName is always available in multicluster mode. */
+export function withAgenticRunTargetCluster(plan: PlanRow): PlanRow {
+  const clusterName = resolvePlanTargetCluster(plan);
+  return {
+    ...plan,
+    clusterName,
+    targetCluster: plan.targetCluster ?? clusterName,
+  };
+}
+
 export function filterPlanRows(
   rows: PlanRow[],
   options: {
-    statusFilters: PlanRow['status'][];
+    statusFilters: PlanStatusFilterValue[];
     triggerDomainFilters: string[];
+    clusterFilters: string[];
     includeTriggerDomainFilter: boolean;
+    includeClusterFilter: boolean;
     mapObservabilityDomains: boolean;
-    searchCategory: PlansSearchCategory;
     searchInputValue: string;
+    resolveStatusFilter?: PlanStatusFilterResolver;
+    awaitingApprovalOnly?: boolean;
   },
 ): PlanRow[] {
+  const resolveStatusFilter = options.resolveStatusFilter ?? resolveDefaultStatusFilter;
   return rows.filter((plan) => {
     if (
       !planMatchesAttributeFilters(
         plan,
         options.statusFilters,
         options.triggerDomainFilters,
+        options.clusterFilters,
         options.includeTriggerDomainFilter,
+        options.includeClusterFilter,
         options.mapObservabilityDomains,
+        resolveStatusFilter,
       )
     ) {
       return false;
     }
-    return planMatchesTextSearch(plan, options.searchInputValue, options.searchCategory);
+    if (options.awaitingApprovalOnly && !planIsAwaitingApproval(plan, resolveStatusFilter)) {
+      return false;
+    }
+    return planMatchesTextSearch(plan, options.searchInputValue);
   });
 }
 
 export interface UsePlansFilterStateOptions {
   includeTriggerDomainFilter?: boolean;
+  /** Hub multicluster toolbar filter (HPUX-2155). */
+  includeClusterFilter?: boolean;
   /** When true, granular observability telemetry domains (Prometheus, Thanos, etc.)
    *  are coalesced to "Observability" for filtering. Use in fleet/Agentic Plans view. */
   mapObservabilityDomains?: boolean;
+  /** Resolves live workflow state used by status matching and option counts. */
+  resolveStatusFilter?: PlanStatusFilterResolver;
 }
 
 export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
   const includeTriggerDomainFilter = options.includeTriggerDomainFilter ?? false;
+  const includeClusterFilter = options.includeClusterFilter ?? false;
   const mapObservabilityDomains = options.mapObservabilityDomains ?? false;
+  const resolveStatusFilter = options.resolveStatusFilter ?? resolveDefaultStatusFilter;
 
-  const [statusFilters, setStatusFilters] = useState<PlanRow['status'][]>([]);
+  const [statusFilters, setStatusFilters] = useState<PlanStatusFilterValue[]>([]);
+  const [awaitingApprovalOnly, setAwaitingApprovalOnly] = useState(false);
   const [triggerDomainFilters, setTriggerDomainFilters] = useState<string[]>([]);
+  const [clusterFilters, setClusterFilters] = useState<string[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-  const [searchCategory, setSearchCategory] = useState<PlansSearchCategory>('name');
-  const [searchCategoryOpen, setSearchCategoryOpen] = useState(false);
   const [searchInputValue, setSearchInputValue] = useState('');
 
   const toggleFilterValue = useCallback(<T extends string>(value: T, setter: React.Dispatch<React.SetStateAction<T[]>>) => {
@@ -163,17 +236,25 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
 
   const clearAllFilters = useCallback(() => {
     setStatusFilters([]);
+    setAwaitingApprovalOnly(false);
     setTriggerDomainFilters([]);
+    setClusterFilters([]);
     setSearchInputValue('');
   }, []);
 
   const activeFilterCount = useMemo(() => {
     let count = statusFilters.length;
+    if (awaitingApprovalOnly) {
+      count += 1;
+    }
     if (includeTriggerDomainFilter) {
       count += triggerDomainFilters.length;
     }
+    if (includeClusterFilter) {
+      count += clusterFilters.length;
+    }
     return count;
-  }, [includeTriggerDomainFilter, statusFilters.length, triggerDomainFilters.length]);
+  }, [awaitingApprovalOnly, clusterFilters.length, includeClusterFilter, includeTriggerDomainFilter, statusFilters.length, triggerDomainFilters.length]);
 
   const hasActiveAttributeFilters = activeFilterCount > 0;
   const hasActiveTextSearch = searchInputValue.trim().length > 0;
@@ -184,15 +265,21 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
       filterPlanRows(rows, {
         statusFilters,
         triggerDomainFilters,
+        clusterFilters,
         includeTriggerDomainFilter,
+        includeClusterFilter,
         mapObservabilityDomains,
-        searchCategory,
         searchInputValue,
+        resolveStatusFilter,
+        awaitingApprovalOnly,
       }),
     [
+      clusterFilters,
+      awaitingApprovalOnly,
+      includeClusterFilter,
       includeTriggerDomainFilter,
       mapObservabilityDomains,
-      searchCategory,
+      resolveStatusFilter,
       searchInputValue,
       statusFilters,
       triggerDomainFilters,
@@ -202,14 +289,14 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
   return {
     statusFilters,
     setStatusFilters,
+    awaitingApprovalOnly,
+    setAwaitingApprovalOnly,
     triggerDomainFilters,
     setTriggerDomainFilters,
+    clusterFilters,
+    setClusterFilters,
     filterMenuOpen,
     setFilterMenuOpen,
-    searchCategory,
-    setSearchCategory,
-    searchCategoryOpen,
-    setSearchCategoryOpen,
     searchInputValue,
     setSearchInputValue,
     toggleFilterValue,
@@ -222,46 +309,56 @@ export function usePlansFilterState(options: UsePlansFilterStateOptions = {}) {
 
 export interface PlansFilterToolbarProps {
   filterAriaLabel: string;
-  statusOptions: { label: string; value: PlanRow['status'] }[];
+  statusOptions: { label: string; value: PlanStatusFilterValue }[];
   includeTriggerDomainFilter?: boolean;
+  /** Hub multicluster filter section (HPUX-2155). */
+  includeClusterFilter?: boolean;
+  /** Distinct target cluster values for the Cluster filter section. */
+  clusterFilterOptions?: readonly string[];
   /** Override the default trigger-domain option list. Defaults to TRIGGER_DOMAIN_FILTER_OPTIONS. */
   triggerDomainOptions?: readonly string[];
   /** Full unfiltered row set — used to compute per-option counts in the filter dropdowns. */
   rows?: PlanRow[];
+  /** Resolves live workflow state used by status matching and option counts. */
+  resolveStatusFilter?: PlanStatusFilterResolver;
   pagination?: React.ReactNode;
-  statusFilters: PlanRow['status'][];
+  /** Optional control rendered after the search input — e.g. a column management button. */
+  columnManagementControl?: React.ReactNode;
+  statusFilters: PlanStatusFilterValue[];
+  awaitingApprovalOnly: boolean;
   triggerDomainFilters: string[];
+  clusterFilters: string[];
   filterMenuOpen: boolean;
   setFilterMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  searchCategory: PlansSearchCategory;
-  setSearchCategory: React.Dispatch<React.SetStateAction<PlansSearchCategory>>;
-  searchCategoryOpen: boolean;
-  setSearchCategoryOpen: React.Dispatch<React.SetStateAction<boolean>>;
   searchInputValue: string;
   setSearchInputValue: React.Dispatch<React.SetStateAction<string>>;
   toggleFilterValue: <T extends string>(value: T, setter: React.Dispatch<React.SetStateAction<T[]>>) => void;
   clearAllFilters: () => void;
   activeFilterCount: number;
   hasActiveFilters: boolean;
-  setStatusFilters: React.Dispatch<React.SetStateAction<PlanRow['status'][]>>;
+  setStatusFilters: React.Dispatch<React.SetStateAction<PlanStatusFilterValue[]>>;
+  setAwaitingApprovalOnly: React.Dispatch<React.SetStateAction<boolean>>;
   setTriggerDomainFilters: React.Dispatch<React.SetStateAction<string[]>>;
+  setClusterFilters: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   filterAriaLabel,
   statusOptions,
   includeTriggerDomainFilter = false,
+  includeClusterFilter = false,
+  clusterFilterOptions = [],
   triggerDomainOptions = TRIGGER_DOMAIN_FILTER_OPTIONS,
   pagination,
+  columnManagementControl,
   rows = [],
+  resolveStatusFilter = resolveDefaultStatusFilter,
   statusFilters,
+  awaitingApprovalOnly,
   triggerDomainFilters,
+  clusterFilters,
   filterMenuOpen,
   setFilterMenuOpen,
-  searchCategory,
-  setSearchCategory,
-  searchCategoryOpen,
-  setSearchCategoryOpen,
   searchInputValue,
   setSearchInputValue,
   toggleFilterValue,
@@ -269,16 +366,32 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
   activeFilterCount,
   hasActiveFilters,
   setStatusFilters,
+  setAwaitingApprovalOnly,
   setTriggerDomainFilters,
+  setClusterFilters,
 }) => {
   /** Count of runs per status across the full unfiltered dataset. */
   const countsByStatus = useMemo<Record<string, number>>(() => {
     const counts: Record<string, number> = {};
     for (const row of rows) {
-      counts[row.status] = (counts[row.status] ?? 0) + 1;
+      for (const status of resolveStatusFilter(row)) {
+        counts[status] = (counts[status] ?? 0) + 1;
+      }
     }
     return counts;
-  }, [rows]);
+  }, [resolveStatusFilter, rows]);
+
+  const awaitingApprovalStatusValues = useMemo(() => {
+    const values = new Set<AgenticPhaseFilterValue>();
+    for (const row of rows) {
+      for (const status of resolveStatusFilter(row)) {
+        if (isAwaitingApprovalPhaseFilterValue(status)) {
+          values.add(status);
+        }
+      }
+    }
+    return values;
+  }, [resolveStatusFilter, rows]);
 
   /** Count of runs per trigger domain (after macro-category mapping) across the full dataset. */
   const countsByDomain = useMemo<Record<string, number>>(() => {
@@ -290,43 +403,86 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
     return counts;
   }, [rows]);
 
+  const countsByCluster = useMemo<Record<string, number>>(() => {
+    const counts: Record<string, number> = {};
+    for (const row of rows) {
+      const cluster = resolvePlanTargetCluster(row);
+      if (cluster !== '—') counts[cluster] = (counts[cluster] ?? 0) + 1;
+    }
+    return counts;
+  }, [rows]);
+
+  const clusterOptionSet = useMemo(() => new Set(clusterFilterOptions), [clusterFilterOptions]);
+
   const handleFilterSelect = useCallback(
     (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
       if (typeof value !== 'string') {
         return;
       }
       if (statusOptions.some((opt) => opt.value === value)) {
-        toggleFilterValue(value as PlanRow['status'], setStatusFilters);
+        toggleFilterValue(value as PlanStatusFilterValue, setStatusFilters);
         return;
       }
       if (includeTriggerDomainFilter && (triggerDomainOptions as readonly string[]).includes(value)) {
         toggleFilterValue(value, setTriggerDomainFilters);
+        return;
+      }
+      if (includeClusterFilter && clusterOptionSet.has(value)) {
+        toggleFilterValue(value, setClusterFilters);
       }
     },
     [
       includeTriggerDomainFilter,
+      includeClusterFilter,
+      clusterOptionSet,
       triggerDomainOptions,
       setStatusFilters,
       setTriggerDomainFilters,
+      setClusterFilters,
       statusOptions,
       toggleFilterValue,
     ],
   );
 
-  const statusFilterLabel = (value: PlanRow['status']) =>
+  const statusFilterLabel = (value: PlanStatusFilterValue) =>
     statusOptions.find((opt) => opt.value === value)?.label ?? value;
+
+  const isAwaitingApprovalActive = awaitingApprovalOnly;
+  const deleteAwaitingApprovalChip = useCallback(() => {
+    setAwaitingApprovalOnly(false);
+  }, [setAwaitingApprovalOnly]);
+
+  /** "/" keyboard shortcut — focuses the search field, mirroring the console's global search convention. */
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const showSearchShortcutHint = !isSearchFocused && searchInputValue.length === 0;
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      const isTypingElsewhere =
+        target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable;
+      if (isTypingElsewhere) {
+        return;
+      }
+      event.preventDefault();
+      searchInputRef.current?.focus();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <>
-      <Flex
-        alignItems={{ default: 'alignItemsCenter' }}
-        justifyContent={{ default: 'justifyContentSpaceBetween' }}
-        flexWrap={{ default: 'nowrap' }}
+      <Toolbar
         className="ols-ai-hub-plans-toolbar"
+        clearAllFilters={clearAllFilters}
       >
-        <FlexItem style={{ minWidth: 0 }}>
-          <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }} flexWrap={{ default: 'nowrap' }}>
-            <FlexItem>
+        <ToolbarContent rowWrap={{ default: 'nowrap' }} alignItems="center">
+          <ToolbarItem>
               <Select
                 aria-label={filterAriaLabel}
                 role="menu"
@@ -349,12 +505,15 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                   <div style={FILTER_SECTION_TITLE_STYLE}>Status</div>
                   {statusOptions.map((opt) => {
                     const count = countsByStatus[opt.value] ?? 0;
+                    const isAwaitingApprovalPhase = isAwaitingApprovalActive
+                      && isAwaitingApprovalPhaseFilterValue(opt.value)
+                      && awaitingApprovalStatusValues.has(opt.value);
                     return (
                       <SelectOption
                         key={opt.value}
                         hasCheckbox
                         value={opt.value}
-                        isSelected={statusFilters.includes(opt.value)}
+                        isSelected={statusFilters.includes(opt.value) || isAwaitingApprovalPhase}
                       >
                         <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                           <span>{opt.label}</span>
@@ -385,75 +544,118 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
                       })}
                     </>
                   )}
+
+                  {includeClusterFilter && clusterFilterOptions.length > 0 && (
+                    <>
+                      <div style={FILTER_SECTION_TITLE_STYLE}>Cluster</div>
+                      {clusterFilterOptions.map((cluster) => {
+                        const count = countsByCluster[cluster] ?? 0;
+                        return (
+                          <SelectOption
+                            key={cluster}
+                            hasCheckbox
+                            value={cluster}
+                            isSelected={clusterFilters.includes(cluster)}
+                          >
+                            <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                              <span>{cluster}</span>
+                              {count > 0 && <Badge isRead>{count}</Badge>}
+                            </span>
+                          </SelectOption>
+                        );
+                      })}
+                    </>
+                  )}
                 </SelectList>
               </Select>
-            </FlexItem>
+          </ToolbarItem>
 
-            <FlexItem style={{ minWidth: 0 }}>
-              <InputGroup>
-                <InputGroupItem>
-                  <Dropdown
-                    isOpen={searchCategoryOpen}
-                    onOpenChange={setSearchCategoryOpen}
-                    toggle={(ref: React.Ref<MenuToggleElement>) => (
-                      <MenuToggle
-                        ref={ref}
-                        onClick={() => setSearchCategoryOpen((open) => !open)}
-                        isExpanded={searchCategoryOpen}
-                        style={{ minWidth: 0 }}
-                      >
-                        {searchCategory === 'name' ? 'Name' : 'Label'}
-                      </MenuToggle>
-                    )}
+          <ToolbarItem style={{ minWidth: 0 }}>
+              <div style={{ position: 'relative', minWidth: 220 }}>
+                <TextInput
+                  ref={searchInputRef}
+                  aria-label="Filter plans by name"
+                  placeholder="Search by name..."
+                  value={searchInputValue}
+                  onChange={(_evt, value) => setSearchInputValue(value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
+                  style={{ width: '100%', ...(showSearchShortcutHint ? { paddingInlineEnd: '28px' } : null) }}
+                />
+                {showSearchShortcutHint && (
+                  <kbd
+                    aria-hidden="true"
+                    className="ols-ai-hub-search-shortcut-hint"
+                    style={{
+                      position: 'absolute',
+                      insetInlineEnd: '6px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '16px',
+                      height: '24px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontFamily: 'var(--pf-t--global--font--family--mono)',
+                      fontSize: 'var(--pf-t--global--font--size--body--sm)',
+                      color: 'var(--pf-t--global--text--color--subtle)',
+                      border: '1px solid var(--pf-t--global--border--color--default)',
+                      borderRadius: 'var(--pf-t--global--border--radius--small)',
+                      lineHeight: 1,
+                      boxSizing: 'border-box',
+                      pointerEvents: 'none',
+                      backgroundColor: 'var(--pf-t--global--background--color--primary--default)',
+                    }}
                   >
-                    <DropdownList>
-                      <DropdownItem
-                        key="name"
-                        onClick={() => {
-                          setSearchCategory('name');
-                          setSearchInputValue('');
-                          setSearchCategoryOpen(false);
-                        }}
-                      >
-                        Name
-                      </DropdownItem>
-                      <DropdownItem
-                        key="label"
-                        onClick={() => {
-                          setSearchCategory('label');
-                          setSearchInputValue('');
-                          setSearchCategoryOpen(false);
-                        }}
-                      >
-                        Label
-                      </DropdownItem>
-                    </DropdownList>
-                  </Dropdown>
-                </InputGroupItem>
+                    /
+                  </kbd>
+                )}
+              </div>
+          </ToolbarItem>
 
-                <InputGroupItem isFill>
-                  <TextInput
-                    aria-label={searchCategory === 'name' ? 'Search plans by name' : 'Search plans by label'}
-                    placeholder={searchCategory === 'name' ? 'Search by name...' : 'Search by label...'}
-                    value={searchInputValue}
-                    onChange={(_evt, value) => setSearchInputValue(value)}
-                    style={{ minWidth: 220 }}
-                  />
-                </InputGroupItem>
-              </InputGroup>
-            </FlexItem>
-          </Flex>
-        </FlexItem>
+          <ToolbarFilter
+            categoryName="Status"
+            labels={[]}
+            deleteLabel={deleteAwaitingApprovalChip}
+            alignItems="center"
+          >
+            <Checkbox
+              id="awaiting-approval-quick-filter"
+              label="Awaiting approval"
+              aria-label="Filter to show only runs awaiting approval"
+              isChecked={isAwaitingApprovalActive}
+              onChange={(_event, checked) => setAwaitingApprovalOnly(checked)}
+            />
+          </ToolbarFilter>
 
-        {pagination && <FlexItem>{pagination}</FlexItem>}
-      </Flex>
+          <ToolbarItem variant="separator" aria-hidden="true" />
+
+          {columnManagementControl && (
+            <ToolbarItem>{columnManagementControl}</ToolbarItem>
+          )}
+
+          {pagination && <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>{pagination}</ToolbarItem>}
+        </ToolbarContent>
+      </Toolbar>
 
       {hasActiveFilters && (
         <div className="ols-ai-hub-plans-filter-chips ols-ai-hub-plans-filter-chips--active" style={{ marginTop: '12px' }}>
-          {statusFilters.length > 0 && (
-            <LabelGroup categoryName="Status" isClosable onClick={() => setStatusFilters([])}>
+          {(isAwaitingApprovalActive || statusFilters.length > 0) && (
+            <LabelGroup
+              categoryName="Status"
+              isClosable
+              onClick={() => {
+                setStatusFilters([]);
+                setAwaitingApprovalOnly(false);
+              }}
+            >
+              {isAwaitingApprovalActive && (
+                <Label isCompact onClose={deleteAwaitingApprovalChip}>
+                  Awaiting approval
+                </Label>
+              )}
               {statusFilters.map((status) => (
-                <Label key={status} isCompact onClose={() => toggleFilterValue(status, setStatusFilters)}>
+                <Label key={status} isCompact onClose={() => toggleFilterValue(status as PlanStatusFilterValue, setStatusFilters)}>
                   {statusFilterLabel(status)}
                 </Label>
               ))}
@@ -468,8 +670,17 @@ export const PlansFilterToolbar: React.FC<PlansFilterToolbarProps> = ({
               ))}
             </LabelGroup>
           )}
+          {includeClusterFilter && clusterFilters.length > 0 && (
+            <LabelGroup categoryName="Cluster" isClosable onClick={() => setClusterFilters([])}>
+              {clusterFilters.map((cluster) => (
+                <Label key={cluster} isCompact onClose={() => toggleFilterValue(cluster, setClusterFilters)}>
+                  {cluster}
+                </Label>
+              ))}
+            </LabelGroup>
+          )}
           <Button variant="link" isInline onClick={clearAllFilters} style={{ fontSize: 'var(--pf-t--global--font--size--sm)' }}>
-            Clear all
+            Clear all filters
           </Button>
         </div>
       )}

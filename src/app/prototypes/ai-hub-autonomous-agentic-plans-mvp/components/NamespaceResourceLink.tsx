@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Flex, FlexItem } from '@patternfly/react-core';
 
 /** OpenShift console–style resource kind badge (Plan, Namespace, etc.). */
-const OpenShiftResourceBadge: React.FC<{ label: string; backgroundColor: string }> = ({
+export const OpenShiftResourceBadge: React.FC<{ label: string; backgroundColor: string }> = ({
   label,
   backgroundColor,
 }) => (

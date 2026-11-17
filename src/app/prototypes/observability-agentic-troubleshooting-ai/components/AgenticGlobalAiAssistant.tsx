@@ -98,7 +98,6 @@ import {
   ChartContainer,
   ChartLabel,
 } from '@patternfly/react-charts/victory';
-import { Charts } from '@patternfly/react-charts/echarts';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
 import ChatbotContent from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
 import ChatbotWelcomePrompt from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
@@ -115,6 +114,7 @@ import '../pages/dashboards-perses.css';
 // Import custom profile images
 import userProfilePicUrl from '../assets/user-profile.png';
 import olsLogoUrl from '../assets/ols-logo.png';
+import { ChatCpuNamespaceBarChart } from './EchartsOptionChart';
 import {
   persesAgenticBridge,
   agenticGlobalAiApi,
@@ -431,6 +431,8 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
   const olsLauncherStackRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<MessageProps[]>([]);
   const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
+  const handleStage2Ref = useRef<() => void>(() => {});
+  const handleStage3Ref = useRef<() => void>(() => {});
 
   const markQuickResponseSelected = useCallback((containerId: string, content: string) => {
     setSelectedQuickResponses((prev) => {
@@ -862,7 +864,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
               content: 'Analyze root cause',
               onClick: () => {
                 markQuickResponseSelected(stage1QuickResponsesId, 'Analyze root cause');
-                handleStage2();
+                handleStage2Ref.current();
               }
             },
             {
@@ -925,12 +927,6 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
     // Simulate AI root cause analysis
     setTimeout(() => {
       const stage2QuickResponsesId = `qr-stage2-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-      // Mock data for top 3 CPU-consuming namespaces
-      const cpuData = [
-        { x: 'marketing-prod', y: 45 },
-        { x: 'sales-prod', y: 32 },
-        { x: 'support-prod', y: 23 }
-      ];
       
       const stage2Message: MessageWithCustomPills = {
         id: generateId(),
@@ -949,74 +945,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
                 </CardHeader>
                 <CardBody className="pf-v6-u-pb-0">
                   <div style={{ height: '200px', width: '100%' }}>
-                    <Charts
-                      height={200}
-                      option={{
-                        tooltip: {
-                          trigger: 'axis',
-                          axisPointer: {
-                            type: 'shadow'
-                          },
-                          formatter: (params: any) => {
-                            const param = params[0];
-                            return `${param.name}<br/>CPU Usage: ${param.value}%`;
-                          }
-                        },
-                        grid: {
-                          left: '60px',
-                          right: '20px',
-                          bottom: '100px',
-                          top: '20px',
-                          containLabel: false
-                        },
-                        xAxis: {
-                          type: 'category',
-                          data: cpuData.map(d => d.x),
-                          name: 'Namespace',
-                          nameLocation: 'middle',
-                          nameGap: 80,
-                          nameTextStyle: {
-                            color: 'var(--pf-t--global--text--color--default)'
-                          },
-                          axisLabel: {
-                            color: 'var(--pf-t--global--text--color--default)',
-                            formatter: (value: string) => {
-                              return value.length > 12 ? `${value.substring(0, 12)}...` : value;
-                            },
-                            rotate: 45
-                          }
-                        },
-                        yAxis: {
-                          type: 'value',
-                          name: 'CPU Usage (%)',
-                          nameLocation: 'middle',
-                          nameGap: 50,
-                          nameTextStyle: {
-                            color: 'var(--pf-t--global--text--color--default)'
-                          },
-                          axisLabel: {
-                            color: 'var(--pf-t--global--text--color--default)',
-                            formatter: '{value}%'
-                          }
-                        },
-                        series: [
-                          {
-                            name: 'CPU Usage',
-                            type: 'bar',
-                            data: cpuData.map(d => d.y),
-                            label: {
-                              show: true,
-                              position: 'top',
-                              formatter: '{c}%',
-                              color: 'var(--pf-t--global--text--color--default)'
-                            },
-                            itemStyle: {
-                              color: '#0066cc'
-                            }
-                          }
-                        ]
-                      }}
-                    />
+                    <ChatCpuNamespaceBarChart />
                   </div>
                 </CardBody>
               </Card>
@@ -1032,7 +961,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
               content: 'See troubleshooting dashboard',
               onClick: () => {
                 markQuickResponseSelected(stage2QuickResponsesId, 'See troubleshooting dashboard');
-                handleStage3();
+                handleStage3Ref.current();
               }
             },
             {
@@ -1058,6 +987,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       setAnnouncement('Root cause analysis complete. The web-head deployment in marketing-prod is the culprit.');
     }, 2000);
   }, [generateId, setMessages, setAnnouncement, buildScalingStepsMessage]);
+  handleStage2Ref.current = handleStage2;
 
   // Handle Stage 3: Dashboard Generation
   const handleStage3 = useCallback(() => {
@@ -1119,6 +1049,7 @@ export const AgenticGlobalAiAssistant: React.FC = () => {
       persesAgenticBridge.setIsGeneratingDashboard?.(false);
     }, 3000);
   }, [generateId, setMessages, setAnnouncement]);
+  handleStage3Ref.current = handleStage3;
 
   const welcomePrompts = useMemo(
     () => [

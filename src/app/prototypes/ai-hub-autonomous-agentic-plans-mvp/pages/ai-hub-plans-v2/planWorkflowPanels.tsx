@@ -19,8 +19,6 @@ import { mapOptionRisk } from '../../types/riskScore';
 /** Frozen verification demo for static `op4` row in the plans table. */
 export const STATIC_VERIFICATION_DEMO: Record<string, VerificationState> = {
   op4: {
-    attempt: 1,
-    maxAttempts: 2,
     startedAt: '2026-06-16T14:22:00.000Z',
     checks: [
       'Checking Prometheus alert state…',
@@ -108,9 +106,6 @@ export const VerificationPanel: React.FC<{
         {isInProgress && <Spinner size="md" aria-label="Verifying remediation" />}
         <Title headingLevel="h5" size="md">Verifying remediation</Title>
       </Flex>
-      <Content component="p" style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}>
-        Attempt {verification.attempt} of {verification.maxAttempts}
-      </Content>
       <ExpandableCodeBlock
         id="verif-log"
         code={streamedLog || 'Starting verification checks…'}
@@ -145,14 +140,10 @@ export const ProposalApprovalArtifact: React.FC<{ approval: ExecutionApproval }>
     </Flex>
     <DescriptionList isHorizontal isAutoColumnWidths isCompact>
       <DescriptionListGroup>
-        <DescriptionListTerm>Option</DescriptionListTerm>
+        <DescriptionListTerm>Plan</DescriptionListTerm>
         <DescriptionListDescription>
           {approval.optionIndex + 1} — {approval.optionTitle}
         </DescriptionListDescription>
-      </DescriptionListGroup>
-      <DescriptionListGroup>
-        <DescriptionListTerm>Max attempts</DescriptionListTerm>
-        <DescriptionListDescription>{approval.maxAttempts}</DescriptionListDescription>
       </DescriptionListGroup>
       <DescriptionListGroup>
         <DescriptionListTerm>Executed by</DescriptionListTerm>

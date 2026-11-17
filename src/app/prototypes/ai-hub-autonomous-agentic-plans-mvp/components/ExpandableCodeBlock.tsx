@@ -120,7 +120,6 @@ export const ExpandableCodeBlock: React.FC<ExpandableCodeBlockProps> = ({
           <CodeBlockAction>
             <ClipboardCopyButton
               id={copyId}
-              textId={textId}
               aria-label="Copy to clipboard"
               onClick={handleCopy}
               exitDelay={1000}

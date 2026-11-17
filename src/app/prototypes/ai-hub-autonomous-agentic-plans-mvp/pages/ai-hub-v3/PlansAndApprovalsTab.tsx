@@ -44,7 +44,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { AngleRightIcon, CheckCircleIcon, DownloadIcon, EllipsisVIcon, ExclamationCircleIcon, ExclamationTriangleIcon, HelpIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
+import { AngleRightIcon, DownloadIcon, EllipsisVIcon, HelpIcon, RhUiBanIcon, RhUiCheckCircleFillIcon, RhUiErrorFillIcon, RhUiInProgressIcon, RhUiPauseCircleIcon, RhUiPendingIcon, RhUiRunningIcon, RhUiSyncIcon, RhUiWarningFillIcon, SearchIcon, TerminalIcon } from '@patternfly/react-icons';
 import { AiExperienceIcon } from './AiExperienceIcon';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
@@ -104,7 +104,6 @@ import {
   enrichRemediationOptionsWithConfidence,
   getOptionExecutionTokenBurn,
   getPlanTokenBurn,
-  GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
   MVP_PLAN_IDS,
   normalizeTriggerDomain,
 } from './plansMvpConstants';
@@ -382,7 +381,7 @@ const PLAN_TABLE_IDENTITY: Record<
   },
   'ingress-controller-escalated': {
     name: 'ingress-controller-scale-escalated',
-    synopsis: 'Ingress controller minimum replica scale-out escalated after execution retry limit reached',
+    synopsis: 'Ingress controller minimum replica scale-out escalated after verification failed',
     fleetCluster: 'prod-east-2',
     namespace: 'openshift-ingress',
   },
@@ -837,7 +836,7 @@ const ALL_PLANS: RawPlanRow[] = [
     drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'alert', text: 'IngressControllerMinReplicasNotMet: automated scale-out failed after 2 execution attempts.' },
-      { icon: 'ban', text: 'Escalation triggered: MaxRetriesExhausted — requires manual operator intervention.' },
+      { icon: 'ban', text: 'Escalation triggered after verification failed — requires manual operator intervention.' },
     ],
   },
   {
@@ -1324,7 +1323,7 @@ const PLAN_DRAWER_DATA: Record<string, PlanDrawerData> = {
       { id: 's1', time: '14:22:05', status: 'done', icon: 'exclamation', title: 'IngressControllerMinReplicasNotMet alert fired', detail: 'Ingress controller replica count dropped below 2 after node eviction' },
       { id: 's2', time: '14:22:19', status: 'done', icon: 'database', title: 'Attempted automated scale-out — attempt 1', detail: 'Execution failed: insufficient resource quota in openshift-ingress' },
       { id: 's3', time: '14:22:41', status: 'done', icon: 'database', title: 'Attempted automated scale-out — attempt 2', detail: 'Execution failed: quota limit unchanged, same error' },
-      { id: 's4', time: '14:23:00', status: 'done', icon: 'exclamation', title: 'MaxRetriesExhausted — escalated to operator', detail: 'Proposal marked Escalated; requires human quota adjustment' },
+      { id: 's4', time: '14:23:00', status: 'done', icon: 'exclamation', title: 'Verification failed — escalation triggered', detail: 'Proposal marked Escalated; requires human quota adjustment' },
     ],
     aggregatedFinding: 'Ingress controller fell below minimum replicas after node eviction. Two automated scale-out attempts failed due to namespace quota limits.',
     rootCauseNarrative: 'A node eviction event on worker-bm-03 caused the ingress controller replica count to drop to 1. Two consecutive automated remediation executions failed because the openshift-ingress namespace quota prevented scheduling additional pods. After exhausting the MaxRetries threshold, the proposal was automatically escalated for manual operator intervention.',
@@ -1520,7 +1519,7 @@ Retrying... (attempt 1/3) connection refused
 Retrying... (attempt 2/3) connection refused
 Retrying... (attempt 3/3) connection refused
 
-FATAL: Node drain failed after 3 attempts.
+FATAL: Node drain failed during execution.
 BareMetalHost state: provisioning-error
 Rollback: node taint removed, workloads rescheduled to compute-node-7
 Exit code: 1`,
@@ -1737,23 +1736,29 @@ const formatPlanCreatedAt = (iso: string): string => {
 
 // ─── Status label ─────────────────────────────────────────────────────────────
 
-type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey';
+type LabelColor = 'blue' | 'teal' | 'orange' | 'green' | 'red' | 'grey' | 'yellow';
+type PfStatus = 'success' | 'warning' | 'danger' | 'info' | 'custom';
 
-const STATUS_LABEL_COLOR: Record<PlanStatus, LabelColor> = {
-  'Pending':          'grey',
-  'Analyzing':        'blue',
-  'Proposed':         'orange',
-  'Approved':         'orange',
-  'Executing':        'teal',
-  'Verifying':        'teal',
-  'Acknowledged':     'green',
-  'Completed':        'green',
-  'Failed':           'red',
-  'Denied':           'red',
-  'Escalating':       'orange',
-  'Escalated':        'orange',
-  'EmergencyStopped': 'red',
-  'Plan aborted':     'red',
+type StatusVisual =
+  | { kind: 'status'; status: PfStatus;   icon: React.ReactElement }
+  | { kind: 'color';  color: LabelColor;  icon: React.ReactElement };
+
+const STATUS_VISUAL: Record<PlanStatus, StatusVisual> = {
+  'Pending':          { kind: 'color',  color: 'grey',   icon: <RhUiPendingIcon /> },
+  'Approved':         { kind: 'color',  color: 'orange', icon: <RhUiPauseCircleIcon /> },
+  'Analyzing':        { kind: 'status', status: 'info',  icon: <RhUiInProgressIcon /> },
+  'Proposed':         { kind: 'status', status: 'info',  icon: <RhUiPauseCircleIcon /> },
+  'Executing':        { kind: 'status', status: 'info',  icon: <RhUiRunningIcon /> },
+  'Verifying':        { kind: 'status', status: 'info',  icon: <RhUiSyncIcon /> },
+  'Acknowledged':     { kind: 'status', status: 'success', icon: <RhUiCheckCircleFillIcon /> },
+  'Completed':        { kind: 'status', status: 'success', icon: <RhUiCheckCircleFillIcon /> },
+  'Escalating':       { kind: 'status', status: 'warning', icon: <RhUiWarningFillIcon /> },
+  'Escalated':        { kind: 'status', status: 'warning', icon: <RhUiWarningFillIcon /> },
+  'Failed':           { kind: 'status', status: 'danger',  icon: <RhUiErrorFillIcon /> },
+  'Denied':           { kind: 'status', status: 'danger',  icon: <RhUiBanIcon /> },
+  'EmergencyStopped': { kind: 'status', status: 'danger',  icon: <RhUiBanIcon /> },
+  'Plan aborted':     { kind: 'status', status: 'danger',  icon: <RhUiBanIcon /> },
+  'Run aborted':      { kind: 'color',  color: 'orange', icon: <RhUiBanIcon /> },
 };
 
 const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
@@ -1788,31 +1793,98 @@ const PlanTokensConsumedCell: React.FC<{ row: PlanRow }> = ({ row }) => {
   );
 };
 
+const STATUS_ICON_CSS_COLOR: Record<PlanStatus, string> = {
+  'Pending':          'var(--pf-t--global--icon--color--subtle)',
+  'Approved':         'var(--pf-t--global--icon--color--status--warning--default)',
+  'Analyzing':        'currentColor',
+  'Proposed':         'currentColor',
+  'Executing':        'currentColor',
+  'Verifying':        'currentColor',
+  'Acknowledged':     'var(--pf-t--global--icon--color--status--success--default)',
+  'Completed':        'var(--pf-t--global--icon--color--status--success--default)',
+  'Failed':           'var(--pf-t--global--icon--color--status--danger--default)',
+  'Denied':           'var(--pf-t--global--icon--color--status--danger--default)',
+  'Escalating':       'var(--pf-t--global--icon--color--status--warning--default)',
+  'Escalated':        'var(--pf-t--global--icon--color--status--warning--default)',
+  'EmergencyStopped': 'var(--pf-t--global--icon--color--status--danger--default)',
+  'Plan aborted':     'var(--pf-t--global--icon--color--status--danger--default)',
+  'Run aborted':      'var(--pf-t--global--icon--color--status--warning--default)',
+};
+
+const STATUS_DISPLAY_TEXT: Partial<Record<PlanStatus, string>> = {
+  'EmergencyStopped': 'Emergency stopped',
+  'Run aborted':      'Analysis stopped',
+  'Plan aborted':     'Execution stopped',
+};
+
+const STATUS_ICON_ROW_STYLE: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 'var(--pf-t--global--spacer--xs)',
+  whiteSpace: 'nowrap',
+};
+
 export const StatusLabel: React.FC<{ status: PlanStatus; terminatedAt?: string }> = ({
   status,
   terminatedAt,
 }) => {
-  if (status === 'Plan aborted' || status === 'EmergencyStopped') {
-    const tooltipContent =
-      status === 'EmergencyStopped'
-        ? `Emergency stop issued by operator at ${terminatedAt ?? '—'}. Execution halted mid-flight.`
-        : `Execution halted by administrative override at ${terminatedAt ?? '—'}.`;
-    const displayLabel = status === 'EmergencyStopped' ? 'Emergency stopped' : 'Plan aborted';
+  const displayText = STATUS_DISPLAY_TEXT[status] ?? status;
+  const iconEl = (
+    <span
+      aria-hidden="true"
+      style={{ color: STATUS_ICON_CSS_COLOR[status], display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+    >
+      {STATUS_VISUAL[status].icon}
+    </span>
+  );
+
+  if (status === 'Run aborted') {
     return (
-      <Tooltip content={tooltipContent} position="top">
-        <span tabIndex={0} style={{ display: 'inline-flex', cursor: 'default' }}>
-          <Label color="red" variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
-            {displayLabel}
-          </Label>
+      <Tooltip
+        content={`Analysis stopped at ${terminatedAt ?? '—'}. No root cause was determined — cluster was not modified.`}
+        position="top"
+      >
+        <span tabIndex={0} style={{ ...STATUS_ICON_ROW_STYLE, cursor: 'default' }}>
+          {iconEl}
+          {displayText}
+        </span>
+      </Tooltip>
+    );
+  }
+
+  if (status === 'Plan aborted') {
+    return (
+      <Tooltip
+        content={`Execution stopped at ${terminatedAt ?? '—'}. Cluster may be in a partial state — verify manually.`}
+        position="top"
+      >
+        <span tabIndex={0} style={{ ...STATUS_ICON_ROW_STYLE, cursor: 'default' }}>
+          {iconEl}
+          {displayText}
+        </span>
+      </Tooltip>
+    );
+  }
+
+  if (status === 'EmergencyStopped') {
+    return (
+      <Tooltip
+        content={`Emergency stop issued by operator at ${terminatedAt ?? '—'}. Execution halted mid-flight.`}
+        position="top"
+      >
+        <span tabIndex={0} style={{ ...STATUS_ICON_ROW_STYLE, cursor: 'default' }}>
+          {iconEl}
+          {displayText}
         </span>
       </Tooltip>
     );
   }
 
   return (
-    <Label color={STATUS_LABEL_COLOR[status]} variant="outline" isCompact style={{ whiteSpace: 'nowrap' }}>
-      {status}
-    </Label>
+    <span style={STATUS_ICON_ROW_STYLE}>
+      {iconEl}
+      {displayText}
+    </span>
   );
 };
 
@@ -1917,7 +1989,7 @@ const PlanScopeCell: React.FC<{
 // ─── Table column header with informational popover ───────────────────────────
 
 const PLANS_TABLE_HEADER_TH_STYLE: React.CSSProperties = {
-  verticalAlign: 'top',
+  verticalAlign: 'middle',
 };
 
 const PLANS_TABLE_HEADER_POPOVER_CONTENT_STYLE: React.CSSProperties = {
@@ -2009,6 +2081,9 @@ interface PlansTableCoreProps {
   mapObservabilityDomains?: boolean;
   /** Global Agentic plans list only — domain-scoped lists (e.g. Troubleshooting plans) omit this column. */
   showTriggerDomainColumn?: boolean;
+  activeSortIndex?: number;
+  activeSortDirection?: 'asc' | 'desc';
+  onSort?: (columnIndex: number, direction: 'asc' | 'desc') => void;
 }
 
 export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
@@ -2020,7 +2095,24 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   isAgenticAutomationEnabled,
   mapObservabilityDomains = false,
   showTriggerDomainColumn = true,
-}) => (
+  activeSortIndex,
+  activeSortDirection,
+  onSort,
+}) => {
+  const statusColIndex = showTriggerDomainColumn ? 3 : 2;
+  const createdColIndex = showTriggerDomainColumn ? 5 : 4;
+  const getSortProps = (colIndex: number) =>
+    !onSort
+      ? {}
+      : {
+          sort: {
+            sortBy: { index: activeSortIndex, direction: activeSortDirection, defaultDirection: 'asc' as const },
+            onSort: (_evt: React.MouseEvent, index: number, direction: 'asc' | 'desc') => onSort(index, direction),
+            columnIndex: colIndex,
+          },
+        };
+
+  return (
   <Table
     aria-label={ariaLabel}
     className="ols-plans-table"
@@ -2033,14 +2125,14 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
   >
     <Thead>
       <Tr>
-        <Th style={{ width: showTriggerDomainColumn ? '22%' : '28%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Name</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '14%' : '16%', ...PLANS_TABLE_HEADER_TH_STYLE }}>{scopeColumnLabel}</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '22%' : '28%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(0)}>Name</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '14%' : '16%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(1)}>{scopeColumnLabel}</Th>
         {showTriggerDomainColumn ? (
-          <Th style={{ width: '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Trigger domain</Th>
+          <Th style={{ width: '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(2)}>Trigger domain</Th>
         ) : null}
-        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Status</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(statusColIndex)}>Status</Th>
         <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Tokens consumed</Th>
-        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }}>Created</Th>
+        <Th style={{ width: showTriggerDomainColumn ? '12%' : '14%', ...PLANS_TABLE_HEADER_TH_STYLE }} {...getSortProps(createdColIndex)}>Created</Th>
         <Th screenReaderText="Actions" />
       </Tr>
     </Thead>
@@ -2107,7 +2199,8 @@ export const PlansTableCore: React.FC<PlansTableCoreProps> = ({
       ))}
     </Tbody>
   </Table>
-);
+  );
+};
 
 // ─── Plans table (pagination + filters + expand state) ───────────────────────
 
@@ -2138,19 +2231,49 @@ const PlansTable: React.FC<PlansTableProps> = ({
     [rows, plansFilter.filterRows],
   );
 
+  const [activeSortIndex, setActiveSortIndex] = useState<number | undefined>(undefined);
+  const [activeSortDirection, setActiveSortDirection] = useState<'asc' | 'desc' | undefined>(undefined);
+
+  const onSort = useCallback((index: number, direction: 'asc' | 'desc') => {
+    setActiveSortIndex(index);
+    setActiveSortDirection(direction);
+  }, []);
+
+  const getSortValue = useCallback((row: PlanRow, colIndex: number): string => {
+    switch (colIndex) {
+      case 0: return (row.name ?? row.id).toLowerCase();
+      case 1: return (row.scope ?? '').toLowerCase();
+      case 2: return resolveDisplayDomain(row.triggerDomain ?? '').toLowerCase();
+      case 3: return (row.status ?? '').toLowerCase();
+      case 5: return row.createdAt ?? '';
+      default: return '';
+    }
+  }, []);
+
+  const sortedRows = useMemo(() => {
+    if (activeSortIndex === undefined || activeSortDirection === undefined) return filteredRows;
+    return [...filteredRows].sort((a, b) => {
+      const aVal = getSortValue(a, activeSortIndex);
+      const bVal = getSortValue(b, activeSortIndex);
+      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return activeSortDirection === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredRows, activeSortIndex, activeSortDirection, getSortValue]);
+
   useEffect(() => {
     setPage(1);
   }, [
     filteredRows.length,
     plansFilter.searchInputValue,
-    plansFilter.searchCategory,
     plansFilter.statusFilters,
     plansFilter.triggerDomainFilters,
+    activeSortIndex,
+    activeSortDirection,
   ]);
 
-  const totalItems = filteredRows.length;
+  const totalItems = sortedRows.length;
   const start = (page - 1) * perPage;
-  const paginatedRows = filteredRows.slice(start, start + perPage);
+  const paginatedRows = sortedRows.slice(start, start + perPage);
 
   const onSetPage = useCallback(
     (_evt: React.MouseEvent | React.KeyboardEvent | MouseEvent, newPage: number) => {
@@ -2229,6 +2352,9 @@ const PlansTable: React.FC<PlansTableProps> = ({
             onDeletePlan={onDeletePlan}
             isAgenticAutomationEnabled={isAgenticAutomationEnabled}
             mapObservabilityDomains
+            activeSortIndex={activeSortIndex}
+            activeSortDirection={activeSortDirection}
+            onSort={onSort}
           />
           <Pagination
             {...paginationProps}
@@ -2490,7 +2616,7 @@ const RemediationOptionCard: React.FC<{
                   marginBottom: 'var(--pf-t--global--spacer--xs)',
                 }}
               >
-                PROPOSED AGENT COMMAND
+                PROPOSED AGENT COMMANDS
               </Content>
               <ClipboardCopy
                 isReadOnly
@@ -2712,12 +2838,6 @@ const PostMortemPanel: React.FC<{
                   {verification.outcome === 'passed' ? 'Passed' : verification.outcome === 'failed' ? 'Failed' : '—'}
                 </DescriptionListDescription>
               </DescriptionListGroup>
-              <DescriptionListGroup>
-                <DescriptionListTerm>Verification attempt</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {verification.attempt} of {verification.maxAttempts}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
             </>
           )}
           {postMortem.gitCommitRef && (
@@ -2860,8 +2980,8 @@ const PostMortemPanel: React.FC<{
                 style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
                 {status === 'Failed'
-                  ? <ExclamationCircleIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />
-                  : <CheckCircleIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
+                  ? <RhUiErrorFillIcon style={{ color: 'var(--pf-t--global--color--status--danger--default)' }} />
+                  : <RhUiCheckCircleFillIcon style={{ color: 'var(--pf-t--global--color--status--success--default)' }} />
                 }
                 <Title headingLevel="h5" size="md">Execution summary</Title>
               </Flex>
@@ -2961,7 +3081,7 @@ const PostMortemPanel: React.FC<{
         {/* ── Header ── */}
         <StackItem>
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-            <ExclamationCircleIcon color="var(--pf-t--global--color--status--danger--default)" />
+            <RhUiErrorFillIcon color="var(--pf-t--global--color--status--danger--default)" />
             <Title headingLevel="h5" size="md">Critical Automation Failure</Title>
           </Flex>
         </StackItem>
@@ -3200,7 +3320,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
   const workflow = getPlanWorkflow(plan.id);
   const [isStopAnalysisModalOpen, setIsStopAnalysisModalOpen] = useState(false);
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
-  const [retryBanner, setRetryBanner] = useState<string | null>(null);
   const [isAiDisclaimerDismissed, setIsAiDisclaimerDismissed] = useState(false);
   const [isExecuteConfirmModalOpen, setIsExecuteConfirmModalOpen] = useState(false);
   const [showAnalysisLogs, setShowAnalysisLogs] = useState(false);
@@ -3213,7 +3332,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
 
   useEffect(() => {
     setIsExecutionRunning(false);
-    setRetryBanner(null);
     setShowAnalysisLogs(false);
     setAnalysisLogsQuery('');
   }, [plan.id]);
@@ -3229,7 +3347,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
       setIsExecutionRunning(false);
     }, 4000);
     return () => window.clearTimeout(timer);
-  }, [isExecuting, plan.id, startVerification, workflow.verification?.attempt]);
+  }, [isExecuting, plan.id, startVerification]);
 
   const drawer = resolvePlanDrawerData(plan.id, PLAN_DRAWER_DATA[plan.id], isSingleCluster);
   const rcaVariant = plan.severity === 'critical' ? 'ols-aio-rca-box--critical' : 'ols-aio-rca-box--warning';
@@ -3284,12 +3402,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     if (!selectedOption || !isAgenticAutomationEnabled) {
       return;
     }
-    setRetryBanner(null);
     executeRemediation(plan.id, {
       optionIndex: selectedOptionIndex,
       optionId: selectedOption.id,
       optionTitle: selectedOption.title,
-      maxAttempts: GLOBAL_APPROVAL_POLICY_MAX_ATTEMPTS,
     });
   };
 
@@ -3302,13 +3418,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
     if (!verification || verification.outcome) {
       return;
     }
-    const shouldPass = verification.attempt >= verification.maxAttempts;
-    const nextStatus = completeVerification(plan.id, shouldPass);
-    if (!shouldPass && nextStatus === 'Executing') {
-      setRetryBanner(
-        `Verification failed — retrying execution (attempt ${verification.attempt + 1} of ${verification.maxAttempts})`,
-      );
-    }
+    completeVerification(plan.id, plan.id === 'certmgr-renewal-pending');
   }, [completeVerification, plan.id, workflow.verification]);
 
   if (!drawer && !isEscalating) return null;
@@ -3373,7 +3483,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                 gap={{ default: 'gapSm' }}
                 style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
               >
-                <ExclamationTriangleIcon
+                <RhUiWarningFillIcon
                   aria-hidden
                   style={{ color: 'var(--pf-t--global--color--status--warning--default)' }}
                 />
@@ -3519,7 +3629,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <Label
                 color="green"
                 isCompact
-                icon={<CheckCircleIcon />}
+                icon={<RhUiCheckCircleFillIcon />}
               >
                 Completed
               </Label>
@@ -3528,7 +3638,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <Label
                 color="red"
                 isCompact
-                icon={<ExclamationCircleIcon />}
+                icon={<RhUiErrorFillIcon />}
               >
                 Failed
               </Label>
@@ -3537,7 +3647,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <Label
                 color="orange"
                 isCompact
-                icon={<ExclamationTriangleIcon />}
+                icon={<RhUiWarningFillIcon />}
               >
                 Escalated
               </Label>
@@ -3573,11 +3683,10 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <Alert
                 variant="warning"
                 isInline
-                title="Remediation action required"
+                title="Automated remediation failed"
                 style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
               >
-                Automated execution failed after reaching the maximum retry limit. Manual operator
-                intervention is required to resolve this escalation.
+                The autonomous agent failed to verify the cluster resolution. Escalation handoff is in progress, and manual intervention is now required.
               </Alert>
               <div
                 style={LOCKED_BOX_STYLE}
@@ -3655,9 +3764,6 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
             />
           ) : (
             <>
-              {retryBanner && (
-                <Alert variant="warning" isInline title={retryBanner} style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }} />
-              )}
 
               {workflow.executionApproval && (isExecuting || isVerifying) && (
                 <ProposalApprovalArtifact approval={workflow.executionApproval} />
@@ -3680,7 +3786,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
                           index={optionIndex}
                           plan={plan}
                           executionKillState={executionKillState}
-                          onConfirmStopExecution={(killedAt) => registerPlanTermination(plan.id, killedAt)}
+                          onConfirmStopExecution={(killedAt) => registerPlanTermination(plan.id, killedAt, 'execution')}
                           isSelected={isOptionLocked || selectedOptionId === opt.id}
                           isAgenticAutomationEnabled={isAgenticAutomationEnabled}
                           onSelect={setSelectedOptionId}
@@ -3770,7 +3876,7 @@ export const RemediationBlueprintPanel: React.FC<{ plan: PlanRow }> = ({ plan })
               <Button
                 variant="danger"
                 onClick={() => {
-                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()));
+                  registerPlanTermination(plan.id, formatExecutionKillTimestamp(new Date()), 'analysis');
                   setIsStopAnalysisModalOpen(false);
                 }}
               >

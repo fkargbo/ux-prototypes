@@ -2,21 +2,47 @@ import type { ConfidenceTier } from '../../types/confidenceTier';
 import type { ReasoningStep } from '../../components/autonomousAiObserve/data';
 import type { PlanRow } from './PlansAndApprovalsTab';
 
-/** Shared session key with observability alerting handoff. */
+/**
+ * Session key scoped to this UX-exploration prototype only.
+ * Do not reuse the observability / MVP key — those are separate workstreams.
+ */
 export const ALERT_INVESTIGATION_CREATED_ALERTS_KEY =
-  'hpux.observability-agentic-troubleshooting-ai.alert-investigation-created';
+  'hpux.ai-hub-autonomous-agentic-plans-ux-exploration.alert-investigation-created';
 
+/**
+ * Alert name → AgenticRun plan id.
+ * `VCCannotBeEvicted` is the product label; `VMCannotBeEvicted` is kept as an alerting-mock alias.
+ */
 export const ALERT_NAME_TO_NEW_INVESTIGATION_PLAN_ID: Record<string, string> = {
   NodeNotReady: 'inv-alert-node-not-ready',
   MDSCacheUsageHigh: 'inv-alert-mds-cache-high',
+  VCCannotBeEvicted: 'inv-alert-vm-cannot-evict',
   VMCannotBeEvicted: 'inv-alert-vm-cannot-evict',
   NodeCPUHigh: 'inv-alert-node-cpu-high',
 };
 
 export const NEW_ALERT_INVESTIGATION_PLAN_IDS = new Set(Object.values(ALERT_NAME_TO_NEW_INVESTIGATION_PLAN_ID));
 
+/** One correlated alert row in the Analysis request Alert analysis table. */
+export type AlertInvestigationAlertRow = {
+  alertName: string;
+  severity: 'critical' | 'warning' | 'info';
+  namespace: string;
+  triggerDomainLabel: string;
+  /** Optional cluster scope for Observe > Alerting deep links. */
+  clusterId?: string;
+};
+
+/** Formatted Alert Investigation card fields for Analysis request. */
+export type AlertInvestigationCardData = {
+  /** Correlated alerts that triggered this analysis (supports alert storms). */
+  alerts: AlertInvestigationAlertRow[];
+  /** Human-readable summary shown beneath the alert table. */
+  summary: string;
+};
+
 type RawInvestigationPlan = Omit<PlanRow, 'status' | 'name' | 'namespace' | 'cluster' | 'scope' | 'createdAt'> & {
-  status: 'Investigating';
+  status: 'Investigating' | 'Waiting Approval';
 };
 
 export const NEW_ALERT_INVESTIGATION_PLANS: RawInvestigationPlan[] = [
@@ -28,7 +54,7 @@ export const NEW_ALERT_INVESTIGATION_PLANS: RawInvestigationPlan[] = [
     synopsis: 'Investigate NodeNotReady alert',
     consolidationScope: 'Triggered by alert: NodeNotReady',
     triggerDomain: 'Prometheus',
-    drawerTargets: ['worker-02', 'worker-03'],
+    drawerTargets: ['prod-east-2'],
     expandedReasons: [
       { icon: 'alert', text: 'Prometheus Alert: NodeNotReady — node lost Ready condition.' },
       { icon: 'gear', text: 'Autonomous agent correlating kubelet, node, and workload signals.' },
@@ -50,15 +76,15 @@ export const NEW_ALERT_INVESTIGATION_PLANS: RawInvestigationPlan[] = [
   },
   {
     id: 'inv-alert-vm-cannot-evict',
-    severity: 'critical',
-    status: 'Investigating',
+    severity: 'warning',
+    status: 'Waiting Approval',
     score: 75,
-    synopsis: 'Investigate VMCannotBeEvicted alert',
-    consolidationScope: 'Triggered by alert: VMCannotBeEvicted',
+    synopsis: 'Investigate VCCannotBeEvicted alert',
+    consolidationScope: 'Triggered by alert: VCCannotBeEvicted',
     triggerDomain: 'Prometheus',
-    drawerTargets: ['rhel9-vm-workload'],
+    drawerTargets: ['virt-launcher-node-1'],
     expandedReasons: [
-      { icon: 'alert', text: 'Prometheus Alert: VMCannotBeEvicted — eviction blocked by PDB or node pressure.' },
+      { icon: 'alert', text: 'Prometheus Alert: VCCannotBeEvicted — eviction blocked by PDB or node pressure.' },
       { icon: 'gear', text: 'Tracing virt-controller and KubeVirt workload events.' },
     ],
   },
@@ -95,9 +121,9 @@ export const NEW_ALERT_INVESTIGATION_PLAN_IDENTITY: Record<
     fleetCluster: 'prod-east-2',
   },
   'inv-alert-vm-cannot-evict': {
-    name: 'investigate-vm-cannot-be-evicted',
-    synopsis: 'Investigate VMCannotBeEvicted — blocked VM eviction on prod-east-2',
-    namespace: 'openshift-virtualization',
+    name: 'investigate-vc-cannot-be-evicted',
+    synopsis: 'Investigate VCCannotBeEvicted — blocked VM eviction on virt-launcher-node-1',
+    namespace: 'openshift-cluster-api',
     fleetCluster: 'prod-east-2',
   },
   'inv-alert-node-cpu-high': {
@@ -105,6 +131,98 @@ export const NEW_ALERT_INVESTIGATION_PLAN_IDENTITY: Record<
     synopsis: 'Investigate NodeCPUHigh — sustained CPU utilization on prod-east-2',
     namespace: 'kube-system',
     fleetCluster: 'prod-east-2',
+  },
+};
+
+/** Structured card content for the Analysis request Alert Investigation layout. */
+export const ALERT_INVESTIGATION_CARD_BY_PLAN_ID: Record<string, AlertInvestigationCardData> = {
+  'inv-alert-node-not-ready': {
+    // Multi-alert storm demo — table scrolls after 3 visible rows.
+    alerts: [
+      {
+        alertName: 'NodeNotReady',
+        severity: 'critical',
+        namespace: 'openshift-node',
+        triggerDomainLabel: 'Prometheus',
+        clusterId: 'prod-east-2',
+      },
+      {
+        alertName: 'KubeNodeNotReady',
+        severity: 'critical',
+        namespace: 'openshift-node',
+        triggerDomainLabel: 'Prometheus',
+        clusterId: 'prod-east-2',
+      },
+      {
+        alertName: 'TargetDown',
+        severity: 'warning',
+        namespace: 'openshift-monitoring',
+        triggerDomainLabel: 'Prometheus',
+        clusterId: 'prod-east-2',
+      },
+      {
+        alertName: 'KubePodNotReady',
+        severity: 'warning',
+        namespace: 'openshift-monitoring',
+        triggerDomainLabel: 'Prometheus',
+        clusterId: 'prod-east-2',
+      },
+      {
+        alertName: 'NodeFilesystemAlmostOutOfSpace',
+        severity: 'info',
+        namespace: 'openshift-node',
+        triggerDomainLabel: 'Prometheus',
+        clusterId: 'prod-east-2',
+      },
+    ],
+    summary:
+      'Node lost Ready condition on prod-east-2. AI analysis correlating node, kubelet, and dependent workload alerts to identify root cause and propose drain/remediation steps.',
+  },
+  'inv-alert-vm-cannot-evict': {
+    alerts: [
+      {
+        alertName: 'VCCannotBeEvicted',
+        severity: 'warning',
+        namespace: 'openshift-cluster-api',
+        triggerDomainLabel: 'Prometheus',
+        clusterId: 'prod-east-2',
+      },
+    ],
+    summary:
+      'Virtual machine eviction blocked on virt-launcher-node-1. AI analysis proposed remediation options for PDB and live-migration constraints.',
+  },
+  'inv-alert-mds-cache-high': {
+    alerts: [
+      {
+        alertName: 'MDSCacheUsageHigh',
+        severity: 'critical',
+        namespace: 'openshift-storage',
+        triggerDomainLabel: 'Prometheus',
+        clusterId: 'prod-east-2',
+      },
+      {
+        alertName: 'CephMDSMissingReplicas',
+        severity: 'warning',
+        namespace: 'openshift-storage',
+        triggerDomainLabel: 'Prometheus',
+        clusterId: 'prod-east-2',
+      },
+    ],
+    summary:
+      'Ceph MDS cache usage exceeded threshold. AI analysis correlating metadata load with client sessions.',
+  },
+  'inv-alert-node-cpu-high': {
+    alerts: [
+      {
+        alertName: 'NodeCPUHigh',
+        severity: 'warning',
+        namespace: 'kube-system',
+        triggerDomainLabel: 'Prometheus',
+        clusterId: 'prod-east-2',
+      },
+    ],
+    summary:
+      'Sustained CPU utilization above threshold on worker-02. AI analysis ranking noisy-neighbor workloads.',
   },
 };
 
@@ -149,17 +267,17 @@ export const NEW_ALERT_INVESTIGATION_DRAWER_DATA: Record<string, AlertInvestigat
   },
   'inv-alert-vm-cannot-evict': {
     steps: [
-      { id: 's1', time: 'Just now', status: 'done', icon: 'exclamation', title: 'Prometheus Alert: VMCannotBeEvicted received', detail: 'Eviction request blocked for running VM' },
+      { id: 's1', time: 'Just now', status: 'done', icon: 'exclamation', title: 'Prometheus Alert: VCCannotBeEvicted received', detail: 'Eviction request blocked for running VM' },
       { id: 's2', time: 'Just now', status: 'done', icon: 'database', title: 'Collected KubeVirt and PDB objects', detail: 'PodDisruptionBudget minAvailable=1 · live-migration disabled' },
-      { id: 's3', status: 'active', icon: 'search', title: 'Analyzing infrastructure topology to isolate root cause', detail: 'Evaluating node pressure vs. migration policy…' },
-      { id: 's4', status: 'pending', icon: 'check', title: 'Assemble remediation proposal' },
+      { id: 's3', time: 'Just now', status: 'done', icon: 'search', title: 'Root cause isolated', detail: 'PDB constraint + migration policy block eviction' },
+      { id: 's4', status: 'done', icon: 'check', title: 'Remediation options proposed', detail: 'Awaiting operator approval' },
     ],
-    aggregatedFinding: 'Investigation started from VMCannotBeEvicted. Virtualization control-plane signals collected.',
-    rootCauseNarrative: 'The agent is determining whether eviction failure is due to PDB constraints, node pressure, or KubeVirt migration policy.',
-    remediationProposal: 'Remediation paths pending root cause confirmation.',
-    riskAssessment: 'TBD — assessment will be generated after analysis completes.',
-    estimatedRecovery: 'TBD',
-    confidence: 'Medium',
+    aggregatedFinding: 'Investigation from VCCannotBeEvicted completed. Eviction is blocked by PDB minAvailable and disabled live migration.',
+    rootCauseNarrative: 'The virt-launcher pod cannot be evicted because a PodDisruptionBudget requires minAvailable=1 and live migration is disabled for this workload.',
+    remediationProposal: 'Relax PDB, enable live migration, or cordon and drain after graceful VM shutdown during a maintenance window.',
+    riskAssessment: 'Medium — incorrect PDB changes can reduce VM availability.',
+    estimatedRecovery: '10–25 minutes',
+    confidence: 'High',
   },
   'inv-alert-node-cpu-high': {
     steps: [
@@ -177,7 +295,7 @@ export const NEW_ALERT_INVESTIGATION_DRAWER_DATA: Record<string, AlertInvestigat
   },
 };
 
-function readCreatedAlertInvestigations(): string[] {
+export function readCreatedAlertInvestigations(): string[] {
   try {
     const raw = sessionStorage.getItem(ALERT_INVESTIGATION_CREATED_ALERTS_KEY);
     if (!raw) {
@@ -190,15 +308,149 @@ function readCreatedAlertInvestigations(): string[] {
   }
 }
 
+/** Persist alert names that already have an investigation plan opened from Alerting. */
+export function markAlertInvestigationCreated(alertName: string): void {
+  try {
+    const existing = readCreatedAlertInvestigations();
+    if (existing.includes(alertName)) {
+      return;
+    }
+    sessionStorage.setItem(
+      ALERT_INVESTIGATION_CREATED_ALERTS_KEY,
+      JSON.stringify([...existing, alertName]),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Alerts that already have an active AgenticRun (Proposed demo).
+ * Alerting kebab should show “View AI investigation”; list includes the run immediately.
+ * `VMCannotBeEvicted` is the Alerting mock alias for `VCCannotBeEvicted`.
+ */
+export const EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS = [
+  'VCCannotBeEvicted',
+  'VMCannotBeEvicted',
+] as const;
+
+export const INVESTIGATE_WITH_AI_LABEL = 'Investigate with AI';
+export const VIEW_AI_INVESTIGATION_LABEL = 'View AI investigation';
+
+export function isExistingAlertInvestigationDemo(alertName: string): boolean {
+  return (EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS as readonly string[]).includes(alertName);
+}
+
+/** Action label for Top firing / Alerting CTAs in this UX-exploration prototype. */
+export function getUxAlertInvestigationActionLabel(alertName: string): string {
+  // NodeNotReady is the 0-to-1 demo — always “Investigate with AI”.
+  if (alertName === 'NodeNotReady') {
+    return INVESTIGATE_WITH_AI_LABEL;
+  }
+  if (isExistingAlertInvestigationDemo(alertName)) {
+    return VIEW_AI_INVESTIGATION_LABEL;
+  }
+  const created = readCreatedAlertInvestigations();
+  if (created.includes(alertName)) {
+    return VIEW_AI_INVESTIGATION_LABEL;
+  }
+  return INVESTIGATE_WITH_AI_LABEL;
+}
+
+/**
+ * Observability Alerting reads this shared key for kebab labels.
+ * Seed only while UX-exploration is mounted; clean up on unmount so MVP is untouched.
+ */
+const OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY =
+  'hpux.observability-agentic-troubleshooting-ai.alert-investigation-created';
+
+function readSessionAlertNames(key: string): string[] {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((entry): entry is string => typeof entry === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeSessionAlertNames(key: string, names: string[]): void {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(names));
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Seed Run B (VCCannotBeEvicted / Proposed) as an existing investigation for:
+ * - UX-exploration plan list visibility
+ * - Observability Alerting kebab label (“View AI investigation”)
+ * Returns a cleanup that removes only the demo seeds from the observability key.
+ */
+export function seedExistingAlertInvestigationDemoState(): () => void {
+  EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS.forEach((name) => markAlertInvestigationCreated(name));
+
+  const beforeObs = readSessionAlertNames(OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY);
+  // Keep VC demo as “View AI investigation”; strip NodeNotReady so it stays “Investigate with AI”.
+  const withoutNodeNotReady = beforeObs.filter((name) => name !== 'NodeNotReady');
+  const mergedObs = Array.from(new Set([...withoutNodeNotReady, ...EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS]));
+  writeSessionAlertNames(OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY, mergedObs);
+
+  return () => {
+    const current = readSessionAlertNames(OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY);
+    const cleaned = current.filter(
+      (name) => !(EXISTING_ALERT_INVESTIGATION_DEMO_ALERTS as readonly string[]).includes(name),
+    );
+    if (cleaned.length === 0) {
+      try {
+        sessionStorage.removeItem(OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    writeSessionAlertNames(OBSERVABILITY_ALERT_INVESTIGATION_CREATED_KEY, cleaned);
+  };
+}
+
+/** Mark every alert alias for a plan id (keeps Alerting deep-links local to this prototype). */
+export function markAlertInvestigationCreatedForPlanId(planId: string): void {
+  Object.entries(ALERT_NAME_TO_NEW_INVESTIGATION_PLAN_ID)
+    .filter(([, id]) => id === planId)
+    .forEach(([alertName]) => markAlertInvestigationCreated(alertName));
+}
+
+export function resolveNewInvestigationPlanIdForAlert(alertName: string): string | null {
+  return ALERT_NAME_TO_NEW_INVESTIGATION_PLAN_ID[alertName] ?? null;
+}
+
 export function resolveAlertNameForNewInvestigationPlanId(planId: string): string | undefined {
   return Object.entries(ALERT_NAME_TO_NEW_INVESTIGATION_PLAN_ID).find(([, id]) => id === planId)?.[0];
 }
 
-/** Hide alert-triggered investigation plans until the user opens them from Alerting. */
+export function getAlertInvestigationCard(planId: string): AlertInvestigationCardData | undefined {
+  return ALERT_INVESTIGATION_CARD_BY_PLAN_ID[planId];
+}
+
+/** Primary (first) alert name for request builders / deep links. */
+export function getAlertInvestigationPrimaryAlertName(planId: string): string | undefined {
+  return ALERT_INVESTIGATION_CARD_BY_PLAN_ID[planId]?.alerts[0]?.alertName;
+}
+
+/** Hide 0-to-1 alert plans until opened; keep existing (Proposed) demo runs visible. */
 export function isNewAlertInvestigationPlanVisible(plan: PlanRow): boolean {
+  if (plan.id === 'inv-alert-vm-cannot-evict') {
+    return true;
+  }
   const alertName = resolveAlertNameForNewInvestigationPlanId(plan.id);
   if (!alertName) {
     return true;
   }
-  return readCreatedAlertInvestigations().includes(alertName);
+  const created = readCreatedAlertInvestigations();
+  const aliases = Object.entries(ALERT_NAME_TO_NEW_INVESTIGATION_PLAN_ID)
+    .filter(([, id]) => id === plan.id)
+    .map(([name]) => name);
+  return aliases.some((name) => created.includes(name));
 }

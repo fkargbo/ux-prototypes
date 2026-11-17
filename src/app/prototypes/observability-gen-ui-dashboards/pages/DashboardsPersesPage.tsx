@@ -76,6 +76,8 @@ import {
   CheckIcon,
   CheckCircleIcon,
   ExternalLinkAltIcon,
+  TrashIcon,
+  MinusIcon,
   AngleRightIcon,
   ServerIcon,
   CpuIcon,
@@ -105,7 +107,6 @@ import {
   ChartContainer,
   ChartLabel,
 } from '@patternfly/react-charts/victory';
-import { Charts } from '@patternfly/react-charts/echarts';
 import Chatbot, { ChatbotDisplayMode } from '@patternfly/chatbot/dist/dynamic/Chatbot';
 import ChatbotContent from '@patternfly/chatbot/dist/dynamic/ChatbotContent';
 import ChatbotWelcomePrompt from '@patternfly/chatbot/dist/dynamic/ChatbotWelcomePrompt';
@@ -124,10 +125,6 @@ import ChatbotHeader, {
 import '@patternfly/chatbot/dist/css/main.css';
 import './dashboards-perses.css';
 
-// Import custom profile images
-import userProfilePicUrl from '../assets/user-profile.png';
-import botProfilePicUrl from '../assets/bot-profile.png';
-
 // Helper function to create SVG data URL
 const createIconDataUrl = (svgContent: string): string => {
   const encoded = encodeURIComponent(svgContent);
@@ -145,9 +142,35 @@ const robotIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 5
   <path fill="currentColor" d="M32 224h32v192H32c-17.7 0-32-14.3-32-32V256c0-17.7 14.3-32 32-32zm544-32c17.7 0 32 14.3 32 32v128c0 17.7-14.3 32-32 32h-32V224h32zm-120 96c0 4.4-3.6 8-8 8h-16c-4.4 0-8-3.6-8-8v-64c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v64zm192 0c0 4.4-3.6 8-8 8h-16c-4.4 0-8-3.6-8-8v-64c0-4.4 3.6-8 8-8h16c4.4 0 8 3.6 8 8v64zM592 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h544c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zM160 368H64v-64h96v64zm0-128H64v-64h96v64zm160 128h-96v-64h96v64zm0-128h-96v-64h96v64zm160 128h-96v-64h96v64zm0-128h-96v-64h96v64z"/>
 </svg>`;
 
-// Avatar configuration - use custom images, fallback to icon data URLs if images fail to load
-const userAvatarSrc = userProfilePicUrl || createIconDataUrl(userIconSvg);
-const botAvatarSrc = botProfilePicUrl || createIconDataUrl(robotIconSvg);
+// Resolve image assets through webpack so avatars work in both dev and GitHub Pages builds.
+const userProfilePicUrl = new URL('../assets/user-profile.png', import.meta.url).toString();
+const olsLogoUrl = new URL('../../observability-agentic-troubleshooting-ai/assets/ols-logo.png', import.meta.url).toString();
+
+const userAvatarSrc = userProfilePicUrl;
+const botAvatarSrc = olsLogoUrl;
+
+const OlsLogoIcon = (): React.ReactElement => (
+  <img src={olsLogoUrl} alt="OpenShift Lightspeed" className="chatbot-ols-logo" />
+);
+
+const withLightspeedBotAvatar = <T extends MessageProps>(message: T): T => {
+  if (message.role !== 'bot') return message;
+  return {
+    ...message,
+    avatarProps: {
+      ...message.avatarProps,
+      className: `${message.avatarProps?.className ?? ''} lightspeed-bot-avatar`.trim(),
+      style: {
+        ...message.avatarProps?.style,
+        backgroundColor: '#fff',
+        backgroundImage: `url(${olsLogoUrl})`,
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: '34px 34px',
+      },
+    },
+  } as T;
+};
 
 // Welcome prompts will be defined inside the component to access handleSendMessage
 
@@ -339,6 +362,122 @@ type MessageWithCustomPills = MessageProps & {
     containerId: string;
     pills: Array<{ id: string; content: string; onClick: () => void }>;
   };
+};
+
+/**
+ * Renders an ECharts option with the full `echarts` build already imported on this page.
+ * PatternFly `<Charts>` uses `echarts/core` and throws `TypeError: X is not a constructor`
+ * when mixed with that full build — that crash was aborting the OLS root-cause step.
+ */
+const EchartsOptionChart: React.FC<{
+  option: echarts.EChartsOption;
+  height: number;
+}> = ({ option, height }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) {
+      return undefined;
+    }
+
+    const chart = echarts.init(el, undefined, { renderer: 'svg', height });
+    chart.setOption(option, { notMerge: true });
+
+    const resize = () => chart.resize();
+    window.addEventListener('resize', resize);
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
+    observer?.observe(el);
+    const raf = window.requestAnimationFrame(resize);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener('resize', resize);
+      observer?.disconnect();
+      chart.dispose();
+    };
+  }, [option, height]);
+
+  return <div ref={containerRef} style={{ width: '100%', height, minWidth: 0 }} />;
+};
+
+const CHAT_CPU_NAMESPACE_DATA = [
+  { x: 'marketing-prod', y: 45 },
+  { x: 'sales-prod', y: 32 },
+  { x: 'support-prod', y: 23 }
+];
+
+/** Bar chart shown in the OLS chat after "Analyze root cause". */
+const ChatCpuNamespaceBarChart: React.FC = () => {
+  const option = useMemo<echarts.EChartsOption>(
+    () => ({
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        },
+        formatter: (params: unknown) => {
+          const param = Array.isArray(params) ? params[0] : params;
+          const point = param as { name?: string; value?: number };
+          return `${point.name}<br/>CPU Usage: ${point.value}%`;
+        }
+      },
+      grid: {
+        left: '60px',
+        right: '20px',
+        bottom: '100px',
+        top: '20px',
+        containLabel: false
+      },
+      xAxis: {
+        type: 'category',
+        data: CHAT_CPU_NAMESPACE_DATA.map((d) => d.x),
+        name: 'Namespace',
+        nameLocation: 'middle',
+        nameGap: 80,
+        nameTextStyle: {
+          color: 'var(--pf-t--global--text--color--default)'
+        },
+        axisLabel: {
+          color: 'var(--pf-t--global--text--color--default)',
+          formatter: (value: string) => (value.length > 12 ? `${value.substring(0, 12)}...` : value),
+          rotate: 45
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: 'CPU Usage (%)',
+        nameLocation: 'middle',
+        nameGap: 50,
+        nameTextStyle: {
+          color: 'var(--pf-t--global--text--color--default)'
+        },
+        axisLabel: {
+          color: 'var(--pf-t--global--text--color--default)',
+          formatter: '{value}%'
+        }
+      },
+      series: [
+        {
+          name: 'CPU Usage',
+          type: 'bar',
+          data: CHAT_CPU_NAMESPACE_DATA.map((d) => d.y),
+          label: {
+            show: true,
+            position: 'top',
+            formatter: '{c}%',
+            color: 'var(--pf-t--global--text--color--default)'
+          },
+          itemStyle: {
+            color: 'var(--pf-t--chart--color--blue--300, #0066cc)'
+          }
+        }
+      ]
+    }),
+    []
+  );
+
+  return <EchartsOptionChart option={option} height={200} />;
 };
 
 /**
@@ -817,10 +956,7 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
 
     return (
       <div ref={chartRef} style={{ width: '100%', height: '250px' }}>
-        <Charts
-          height={250}
-          option={option as any}
-        />
+        <EchartsOptionChart height={250} option={option as echarts.EChartsOption} />
       </div>
     );
   };
@@ -929,10 +1065,7 @@ const TroubleshootingDashboard: React.FC<{ onPodNavigate?: (podName: string) => 
 
     return (
       <div style={{ width: '100%', height: '250px' }}>
-        <Charts
-          height={250}
-          option={option as any}
-        />
+        <EchartsOptionChart height={250} option={option as echarts.EChartsOption} />
       </div>
     );
   };
@@ -1386,6 +1519,8 @@ export const DashboardsPersesPage: React.FC = () => {
   const historyRef = useRef<HTMLButtonElement>(null);
   const messagesRef = useRef<MessageProps[]>([]);
   const workflowStageRef = useRef<'idle' | 'stage1' | 'stage2' | 'stage3' | 'stage4'>('idle');
+  const handleStage2Ref = useRef<() => void>(() => {});
+  const handleStage3Ref = useRef<() => void>(() => {});
 
   const markQuickResponseSelected = useCallback((containerId: string, content: string) => {
     setSelectedQuickResponses((prev) => {
@@ -1647,7 +1782,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: DISCLAIMER_TEXT,
-        name: 'Aladdin',
+        name: 'OpenShift Lightspeed',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -1664,7 +1799,7 @@ export const DashboardsPersesPage: React.FC = () => {
         }
       };
       setMessages((prev) => [...prev, userMessage, botMessage]);
-      setAnnouncement(`Message from Aladdin: ${DISCLAIMER_TEXT}`);
+      setAnnouncement(`Message from OpenShift Lightspeed: ${DISCLAIMER_TEXT}`);
       return;
     }
 
@@ -1710,14 +1845,14 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Thinking...',
-      name: 'Aladdin',
+      name: 'OpenShift Lightspeed',
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
     };
 
     setMessages((prev) => [...prev, userMessage, loadingBotMessage]);
-    setAnnouncement(`Message from User: ${messageText}. Message from Aladdin is loading.`);
+    setAnnouncement(`Message from User: ${messageText}. Message from OpenShift Lightspeed is loading.`);
 
     // Simulate AI response (replace with actual API call)
     setTimeout(() => {
@@ -1725,7 +1860,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: `I received your message: "${messageText}". This is a demo response. In a real implementation, this would connect to an AI service to help with Perses dashboard queries.`,
-        name: 'Aladdin',
+        name: 'OpenShift Lightspeed',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -1745,7 +1880,7 @@ export const DashboardsPersesPage: React.FC = () => {
         }
         return newMessages;
       });
-      setAnnouncement(`Message from Aladdin: ${botMessage.content}`);
+      setAnnouncement(`Message from OpenShift Lightspeed: ${botMessage.content}`);
       setIsSendButtonDisabled(false);
     }, 2000);
   }, []);
@@ -1754,6 +1889,50 @@ export const DashboardsPersesPage: React.FC = () => {
   const onSelectModel = (_event: React.MouseEvent<Element, MouseEvent> | undefined, value: string | number | undefined) => {
     setSelectedModel(value as string);
   };
+
+  const handleClearChat = () => {
+    setMessages([]);
+    setSelectedQuickResponses([]);
+    setAnnouncement('Chat history cleared.');
+  };
+
+  // PatternFly's bot Message always renders its own robot SVG. Replace that
+  // child after render so the chat consistently shows the OLS logo instead.
+  useEffect(() => {
+    const applyLightspeedAvatars = () => {
+      document
+        .querySelectorAll<HTMLElement>('.ai-assistant-drawer-wrapper .pf-chatbot__message--bot .pf-chatbot__message-avatar')
+        .forEach((avatar) => {
+          avatar.style.position = 'relative';
+          avatar.style.overflow = 'hidden';
+          avatar.querySelectorAll(':scope > *:not(.lightspeed-avatar-image)').forEach((child) => {
+            (child as HTMLElement).style.display = 'none';
+          });
+
+          if (!avatar.querySelector('.lightspeed-avatar-image')) {
+            const logo = document.createElement('img');
+            logo.className = 'lightspeed-avatar-image';
+            logo.src = olsLogoUrl;
+            logo.alt = 'OpenShift Lightspeed';
+            Object.assign(logo.style, {
+              position: 'absolute',
+              width: '34px',
+              height: '34px',
+              objectFit: 'contain',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+            });
+            avatar.appendChild(logo);
+          }
+        });
+    };
+
+    applyLightspeedAvatars();
+    const observer = new MutationObserver(applyLightspeedAvatars);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [isDrawerOpen, messages.length]);
 
   // Handle starting troubleshooting workflow from alert
   const handleStartTroubleshooting = useCallback((alertName: string) => {
@@ -1787,7 +1966,7 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Analyzing alert...',
-      name: 'Aladdin',
+      name: 'OpenShift Lightspeed',
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
@@ -1802,7 +1981,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve analyzed the KubeCPUOvercommit alert. The cluster is currently requesting 115% of available CPU. Would you like to analyze the root cause or check the node capacity?',
-        name: 'Aladdin',
+        name: 'OpenShift Lightspeed',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -1814,7 +1993,7 @@ export const DashboardsPersesPage: React.FC = () => {
               content: 'Analyze root cause',
               onClick: () => {
                 markQuickResponseSelected(stage1QuickResponsesId, 'Analyze root cause');
-                handleStage2();
+                handleStage2Ref.current();
               }
             },
             {
@@ -1846,7 +2025,7 @@ export const DashboardsPersesPage: React.FC = () => {
     id: generateId(),
     role: 'bot',
     content: 'I recommend scaling down the **web-head** deployment in **marketing-prod**. You can resolve this by following the steps below.',
-    name: 'Aladdin',
+    name: 'OpenShift Lightspeed',
     avatar: botAvatarSrc,
     isLoading: false,
     timestamp: new Date().toLocaleString(),
@@ -1866,7 +2045,7 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Analyzing root cause...',
-      name: 'Aladdin',
+      name: 'OpenShift Lightspeed',
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
@@ -1877,18 +2056,12 @@ export const DashboardsPersesPage: React.FC = () => {
     // Simulate AI root cause analysis
     setTimeout(() => {
       const stage2QuickResponsesId = `qr-stage2-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-      // Mock data for top 3 CPU-consuming namespaces
-      const cpuData = [
-        { x: 'marketing-prod', y: 45 },
-        { x: 'sales-prod', y: 32 },
-        { x: 'support-prod', y: 23 }
-      ];
       
       const stage2Message: MessageWithCustomPills = {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve identified the root cause: the **web-head** deployment in the **marketing-prod** namespace is consuming 45% of the cluster\'s CPU capacity, exceeding the namespace quota. Would you like to see a troubleshooting dashboard or see scaling steps?',
-        name: 'Aladdin',
+        name: 'OpenShift Lightspeed',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -1901,74 +2074,7 @@ export const DashboardsPersesPage: React.FC = () => {
                 </CardHeader>
                 <CardBody className="pf-v6-u-pb-0">
                   <div style={{ height: '200px', width: '100%' }}>
-                    <Charts
-                      height={200}
-                      option={{
-                        tooltip: {
-                          trigger: 'axis',
-                          axisPointer: {
-                            type: 'shadow'
-                          },
-                          formatter: (params: any) => {
-                            const param = params[0];
-                            return `${param.name}<br/>CPU Usage: ${param.value}%`;
-                          }
-                        },
-                        grid: {
-                          left: '60px',
-                          right: '20px',
-                          bottom: '100px',
-                          top: '20px',
-                          containLabel: false
-                        },
-                        xAxis: {
-                          type: 'category',
-                          data: cpuData.map(d => d.x),
-                          name: 'Namespace',
-                          nameLocation: 'middle',
-                          nameGap: 80,
-                          nameTextStyle: {
-                            color: 'var(--pf-t--global--text--color--default)'
-                          },
-                          axisLabel: {
-                            color: 'var(--pf-t--global--text--color--default)',
-                            formatter: (value: string) => {
-                              return value.length > 12 ? `${value.substring(0, 12)}...` : value;
-                            },
-                            rotate: 45
-                          }
-                        },
-                        yAxis: {
-                          type: 'value',
-                          name: 'CPU Usage (%)',
-                          nameLocation: 'middle',
-                          nameGap: 50,
-                          nameTextStyle: {
-                            color: 'var(--pf-t--global--text--color--default)'
-                          },
-                          axisLabel: {
-                            color: 'var(--pf-t--global--text--color--default)',
-                            formatter: '{value}%'
-                          }
-                        },
-                        series: [
-                          {
-                            name: 'CPU Usage',
-                            type: 'bar',
-                            data: cpuData.map(d => d.y),
-                            label: {
-                              show: true,
-                              position: 'top',
-                              formatter: '{c}%',
-                              color: 'var(--pf-t--global--text--color--default)'
-                            },
-                            itemStyle: {
-                              color: '#0066cc'
-                            }
-                          }
-                        ]
-                      }}
-                    />
+                    <ChatCpuNamespaceBarChart />
                   </div>
                 </CardBody>
               </Card>
@@ -1984,7 +2090,7 @@ export const DashboardsPersesPage: React.FC = () => {
               content: 'See troubleshooting dashboard',
               onClick: () => {
                 markQuickResponseSelected(stage2QuickResponsesId, 'See troubleshooting dashboard');
-                handleStage3();
+                handleStage3Ref.current();
               }
             },
             {
@@ -2010,6 +2116,7 @@ export const DashboardsPersesPage: React.FC = () => {
       setAnnouncement('Root cause analysis complete. The web-head deployment in marketing-prod is the culprit.');
     }, 2000);
   }, [generateId, setWorkflowStage, setMessages, setAnnouncement, buildScalingStepsMessage]);
+  handleStage2Ref.current = handleStage2;
 
   // Handle Stage 3: Dashboard Generation
   const handleStage3 = useCallback(() => {
@@ -2023,7 +2130,7 @@ export const DashboardsPersesPage: React.FC = () => {
       id: generateId(),
       role: 'bot',
       content: 'Building Perses Dashboard Definition...',
-      name: 'Aladdin',
+      name: 'OpenShift Lightspeed',
       avatar: botAvatarSrc,
       isLoading: true,
       timestamp: date.toLocaleString()
@@ -2038,7 +2145,7 @@ export const DashboardsPersesPage: React.FC = () => {
         id: generateId(),
         role: 'bot',
         content: 'I\'ve generated a temporary troubleshooting dashboard for the **marketing-prod** namespace. Would you like to save this dashboard?',
-        name: 'Aladdin',
+        name: 'OpenShift Lightspeed',
         avatar: botAvatarSrc,
         isLoading: false,
         timestamp: date.toLocaleString(),
@@ -2072,6 +2179,7 @@ export const DashboardsPersesPage: React.FC = () => {
       setIsGeneratingDashboard(false);
     }, 3000);
   }, [generateId, setWorkflowStage, setMessages, setAnnouncement, setShowTroubleshootingDashboard]);
+  handleStage3Ref.current = handleStage3;
 
   // Welcome prompts for ChatbotWelcomePrompt
   const welcomePrompts = [
@@ -2240,11 +2348,11 @@ export const DashboardsPersesPage: React.FC = () => {
                   return (
                     <React.Fragment key={message.id}>
                       <div ref={messagesEndRef}></div>
-                      <Message {...messageProps} />
+                      <Message {...withLightspeedBotAvatar(messageProps)} />
                     </React.Fragment>
                   );
                 }
-                return <Message key={message.id} {...messageProps} />;
+                return <Message key={message.id} {...withLightspeedBotAvatar(messageProps)} />;
               })}
             </MessageBox>
           </ChatbotContent>
@@ -2774,22 +2882,25 @@ export const DashboardsPersesPage: React.FC = () => {
                     aria-expanded={isDrawerOpen}
                     onMenuToggle={() => setIsDrawerOpen(!isDrawerOpen)}
                   />
-                  <ChatbotHeaderTitle>AI Assistant</ChatbotHeaderTitle>
+                  <span className="lightspeed-header-mark" aria-hidden>
+                    <img src={olsLogoUrl} alt="" className="lightspeed-header-logo" />
+                  </span>
+                  <ChatbotHeaderTitle className="lightspeed-header-title">
+                    <Title headingLevel="h2" size="2xl" className="lightspeed-header-title-text">
+                      Red Hat OpenShift Lightspeed
+                    </Title>
+                  </ChatbotHeaderTitle>
                 </ChatbotHeaderMain>
                 <ChatbotHeaderActions>
-                  <ChatbotHeaderSelectorDropdown value={selectedModel} onSelect={onSelectModel}>
-                    <DropdownList>
-                      <DropdownItem value="Granite 7B" key="granite">
-                        Granite 7B
-                      </DropdownItem>
-                      <DropdownItem value="Llama 3.0" key="llama">
-                        Llama 3.0
-                      </DropdownItem>
-                      <DropdownItem value="Mistral 3B" key="mistral">
-                        Mistral 3B
-                      </DropdownItem>
-                    </DropdownList>
-                  </ChatbotHeaderSelectorDropdown>
+                  <Tooltip content="Clear chat history">
+                    <Button variant="plain" aria-label="Clear chat history" icon={<TrashIcon />} onClick={handleClearChat} />
+                  </Tooltip>
+                  <Tooltip content="Minimize">
+                    <Button variant="plain" aria-label="Minimize assistant" icon={<MinusIcon />} onClick={() => setIsDrawerOpen(false)} />
+                  </Tooltip>
+                  <Tooltip content="Open in console (prototype)">
+                    <Button variant="plain" aria-label="Expand or pop out assistant" icon={<ExternalLinkAltIcon />} />
+                  </Tooltip>
                 </ChatbotHeaderActions>
               </ChatbotHeader>
               <ChatbotContent style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
@@ -2827,21 +2938,24 @@ export const DashboardsPersesPage: React.FC = () => {
                       return (
                         <React.Fragment key={message.id}>
                           <div ref={messagesEndRef}></div>
-                          <Message {...messageProps} />
+                          <Message {...withLightspeedBotAvatar(messageProps)} />
                         </React.Fragment>
                       );
                     }
-                    return <Message key={message.id} {...messageProps} />;
+                    return <Message key={message.id} {...withLightspeedBotAvatar(messageProps)} />;
                   })}
                 </MessageBox>
               </ChatbotContent>
               <ChatbotFooter style={{ flexShrink: 0, display: 'flex', visibility: 'visible' }}>
                 <MessageBar 
+                  displayMode={ChatbotDisplayMode.drawer}
                   onSendMessage={handleSendMessage} 
-                  hasMicrophoneButton 
+                  hasAttachButton
+                  alwayShowSendButton
+                  placeholder="Send a message…"
                   isSendButtonDisabled={isSendButtonDisabled} 
                 />
-                <ChatbotFootnote {...footnoteProps} />
+                <ChatbotFootnote label="Always review AI-generated content prior to use." />
               </ChatbotFooter>
             </Chatbot>
             </div>
@@ -2861,6 +2975,7 @@ export const DashboardsPersesPage: React.FC = () => {
             onClick={() => setIsDrawerOpen(!isDrawerOpen)}
             aria-label="AI assistant"
             tooltipLabel="AI assistant"
+            closedToggleIcon={OlsLogoIcon}
           />
         </div>
       </div>,
